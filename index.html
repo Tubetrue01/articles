@@ -189,7 +189,7 @@
             
 
   
-    <article id="post-08-14/Unix-系列（一）信号之-sigaction-函数" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-c_mini/C-迷你系列（六）select-与-stdio-混用所带来的问题" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -197,7 +197,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2021/08/14/08-14/Unix-%E7%B3%BB%E5%88%97%EF%BC%88%E4%B8%80%EF%BC%89%E4%BF%A1%E5%8F%B7%E4%B9%8B-sigaction-%E5%87%BD%E6%95%B0/" target="_blank">Unix 系列（一）信号之 sigaction 函数</a>
+	  <a class="article-title" href="/articles/2021/08/09/c_mini/C-%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97%EF%BC%88%E5%85%AD%EF%BC%89select-%E4%B8%8E-stdio-%E6%B7%B7%E7%94%A8%E6%89%80%E5%B8%A6%E6%9D%A5%E7%9A%84%E9%97%AE%E9%A2%98/" target="_blank">C 迷你系列（六）select 与 stdio 混用所带来的问题</a>
   
     </h1>
   
@@ -205,8 +205,8 @@
 
   
   
-<a href="/articles/2021/08/14/08-14/Unix-%E7%B3%BB%E5%88%97%EF%BC%88%E4%B8%80%EF%BC%89%E4%BF%A1%E5%8F%B7%E4%B9%8B-sigaction-%E5%87%BD%E6%95%B0/" class="archive-article-date">
-        <time datetime="2021-08-13T17:29:12.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-08-14</time>
+<a href="/articles/2021/08/09/c_mini/C-%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97%EF%BC%88%E5%85%AD%EF%BC%89select-%E4%B8%8E-stdio-%E6%B7%B7%E7%94%A8%E6%89%80%E5%B8%A6%E6%9D%A5%E7%9A%84%E9%97%AE%E9%A2%98/" class="archive-article-date">
+        <time datetime="2021-08-09T10:49:17.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-08-09</time>
 </a>
 
   
@@ -219,26 +219,57 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>sigaction 函数的功能是检查或修改（检查并修改）与指定信号相关的处理动作。此函数取代了早期 Unix 的 signal 函数。</p>
+<p> 在 《UNIX 网络编程》一书 135 页的末尾提到关于 select 与 stdio 相关函数混用的问题。这里我把它单独拿出来，以一个简单的例子说明一下。避免之后的使用中出现类似的问题。</p>
 </blockquote>
-<h1 id="1-0-函数声明"><a href="#1-0-函数声明" class="headerlink" title="1.0 函数声明"></a>1.0 函数声明</h1><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/signal.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">sigaction</span><span class="params">( <span class="keyword">int</span> signo,</span></span></span><br><span class="line"><span class="params"><span class="function">               <span class="keyword">const</span> struct sigaction *<span class="keyword">restrict</span> act,</span></span></span><br><span class="line"><span class="params"><span class="function">               struct sigaction *<span class="keyword">restrict</span> oact</span></span></span><br><span class="line"><span class="params"><span class="function">              )</span></span></span><br></pre></td></tr></table></figure>
-<h2 id="1-1-参数"><a href="#1-1-参数" class="headerlink" title="1.1 参数"></a>1.1 参数</h2><ul>
-<li><strong>signo</strong><br>要检测或者要修改其具体动作的信号编号。</li>
-<li><strong>act</strong><br>当该参数不为 NULL 时，指定要修改的新的动作。</li>
-<li><strong>oact</strong><br>当该参数不为 NULL 时，将该信号的上一个动作（更新前的动作）保存在该对象中。<h2 id="1-2-sigaction-结构体"><a href="#1-2-sigaction-结构体" class="headerlink" title="1.2 sigaction 结构体"></a>1.2 sigaction 结构体</h2><blockquote>
-<p>sigaction 函数的后两个参数都用到了该结构体。</p>
+<h1 id="问题根源"><a href="#问题根源" class="headerlink" title="问题根源"></a>问题根源</h1><p>两者的缓冲区：</p>
+<ul>
+<li>系统 I/O 在内核空间中存在缓冲，而在用户空间没有；</li>
+<li>stdio 系列函数除了在内核空间中有缓存，在用户空间也有缓冲；</li>
+</ul>
+<p>缓冲区类型：</p>
+<ul>
+<li>全缓冲(大部分缓冲都是这类型)</li>
+<li>行缓冲(例如：stdio、stdout)</li>
+<li>无缓冲(例如：stderr)</li>
+</ul>
+<p>而具体的问题则是出现在 select 只会检测内核空间中的缓冲区，无法感知用户空间中的缓冲区。当数据从内核空间复制到用户空间的时候，即使该描述符对应的缓存空间有数据，select 也不会再给通知。如图：</p>
+<img src="/articles/2021/08/09/c_mini/C-%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97%EF%BC%88%E5%85%AD%EF%BC%89select-%E4%B8%8E-stdio-%E6%B7%B7%E7%94%A8%E6%89%80%E5%B8%A6%E6%9D%A5%E7%9A%84%E9%97%AE%E9%A2%98/info.png" class="" width="650" height="500">
+
+
+<h1 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h1><ul>
+<li><h3 id="正常输出"><a href="#正常输出" class="headerlink" title="正常输出"></a>正常输出</h3></li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> BUFFER 3</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> BUFFER_LEN (BUFFER - 1)</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> n;</span><br><span class="line">    fd_set rset;</span><br><span class="line">    <span class="keyword">char</span> buffer[BUFFER];</span><br><span class="line">    FD_ZERO(&amp;rset);</span><br><span class="line">    <span class="keyword">for</span> (;;)</span><br><span class="line">    &#123;</span><br><span class="line">        FD_SET(fileno(<span class="built_in">stdin</span>), &amp;rset);</span><br><span class="line">        select(fileno(<span class="built_in">stdin</span>) + <span class="number">1</span>, &amp;rset, <span class="literal">NULL</span>, <span class="literal">NULL</span>, <span class="literal">NULL</span>);</span><br><span class="line">        n = read(fileno(<span class="built_in">stdin</span>), buffer, BUFFER_LEN);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;读取到：[%d] 字节，内容为：[%s]\n&quot;</span>, n, buffer);</span><br><span class="line">        <span class="built_in">memset</span>(buffer, <span class="number">0</span>, <span class="keyword">sizeof</span>(buffer));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">--- input</span><br><span class="line"><span class="number">123456</span></span><br><span class="line"></span><br><span class="line">--- output</span><br><span class="line">读取到：[<span class="number">2</span>] 字节，内容为：[<span class="number">12</span>]</span><br><span class="line">读取到：[<span class="number">2</span>] 字节，内容为：[<span class="number">34</span>]</span><br><span class="line">读取到：[<span class="number">2</span>] 字节，内容为：[<span class="number">56</span>]</span><br><span class="line">读取到：[<span class="number">1</span>] 字节，内容为：[</span><br><span class="line">]</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>我们分配 3 字节大小的缓冲区，然后再每次读取玩缓冲中的数据之后，将缓冲中的数据清空，避免影响输出。当我们输入：123456 并按回车换行时（实际：123456\n），内容依次输出了。最后的 1 字节内容就是最后的换行符。</p>
 </blockquote>
-</li>
+<p>我们分析一下从我们输出完并按下回车到显示时，都发生了什么：</p>
+<ol>
+<li>输入回车之后，数据从用户缓冲复制到了内核缓冲（行缓冲）；</li>
+<li>select 检测到 stdin 对应的内核缓冲有数据可读的时候，解除阻塞；</li>
+<li>read 函数取 2 个字节的数据到 buffer 中；</li>
+<li>printf 将 buffer 中的数据显示出来，并进行下次循环，阻塞到 select；</li>
+<li>由于内核中还有数据未读完，select 再次解除阻塞，直至数据取完为止；</li>
+</ol>
+<ul>
+<li><h3 id="混用时的问题"><a href="#混用时的问题" class="headerlink" title="混用时的问题"></a>混用时的问题</h3></li>
 </ul>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/signal.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sigaction</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="keyword">void</span> (*sa_handler)(<span class="keyword">int</span>);		                <span class="comment">/* 信号处理函数地址 */</span></span><br><span class="line">  <span class="keyword">sigset_t</span> sa_mask;				                <span class="comment">/* 信号掩码集，当调用信号处理函数时，程序将阻塞 sa_mask 中的信号 */</span></span><br><span class="line">  <span class="keyword">int</span> sa_flag;					                <span class="comment">/* 位掩码，指定用于控制信号处理过程中的各种选项 */</span></span><br><span class="line">  <span class="keyword">void</span> (*sa_sigaction)(<span class="keyword">int</span>,<span class="keyword">siginfo_t</span>*,<span class="keyword">void</span>*);	<span class="comment">/* 暂不用 */</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<h2 id="1-3-返回值"><a href="#1-3-返回值" class="headerlink" title="1.3 返回值"></a>1.3 返回值</h2><ul>
-<li><strong>0</strong><br>函数执行成功</li>
-<li><strong>-1</strong><br>函数执行失败</li>
-</ul>
-<hr>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
-<li><a target="_blank" rel="noopener" href="https://item.jd.com/12720738.html">Unix 环境高级编程 卷三</a></li>
-</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> n;</span><br><span class="line">    fd_set rset;</span><br><span class="line">    FD_ZERO(&amp;rset);</span><br><span class="line">    <span class="keyword">for</span> (;;)</span><br><span class="line">    &#123;</span><br><span class="line">        FD_SET(fileno(<span class="built_in">stdin</span>), &amp;rset);</span><br><span class="line">        select(fileno(<span class="built_in">stdin</span>) + <span class="number">1</span>, &amp;rset, <span class="literal">NULL</span>, <span class="literal">NULL</span>, <span class="literal">NULL</span>);</span><br><span class="line">        n = getc(<span class="built_in">stdin</span>);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;内容为：[%c]\n&quot;</span>, n);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">---</span><br><span class="line">intput: <span class="number">123456</span></span><br><span class="line">output: 内容为：[<span class="number">1</span>]</span><br><span class="line">intput: <span class="number">9</span></span><br><span class="line">output: 内容为：[<span class="number">2</span>]</span><br><span class="line">output: 内容为：[<span class="number">3</span>]</span><br><span class="line">output: 内容为：[<span class="number">4</span>]</span><br><span class="line">output: 内容为：[<span class="number">5</span>]</span><br><span class="line">output: 内容为：[<span class="number">6</span>]</span><br><span class="line">output: 内容为：[</span><br><span class="line">output: ]</span><br><span class="line">output: 内容为：[<span class="number">9</span>]</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>我们发现输出已经出现问题了，我们继续分析一下该问题是怎么造成的：</p>
+<ol>
+<li>当我们输入 123456 之后，数据由用户空间缓冲复制到了内核缓冲；</li>
+<li>select 检测到有数据可读，解除阻塞；</li>
+<li>getc 函数从用户缓冲中取 1 字节数据，发现缓冲中无数据可读，于是将内核中的数据复制到用户缓冲，并取 1 字节作为输出；</li>
+<li>此时由于数据已经全部复制到了用户缓冲，所以 select 进入阻塞状态（即使用户空间的缓冲中有数据可读）；</li>
+<li>当输出 9 并回车时，该数据又被复制到了内核空间（行缓冲），select 解除阻塞；</li>
+<li>getc 函数从用户缓冲中取出 1 字节数据输出（由于用户缓冲中有数据，所以 getc 便不会再从内核中复制数据）；</li>
+<li>由于内核中有数据，所以 select 便再解除阻塞，getc 再取 1 字节直到 9 被复制到用户缓冲并输出为止；</li>
+</ol>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>仔细看最后的输出，你会发现 9 之后的换行符还留在用户空间缓冲中，该数据只能等下次再有数据输出到内核空间中才会得到输出。</p>
+</blockquote>
 
     
 
@@ -265,7 +296,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2021/08/14/08-14/Unix-%E7%B3%BB%E5%88%97%EF%BC%88%E4%B8%80%EF%BC%89%E4%BF%A1%E5%8F%B7%E4%B9%8B-sigaction-%E5%87%BD%E6%95%B0/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2021/08/09/c_mini/C-%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97%EF%BC%88%E5%85%AD%EF%BC%89select-%E4%B8%8E-stdio-%E6%B7%B7%E7%94%A8%E6%89%80%E5%B8%A6%E6%9D%A5%E7%9A%84%E9%97%AE%E9%A2%98/">展开全文 >></a>
     </p>
     
 

@@ -6,17 +6,13 @@
   <meta name="renderer" content="webkit">
   <meta http-equiv="X-UA-Compatible" content="IE=edge" >
   <link rel="dns-prefetch" href="https://tubetrue01.github.io/articles">
-  <title>Tubetrue01</title>
+  <title>Archives: 2020 | Tubetrue01</title>
   <meta name="generator" content="hexo-theme-yilia-plus">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   
-    
-    <!-- <meta name="keywords" content="">
-    <meta name="description" content=""> -->
-  
   <meta property="og:type" content="website">
 <meta property="og:title" content="Tubetrue01">
-<meta property="og:url" content="https://tubetrue01.github.io/articles/page/3/index.html">
+<meta property="og:url" content="https://tubetrue01.github.io/articles/archives/2020/index.html">
 <meta property="og:site_name" content="Tubetrue01">
 <meta property="og:locale" content="en_US">
 <meta property="article:author" content="Tubetrue01">
@@ -187,134 +183,40 @@
           </div>
           <div id="js-content" class="content-ll">
             
-
   
-    <article id="post-c_io/IO-多路复用（一）-select-函数" class="article article-type-post  article-index" itemscope itemprop="blogPost">
-  <div class="article-inner">
+  
     
-      <header class="article-header">
-  
+    
+      
+      
+      <section class="archives-wrap">
+        <div class="archive-year-wrap">
+          <a href="/articles/archives/2020" class="archive-year">2020</a>
+        </div>
+        <div class="archives">
+    
+    <article class="archive-article archive-type-post">
+  <div class="archive-article-inner">
+    <header class="archive-article-header">
+      	<div class="article-meta">
+	      	
+<a href="/articles/2020/12/16/c_unix/Unix-%E7%B3%BB%E5%88%97%EF%BC%88%E4%B8%80%EF%BC%89%E4%BF%A1%E5%8F%B7%E4%B9%8B-sigaction-%E5%87%BD%E6%95%B0/" class="archive-article-date">
+        <time datetime="2020-12-16T08:37:33.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-12-16</time>
+</a>
+
+        </div>
+    	 
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2020/12/15/c_io/IO-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%EF%BC%88%E4%B8%80%EF%BC%89-select-%E5%87%BD%E6%95%B0/" target="_blank">IO 多路复用（一） select 函数</a>
+	  <a class="archive-article-title" href="/articles/2020/12/16/c_unix/Unix-%E7%B3%BB%E5%88%97%EF%BC%88%E4%B8%80%EF%BC%89%E4%BF%A1%E5%8F%B7%E4%B9%8B-sigaction-%E5%87%BD%E6%95%B0/" target="_blank">Unix 系列（一）信号之 sigaction 函数</a>
   
     </h1>
   
 
 
-  
-  
-<a href="/articles/2020/12/15/c_io/IO-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%EF%BC%88%E4%B8%80%EF%BC%89-select-%E5%87%BD%E6%95%B0/" class="archive-article-date">
-        <time datetime="2020-12-15T06:59:58.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-12-15</time>
-</a>
-
-  
-  
-    
-
-  
-  </header>
-  
-  <div class="article-entry" itemprop="articleBody">
-    
-    <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>在介绍 IO 多路复用的时候，始终都会围绕 select、pselect、poll、epoll 这几个函数展开。为了对它们进行详细的说明，这里会分为几篇文章（避免篇幅过大）。</p>
-</blockquote>
-<h1 id="1-0-select-函数"><a href="#1-0-select-函数" class="headerlink" title="1.0 select 函数"></a>1.0 select 函数</h1><blockquote>
-<p>select 是用于 I/O 多路复用的一个系统调用函数。在 C 程序中，该系统调用在 sys/select.h 或 unistd.h 中声明。它允许进程指示内核等待多个事件中的任何一个发生，当任何事件发生或者超时后它将被唤醒。</p>
-</blockquote>
-<h2 id="1-1-函数声明"><a href="#1-1-函数声明" class="headerlink" title="1.1 函数声明"></a>1.1 函数声明</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">select</span><span class="params">( <span class="keyword">int</span> nfds, </span></span></span><br><span class="line"><span class="params"><span class="function">            fd_set *<span class="keyword">restrict</span> readfds, </span></span></span><br><span class="line"><span class="params"><span class="function">            fd_set *<span class="keyword">restrict</span> writefds, </span></span></span><br><span class="line"><span class="params"><span class="function">            fd_set *<span class="keyword">restrict</span> errorfds, </span></span></span><br><span class="line"><span class="params"><span class="function">            struct timeval *<span class="keyword">restrict</span> timeout</span></span></span><br><span class="line"><span class="params"><span class="function">           )</span></span>;</span><br></pre></td></tr></table></figure>
-<h3 id="1-1-1-参数"><a href="#1-1-1-参数" class="headerlink" title="1.1.1 参数"></a>1.1.1 参数</h3><h4 id="timeout"><a href="#timeout" class="headerlink" title="timeout"></a>timeout</h4><p>我们先从最简单的参数入手 timeout， 该参数是一个 timeval 类型的结构体，该结构体声明如下：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">timeval</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="keyword">long</span> tv_sec;   <span class="comment">/* seconds */</span></span><br><span class="line">    <span class="keyword">long</span> tv_usec;  <span class="comment">/* microseconds */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>该参数用来指定 select 函数等待描述符就绪的最大时间，该值有三种选项：</p>
-<ul>
-<li><strong>永远等待</strong><br> 当设置成 NULL 的时候，该函数会一直等待关联的任一描述符就绪。</li>
-<li><strong>等待指定时间</strong><br> 当设置成具体值的时候，该函数会等待指定时间，直到超时或者描述符就绪。</li>
-<li><strong>立即返回</strong><br>当该值设置成 0 的时候，函数会立即返回，通过轮询的方式，无阻塞地获取多个文件描述符状态。</li>
-</ul>
-<h4 id="nfds"><a href="#nfds" class="headerlink" title="nfds"></a>nfds</h4><p>乍一看这个参数，以为是文件描述符的数量呢，毕竟有个 n，结果惨遭打脸。查了一些资料，大体意思是当前注册的描述符最大值加 1。比如有 {1、3、5 } 三个描述符被注册，那么 nfds 的值是： 5 + 1 = 6；为什么这么设计呢？</p>
-<p><strong>分析</strong>（如果不对，大家可以帮我指出，谢谢）：</p>
-<blockquote>
-<ol>
-<li>描述符以位存储（下面会介绍）。</li>
-<li>位数又以 0 开始（类似数组从 0 开始）</li>
-<li>位数：7—-6—-5—-4—-3—-2—-1—-0<br> 开关：0—-0—-1—-0—-1—-0—-1—-0</li>
-<li>需要遍历的描述符的索引为 5，也就是数组第 6 个元素</li>
-</ol>
-</blockquote>
-<p><strong>总结</strong></p>
-<blockquote>
-<p>其实 nfds 还是描述符的数量，只不过需要最大的描述符加 1，为什么加 1，其实是因为索引为 0 的缘故。数组遍历是需要知道数组元素的数量的。</p>
-</blockquote>
-<hr>
-<p>在介绍接下来的参数之前，首先需要介绍另一个很重要的概念，即 fd_set。它也是一个结构体，声明如下（取自 macOS）：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __DARWIN_FD_SETSIZE     1024</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __DARWIN_NBBY           8     <span class="comment">/* bits in a byte */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __DARWIN_NFDBITS        (sizeof(__int32_t) * __DARWIN_NBBY) <span class="comment">/* bits per mask */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __DARWIN_howmany(x, y)  ((((x) % (y)) == 0) ? ((x) / (y)) : (((x) / (y)) + 1)) <span class="comment">/* # y&#x27;s == x bits? */</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="keyword">int</span> <span class="keyword">__int32_t</span>;</span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">fd_set</span> &#123;</span></span><br><span class="line">	<span class="keyword">__int32_t</span>      </span><br><span class="line">    fds_bits [__DARWIN_howmany(__DARWIN_FD_SETSIZE, __DARWIN_NFDBITS)];</span><br><span class="line">&#125; fd_set;</span><br></pre></td></tr></table></figure>
-<p>简化之后：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">fd_set</span> &#123;</span></span><br><span class="line">  <span class="keyword">int</span> fds_bits[<span class="number">32</span>];</span><br><span class="line">&#125; fd_set;</span><br></pre></td></tr></table></figure>
-<p>经过简化之后，fd_set 可以理解为一个数组，这个数组中存放的是文件描述符（Unix 下任何设备、管道、FIFO 等都是文件形式，全部包括在内），而对于 fd_set，系统提供了一系列的宏进行操作，不急，稍后会对这些宏进行介绍。我们继续回到 fd_set 中来，查看它的声明，发现这个结构体只有一个字段 fds_bits，它是一个由 32 个 int 类型的数组。那它具体怎么存放呢？为了弄清这个问题，还是看看它的源码吧。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __DARWIN_FD_SET(n, p) do &#123;  \</span></span><br><span class="line"><span class="meta">int __fd = (n);                     \</span></span><br><span class="line"><span class="meta">   ((p) -&gt; fds_bits[(unsigned long)__fd /__DARWIN_NFDBITS] |= ((__int32_t)(((unsigned long)1)&lt;&lt;((unsigned long)__fd % __DARWIN_NFDBITS))));   \</span></span><br><span class="line"><span class="meta">&#125; while(0)</span></span><br></pre></td></tr></table></figure>
-<p>老样子，我们对它进行简化：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> FD_SET(n, fd_set)  do &#123;                     </span></span><br><span class="line">    <span class="keyword">int</span> fd = n;                                     </span><br><span class="line">    fd_set -&gt; fds_bits[fd / <span class="number">32</span>] |= <span class="number">1</span> &lt;&lt; (fd % <span class="number">32</span>);               </span><br><span class="line">  &#125; <span class="keyword">while</span>(<span class="number">0</span>)</span><br></pre></td></tr></table></figure>
-<p><strong>分析：</strong></p>
-<blockquote>
-<ol>
-<li>n 是我们想要监听的描述符，fd_set 就是那个结构体。</li>
-<li>fd_set -&gt; fds_bits[fd/32]，这个怎么理解呢？首先 fds_bits 是一个由 32 个 int 数值组成的数组，其中每个 int 占 4 个字节。fd/32 则确定 fd 这个描述符在 32 个 int 中的第几个 int 上。</li>
-<li>fd%32 确定的是 fd 在 int 的第多少位。那么就将该位置置成 1。</li>
-</ol>
-</blockquote>
-<p><strong>总结</strong></p>
-<blockquote>
-<p>fd_set 这个结构体在我的系统 macOS 上可以存储最多 32 * 32 = 1024 个描述符。每一个 bit 位代表一个描述符，位的编号代表具体的描述符数值。</p>
-</blockquote>
-<hr>
-<h4 id="readfds"><a href="#readfds" class="headerlink" title="readfds"></a>readfds</h4><p>你需要告诉内核，你想要关注对这个描述符的目标行为是什么。比如说：当这个描述符可以读取数据的时候，告诉调用者。那么这个参数就是用来告诉内核，我只关心读操作。那么问题来了，什么时候会出发读就绪呢？</p>
-<h5 id="触发条件"><a href="#触发条件" class="headerlink" title="触发条件"></a>触发条件</h5><ul>
-<li><strong>有数据可读</strong><br>该套接字接收缓冲区中的字节数大于等于套接字接收缓冲区低潮标记大小。对这样的套接字读操作将不阻塞并返回一个大于 0 的值（也就是返回准备好读入的数据）。我们可以使用 SO_RCVLOWAT 套接字选项设置该套接字的低潮标记。对于 TCP 和 UDP 套接字而言，其缺省值为 1。</li>
-<li><strong>关闭连接的读一半</strong><br>该连接的读这一半关闭（也就是接收了 FIN 的 TCP 连接）。对这样的套接字的读操作将不阻塞并返回 0（也就是返回 EOF）。</li>
-<li><strong>给监听套接字准备好新连接</strong><br>该套接字是一个监听套接字且已完成的连接数不为 0。对这样的套接字的 accept 通常不会阻塞。</li>
-<li><strong>待错误处理</strong><br>其上有一个套接字错误待处理，对这样的套接字的读操作将不阻塞并且返回 -1，同时把 errno 设置成确切的错误条件。这些待处理的无措也可以通过制定 SO_ERROR 套接口选项调用 getsockopt 获取并清除。<h4 id="writefds"><a href="#writefds" class="headerlink" title="writefds"></a>writefds</h4>描述符的写操作就绪。<h5 id="触发条件-1"><a href="#触发条件-1" class="headerlink" title="触发条件"></a>触发条件</h5></li>
-<li><strong>有可用于写的空间</strong><br>该套接字发送缓冲区中可用空间字节数大于等于套接字发送缓冲区低潮标记大小，并且或者（i）该套接字已连接，或者（ii）该套接字不需要连接（比如 UDP 套接字）。这意味着我们把这样的套接字设置成非阻塞，写操作将不阻塞并返回一个正值（例如由传输层接受的字节数）。我们可以使用 SO_SNDLOWAT 套接字选项来设置该套接字的低潮标记。对于 TCP 和 UDP 套接字而言，其缺省值通常为 2048。</li>
-<li><strong>关闭连接的写一半</strong><br>该连接的写这一半关闭。对这样的套接字的写操作将产生 SIGPIPE 信号。</li>
-<li><strong>该套接字早先使用非阻塞式 connect 已建立连接，并且连接已经异步建立，或者 connect 已经以失败告终。</strong></li>
-<li><strong>待处理错误</strong><br>其上有一个套接字错误待处理。对这样的套接字的写操作将不阻塞并且返回 -1，同时把 errno 设置成确切的错误条件。这些待处理的无措也可以通过制定 SO_ERROR 套接口选项调用 getsockopt 获取并清除。</li>
-</ul>
-<h4 id="errorfds"><a href="#errorfds" class="headerlink" title="errorfds"></a>errorfds</h4><p>如果一个套接字存在带外数据或者仍处于带外标记，那么它有异常条件待处理。<br><strong>接收和发送低潮标记的目的在于</strong>：允许应用进程控制在 select 返回可读或可写条件之前，有多少数据可读或者有多少空间可用于写。比如，如果我们知道除非至少存在 64 个字节的数据，否则我们的应用进程没有任何有效的工作可以做，那么我们可以把低潮标记设置为 64，以防少于 64 个字节的数据准备好读时，select 就唤醒我们。<br>任何 UDP 套接字只要其发送低潮标记小于等于发送缓冲区大小（缺省应该总是这种关系）就总是可写的，这是因为 UDP 套接字不需要连接。</p>
-<h4 id="1-1-2-返回值"><a href="#1-1-2-返回值" class="headerlink" title="1.1.2 返回值"></a>1.1.2 返回值</h4><p>该函数有三种返回值，分别是：</p>
-<ul>
-<li><strong>0</strong><br>当函数等待超时的时候返回。</li>
-<li><strong>-1</strong><br>当函数发生错误的时候返回。</li>
-<li><strong>n</strong><br>n 为已经就绪的描述符的数量。<h2 id="1-2-宏"><a href="#1-2-宏" class="headerlink" title="1.2 宏"></a>1.2 宏</h2>为了便于操作 fd_set，系统提供相应的宏。</li>
-<li><strong>FD_ZERO(&amp;fd_set)</strong><br>使用 fd_set 之前，必须对它进行初始化，该宏的作用就是将 fd_set 所有位清零。</li>
-<li><strong>FD_SET(n, &amp;fd_set)</strong><br> 将 n 对应的描述符添加到描述符集 fd_set 中。换句话说，注册你感兴趣的描述符到内核。</li>
-<li><strong>FD_CLR(n, &amp;fd_set)</strong><br>将 n 对应的描述符从描述符集中移除。</li>
-<li><strong>FD_ISSET(n, &amp;fd_set)</strong><br>判断指定的描述符 n 有没有就绪。<h2 id="1-3-注意"><a href="#1-3-注意" class="headerlink" title="1.3 注意"></a>1.3 注意</h2></li>
-<li><strong>第一个参数 nfds 是最大文件描述符 +1</strong></li>
-<li><strong>函数返回后，相关的未就绪描述符需要重新设置</strong></li>
-<li><strong>函数返回后，超时时间也需要重新设置</strong></li>
-<li><strong>函数可以检测远程连接断开</strong><br> 如：读描述符 socket 断开时，这个 socket 变为一直可读，但是读到的是文件结尾 EOF。以此用来判断远程连接是否断开。</li>
-<li><strong>函数阻塞时，会被信号中断</strong></li>
-<li><strong><a href="https://tubetrue01.github.io/articles/2021/08/10/C-%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97%EF%BC%88%E5%85%AD%EF%BC%89select-%E4%B8%8E-stdio-%E6%B7%B7%E7%94%A8%E6%89%80%E5%B8%A6%E6%9D%A5%E7%9A%84%E9%97%AE%E9%A2%98/">select 与 stdio 混合使用带来的有关缓冲区问题</a></strong></li>
-</ul>
-<hr>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
-<li><a target="_blank" rel="noopener" href="https://item.jd.com/12715718.html">Unix 网络编程 卷一</a></li>
-<li><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/Select_(Unix)">维基百科 select (Unix)</a></li>
-<li><a target="_blank" rel="noopener" href="https://niyanchun.com/select-functionn.html">select（pselect）函数</a></li>
-</ul>
-
-    
-
-    
-
-    
-
-  </div>
-  <div class="article-info article-info-index">
-    
-    
+        <div class="article-info info-on-right">
+          
 	<div class="article-tag tagcloud">
 		<i class="icon-price-tags icon"></i>
 		<ul class="article-tag-list">
@@ -326,45 +228,62 @@
 		</ul>
 	</div>
 
-    
+          
 
-    
-    <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2020/12/15/c_io/IO-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%EF%BC%88%E4%B8%80%EF%BC%89-select-%E5%87%BD%E6%95%B0/">展开全文 >></a>
-    </p>
-    
-
-    
-    <div class="clearfix"></div>
-  </div>
+        </div>
+        <div class="clearfix"></div>
+    </header>
   </div>
 </article>
+  
+    
+    
+    <article class="archive-article archive-type-post">
+  <div class="archive-article-inner">
+    <header class="archive-article-header">
+      	<div class="article-meta">
+	      	
+<a href="/articles/2020/12/15/c_io/IO-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%EF%BC%88%E4%B8%80%EF%BC%89-select-%E5%87%BD%E6%95%B0/" class="archive-article-date">
+        <time datetime="2020-12-15T06:59:58.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-12-15</time>
+</a>
 
-<aside class="wrap-side-operation">
-    <div class="mod-side-operation">
-        
-        <div class="jump-container" id="js-jump-container" style="display:none;">
-            <a href="javascript:void(0)" class="mod-side-operation__jump-to-top">
-                <i class="icon-font icon-back"></i>
-            </a>
-            <div id="js-jump-plan-container" class="jump-plan-container" style="top: -11px;">
-                <i class="icon-font icon-plane jump-plane"></i>
-            </div>
         </div>
-        
-        
-    </div>
-</aside>
+    	 
+  
+    <h1 itemprop="name">
+	
+	  <a class="archive-article-title" href="/articles/2020/12/15/c_io/IO-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%EF%BC%88%E4%B8%80%EF%BC%89-select-%E5%87%BD%E6%95%B0/" target="_blank">IO 多路复用（一） select 函数</a>
+  
+    </h1>
+  
 
 
+        <div class="article-info info-on-right">
+          
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">C</a>
+        		</li>
+      		
+		</ul>
+	</div>
 
+          
 
+        </div>
+        <div class="clearfix"></div>
+    </header>
+  </div>
+</article>
   
   
-    <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/2/">上一页</a><a class="page-number" href="/articles/">1</a><a class="page-number" href="/articles/page/2/">2</a><span class="page-number current">3</span>
-    </nav>
+    </div></section>
   
+
+    
 
 
 
@@ -400,9 +319,9 @@
     <script>
 	var yiliaConfig = {
 		mathjax: true,
-		isHome: true,
+		isHome: false,
 		isPost: false,
-		isArchive: false,
+		isArchive: true,
 		isTag: false,
 		isCategory: false,
 		open_in_new: true,
