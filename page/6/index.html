@@ -245,7 +245,6 @@
 <blockquote>
 <p>其实 nfds 还是描述符的数量，只不过需要最大的描述符加 1，为什么加 1，其实是因为索引为 0 的缘故。数组遍历是需要知道数组元素的数量的。</p>
 </blockquote>
-<hr>
 <p>在介绍接下来的参数之前，首先需要介绍另一个很重要的概念，即 fd_set。它也是一个结构体，声明如下（取自 macOS）：</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __DARWIN_FD_SETSIZE     1024</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __DARWIN_NBBY           8     <span class="comment">/* bits in a byte */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __DARWIN_NFDBITS        (sizeof(__int32_t) * __DARWIN_NBBY) <span class="comment">/* bits per mask */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __DARWIN_howmany(x, y)  ((((x) % (y)) == 0) ? ((x) / (y)) : (((x) / (y)) + 1)) <span class="comment">/* # y&#x27;s == x bits? */</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="keyword">int</span> <span class="keyword">__int32_t</span>;</span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">fd_set</span> &#123;</span></span><br><span class="line">	<span class="keyword">__int32_t</span>      </span><br><span class="line">    fds_bits [__DARWIN_howmany(__DARWIN_FD_SETSIZE, __DARWIN_NFDBITS)];</span><br><span class="line">&#125; fd_set;</span><br></pre></td></tr></table></figure>
 <p>简化之后：</p>
@@ -266,7 +265,6 @@
 <blockquote>
 <p>fd_set 这个结构体在我的系统 macOS 上可以存储最多 32 * 32 = 1024 个描述符。每一个 bit 位代表一个描述符，位的编号代表具体的描述符数值。</p>
 </blockquote>
-<hr>
 <h4 id="readfds"><a href="#readfds" class="headerlink" title="readfds"></a>readfds</h4><p>你需要告诉内核，你想要关注对这个描述符的目标行为是什么。比如说：当这个描述符可以读取数据的时候，告诉调用者。那么这个参数就是用来告诉内核，我只关心读操作。那么问题来了，什么时候会出发读就绪呢？</p>
 <h5 id="触发条件"><a href="#触发条件" class="headerlink" title="触发条件"></a>触发条件</h5><ul>
 <li><strong>有数据可读</strong><br>该套接字接收缓冲区中的字节数大于等于套接字接收缓冲区低潮标记大小。对这样的套接字读操作将不阻塞并返回一个大于 0 的值（也就是返回准备好读入的数据）。我们可以使用 SO_RCVLOWAT 套接字选项设置该套接字的低潮标记。对于 TCP 和 UDP 套接字而言，其缺省值为 1。</li>
