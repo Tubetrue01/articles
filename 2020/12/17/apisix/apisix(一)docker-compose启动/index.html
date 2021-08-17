@@ -6,21 +6,21 @@
   <meta name="renderer" content="webkit">
   <meta http-equiv="X-UA-Compatible" content="IE=edge" >
   <link rel="dns-prefetch" href="https://tubetrue01.github.io">
-  <title>Socket（一）recv 与 send 函数 | Tubetrue01</title>
+  <title>apisix（一）docker-compose 启动 | Tubetrue01</title>
   <meta name="generator" content="hexo-theme-yilia-plus">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   
-  <meta name="description" content="引言 不论客户端还是服务端，都用 send 函数向对端发送数据。对于客户端来说，用 send 发送请求，对于服务端来说，用 send 发送响应。同时，她们都用 recv 函数从对端接收数据。  1. 函数声明123456#include &lt;sys&#x2F;socket.h&gt;ssize_t recv(int sockfd, void *buff, size_t nbytes, int flags">
+  <meta name="description" content="引言 本文主要将 apisix、apisix-dashboard、etcd 以 docker compose 的方式进行部署，目前只是出于开发目的。  配置文件 docker-compose.yaml1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Socket（一）recv 与 send 函数">
-<meta property="og:url" content="https://tubetrue01.github.io/2021/08/16/c_unix/Socket(%E4%B8%80)recv%E4%B8%8Esend%E5%87%BD%E6%95%B0/">
+<meta property="og:title" content="apisix（一）docker-compose 启动">
+<meta property="og:url" content="https://tubetrue01.github.io/2020/12/17/apisix/apisix(%E4%B8%80)docker-compose%E5%90%AF%E5%8A%A8/">
 <meta property="og:site_name" content="Tubetrue01">
-<meta property="og:description" content="引言 不论客户端还是服务端，都用 send 函数向对端发送数据。对于客户端来说，用 send 发送请求，对于服务端来说，用 send 发送响应。同时，她们都用 recv 函数从对端接收数据。  1. 函数声明123456#include &lt;sys&#x2F;socket.h&gt;ssize_t recv(int sockfd, void *buff, size_t nbytes, int flags">
+<meta property="og:description" content="引言 本文主要将 apisix、apisix-dashboard、etcd 以 docker compose 的方式进行部署，目前只是出于开发目的。  配置文件 docker-compose.yaml1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545">
 <meta property="og:locale" content="en_US">
-<meta property="article:published_time" content="2021-08-16T05:00:10.000Z">
-<meta property="article:modified_time" content="2021-08-17T02:30:08.677Z">
+<meta property="article:published_time" content="2020-12-17T07:59:17.000Z">
+<meta property="article:modified_time" content="2021-08-17T08:32:45.136Z">
 <meta property="article:author" content="Tubetrue01">
-<meta property="article:tag" content="C">
+<meta property="article:tag" content="apisix">
 <meta name="twitter:card" content="summary">
   
     <link rel="alternative" href="/articles/atom.xml" title="Tubetrue01" type="application/atom+xml">
@@ -184,14 +184,14 @@
               class="anm-canvas"></canvas>
           </div>
           <div id="js-content" class="content-ll">
-            <article id="post-c_unix/Socket(一)recv与send函数" class="article article-type-post " itemscope itemprop="blogPost">
+            <article id="post-apisix/apisix(一)docker-compose启动" class="article article-type-post " itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
   
   
     <h1 class="article-title" itemprop="name">
-      Socket（一）recv 与 send 函数
+      apisix（一）docker-compose 启动
     </h1>
   
 
@@ -203,8 +203,8 @@
               <i class="icon-smile icon"></i> 阅读数：<span id="busuanzi_value_page_pv"></span>次
         </span>
 
-<a href="/articles/2021/08/16/c_unix/Socket(%E4%B8%80)recv%E4%B8%8Esend%E5%87%BD%E6%95%B0/" class="archive-article-date">
-        <time datetime="2021-08-16T05:00:10.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-08-16</time>
+<a href="/articles/2020/12/17/apisix/apisix(%E4%B8%80)docker-compose%E5%90%AF%E5%8A%A8/" class="archive-article-date">
+        <time datetime="2020-12-17T07:59:17.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-12-17</time>
 </a>
 
   
@@ -217,7 +217,7 @@
       <!-- 百度字体平台:http://fontstore.baidu.com/static/editor/index.html -->
       <i class="icon-statistics"></i>
       <span class="post-meta-item-text"> 字数统计:</span>
-      <span class="post-count">1.9k字</span>
+      <span class="post-count">424字</span>
     </span>
   </span>
 
@@ -226,7 +226,7 @@
     <span class="post-meta-item-icon">
       <i class="icon-book icon"></i>
       <span class="post-meta-item-text"> 阅读时长≈</span>
-      <span class="post-count">7分</span>
+      <span class="post-count">2分</span>
     </span>
   </span>
 </div>
@@ -238,111 +238,14 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>不论客户端还是服务端，都用 send 函数向对端发送数据。对于客户端来说，用 send 发送请求，对于服务端来说，用 send 发送响应。同时，她们都用 recv 函数从对端接收数据。</p>
+<p>本文主要将 apisix、apisix-dashboard、etcd 以 docker compose 的方式进行部署，目前只是出于开发目的。</p>
 </blockquote>
-<h1 id="1-函数声明"><a href="#1-函数声明" class="headerlink" title="1. 函数声明"></a>1. 函数声明</h1><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">ssize_t</span> <span class="title">recv</span><span class="params">(<span class="keyword">int</span> sockfd, <span class="keyword">void</span> *buff, <span class="keyword">size_t</span> nbytes, <span class="keyword">int</span> flags)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">ssize_t</span> <span class="title">send</span><span class="params">(<span class="keyword">int</span> sockfd, <span class="keyword">const</span> <span class="keyword">void</span> *buff, <span class="keyword">size_t</span> nbytes, <span class="keyword">int</span> flags)</span></span>;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<h2 id="1-1-参数"><a href="#1-1-参数" class="headerlink" title="1.1 参数"></a>1.1 参数</h2><ul>
-<li><h3 id="sockfd"><a href="#sockfd" class="headerlink" title="sockfd"></a>sockfd</h3><p>对端的套接字描述符，用来从该描述符接收数据或者将数据发往该描述符。</p>
-</li>
-<li><h3 id="buff"><a href="#buff" class="headerlink" title="buff"></a>buff</h3><p>用来存放数据的缓冲区，由于 send 函数是将缓冲区中的数据发往对端，所以 buff 被修饰为 const。</p>
-</li>
-<li><h3 id="nbytes"><a href="#nbytes" class="headerlink" title="nbytes"></a>nbytes</h3><p>要发送数据的字节长度。</p>
-</li>
-<li><h3 id="flags"><a href="#flags" class="headerlink" title="flags"></a>flags</h3><p>该值为 0 或者为以下表中的一个或者多个常值的逻辑或。</p>
-<table>
-<thead>
-<tr>
-<th>flags</th>
-<th>说明</th>
-<th align="center">recv</th>
-<th align="center">send</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>MSG_DONTROUTE</td>
-<td>绕过路由表查找</td>
-<td align="center"></td>
-<td align="center">●</td>
-</tr>
-<tr>
-<td>MSG_DONTWAIT</td>
-<td>仅本操作非阻塞</td>
-<td align="center">●</td>
-<td align="center">●</td>
-</tr>
-<tr>
-<td>MSG_OOB</td>
-<td>发送或接收带外数据</td>
-<td align="center">●</td>
-<td align="center">●</td>
-</tr>
-<tr>
-<td>MSG_PEEK</td>
-<td>窥看外来数据</td>
-<td align="center">●</td>
-<td align="center"></td>
-</tr>
-<tr>
-<td>MSG_WAITALL</td>
-<td>等待所有消息</td>
-<td align="center">●</td>
-<td align="center"></td>
-</tr>
-</tbody></table>
-<p><strong>MSG_DONTROUTE</strong><br>本标志告知内核目的主机在某个直接连接的本地网络上，因而无需执行路由表查找。</p>
-<p><strong>MSG_DONTWAIT</strong><br>本标志在无需打开相应套接字的非阻塞标志的前提下，把单个 I/O 操作临时指定为非阻塞，接着执行 I/O 操作，然后关闭非阻塞标志。该标志是随 Net/3 新增设的，可能并非所有系统都支持它。</p>
-<p><strong>MSG_OOB</strong><br>对于 send，本标志志明即将发送带外数据。对于 recv，本标志指明即将读入的是带外数据而不是普通数据。</p>
-<p><strong>MSG_PEEK</strong><br>本标志适用于 recv 和 recvfrom，它允许我们查看已可读取的数据，而且系统不在 recv 或 recvfrom 返回后丢弃这些数据。</p>
-<p><strong>MSG_WAITALL</strong><br>本标志随 4.3 BSD Reno 引入。它告知内核不要在尚未读入请求数据的字节之前让一个读操作返回。如果系统支持本标志，我们就可以省略掉 readn 函数，而替之以如下宏：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> readn(fd, ptr, n) recv(fd, ptr, n, MSG_WAITALL)</span></span><br></pre></td></tr></table></figure>
-<p>即使指定了 MSG_WAITALL，如果发生下列情况之一：</p>
-<ul>
-<li>捕获一个信号</li>
-<li>连接被终止</li>
-<li>套接字发绳一个错误</li>
+<h1 id="配置文件"><a href="#配置文件" class="headerlink" title="配置文件"></a>配置文件</h1><ul>
+<li><h2 id="docker-compose-yaml"><a href="#docker-compose-yaml" class="headerlink" title="docker-compose.yaml"></a>docker-compose.yaml</h2><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">version:</span> <span class="string">&quot;3&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="attr">services:</span></span><br><span class="line"></span><br><span class="line">  <span class="attr">apisix-dashboard:</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">apache/apisix-dashboard</span></span><br><span class="line">    <span class="attr">restart:</span> <span class="string">always</span></span><br><span class="line">    <span class="attr">container_name:</span> <span class="string">apisix-dashboard</span></span><br><span class="line">    <span class="attr">volumes:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">/Users/tubetrue01/Applications/Docker/containers/apisix/logs/dashboard:/usr/local/apisix-dashboard/logs</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">/Users/tubetrue01/Applications/Docker/containers/apisix/conf/conf-dashboard.yaml:/usr/local/apisix-dashboard/conf/conf.yaml:ro</span></span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="number">9000</span><span class="string">:9000</span></span><br><span class="line">    <span class="attr">depends_on:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">etcd</span>   </span><br><span class="line">    <span class="attr">links:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">etcd</span></span><br><span class="line">    <span class="attr">networks:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">apisix</span>  </span><br><span class="line">  <span class="attr">apisix:</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">apache/apisix</span></span><br><span class="line">    <span class="attr">restart:</span> <span class="string">always</span></span><br><span class="line">    <span class="attr">container_name:</span> <span class="string">apisix</span></span><br><span class="line">    <span class="attr">volumes:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">/Users/tubetrue01/Applications/Docker/containers/apisix/conf/config.yaml:/usr/local/apisix/conf/config.yaml</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">/Users/tubetrue01/Applications/Docker/containers/apisix/logs/apisix:/usr/local/apisix/logs</span></span><br><span class="line">    </span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="number">9080</span><span class="string">:9080</span></span><br><span class="line">      <span class="bullet">-</span> <span class="number">9091</span><span class="string">:9091</span></span><br><span class="line">      <span class="bullet">-</span> <span class="number">9443</span><span class="string">:9443</span></span><br><span class="line">    <span class="attr">depends_on:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">etcd</span></span><br><span class="line">    <span class="attr">networks:</span></span><br><span class="line">       <span class="bullet">-</span> <span class="string">apisix</span>     </span><br><span class="line">    <span class="attr">links:</span></span><br><span class="line">       <span class="bullet">-</span> <span class="string">etcd</span> </span><br><span class="line">  <span class="attr">etcd:</span> </span><br><span class="line">    <span class="comment"># if you are in the mainland China, please use Azure China mirror:</span></span><br><span class="line">    <span class="comment"># image: gcr.azk8s.cn/etcd-development/etcd:v3.3.12</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">bitnami/etcd</span></span><br><span class="line">    <span class="attr">restart:</span> <span class="string">always</span></span><br><span class="line">    <span class="attr">container_name:</span> <span class="string">etcd</span></span><br><span class="line">    <span class="attr">volumes:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="string">/Users/tubetrue01/Applications/Docker/containers/apisix/data/etcd:/etcd_data</span></span><br><span class="line">    <span class="attr">environment:</span></span><br><span class="line">        <span class="attr">ETCD_DATA_DIR:</span> <span class="string">/etcd_data</span></span><br><span class="line">        <span class="attr">ALLOW_NONE_AUTHENTICATION:</span> <span class="string">&quot;yes&quot;</span></span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="number">2379</span><span class="string">:2379</span></span><br><span class="line">    <span class="attr">networks:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="string">apisix</span></span><br><span class="line"><span class="attr">networks:</span></span><br><span class="line">  <span class="attr">apisix:</span></span><br><span class="line">    <span class="attr">driver:</span> <span class="string">bridge</span></span><br></pre></td></tr></table></figure></li>
+<li><h3 id="apisix-dashboard-yaml"><a href="#apisix-dashboard-yaml" class="headerlink" title="apisix-dashboard.yaml"></a>apisix-dashboard.yaml</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">conf:</span></span><br><span class="line">  <span class="attr">listen:</span></span><br><span class="line">    <span class="attr">port:</span> <span class="number">9000</span>            <span class="comment"># The port on which the `Manager API` should listen.</span></span><br><span class="line">  <span class="attr">etcd:</span></span><br><span class="line">    <span class="attr">endpoints:</span>            <span class="comment"># supports defining multiple etcd host addresses for an etcd cluster</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">etcd:2379</span></span><br><span class="line">    <span class="attr">mtls:</span></span><br><span class="line">      <span class="attr">key_file:</span> <span class="string">&quot;&quot;</span>          <span class="comment"># Path of your self-signed client side key</span></span><br><span class="line">      <span class="attr">cert_file:</span> <span class="string">&quot;&quot;</span>         <span class="comment"># Path of your self-signed client side cert</span></span><br><span class="line">      <span class="attr">ca_file:</span> <span class="string">&quot;&quot;</span>           <span class="comment"># Path of your self-signed ca cert, the CA is used to sign callers&#x27; certificates</span></span><br><span class="line">  <span class="attr">log:</span></span><br><span class="line">    <span class="attr">error_log:</span></span><br><span class="line">      <span class="attr">level:</span> <span class="string">warn</span>       <span class="comment"># supports levels, lower to higher: debug, info, warn, error, panic, fatal</span></span><br><span class="line">      <span class="attr">file_path:</span></span><br><span class="line">        <span class="string">logs/error.log</span>  <span class="comment"># supports relative path, absolute path, standard output</span></span><br><span class="line"></span><br><span class="line">    <span class="attr">access_log:</span></span><br><span class="line">      <span class="attr">file_path:</span></span><br><span class="line">        <span class="string">logs/access.log</span>  <span class="comment"># supports relative path, absolute path, standard output</span></span><br><span class="line"><span class="attr">authentication:</span></span><br><span class="line">  <span class="attr">secret:</span></span><br><span class="line">    <span class="string">secret</span>              <span class="comment"># secret for jwt token generation.</span></span><br><span class="line">                        <span class="comment"># <span class="doctag">NOTE:</span> Highly recommended to modify this value to protect `manager api`.</span></span><br><span class="line">                        <span class="comment"># if it&#x27;s default value, when `manager api` start, it will generate a random string to replace it.</span></span><br><span class="line">  <span class="attr">expire_time:</span> <span class="number">3600</span>     <span class="comment"># jwt token expire time, in second</span></span><br><span class="line">  <span class="attr">users:</span>                <span class="comment"># yamllint enable rule:comments-indentation</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">username:</span> <span class="string">admin</span>   <span class="comment"># username and password for login `manager api`</span></span><br><span class="line">      <span class="attr">password:</span> <span class="string">admin</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">username:</span> <span class="string">user</span></span><br><span class="line">      <span class="attr">password:</span> <span class="string">user</span></span><br><span class="line"></span><br></pre></td></tr></table></figure></li>
+<li><h3 id="apisix-conf-yaml"><a href="#apisix-conf-yaml" class="headerlink" title="apisix-conf.yaml"></a>apisix-conf.yaml</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">  <span class="attr">apisix:</span></span><br><span class="line">  <span class="attr">admin_key:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">admin</span></span><br><span class="line">      <span class="attr">key:</span> <span class="string">edd1c9f034335f136f87ad84b625c8f1</span>  <span class="comment"># using fixed API token has security risk, please update it when you deploy to production environment</span></span><br><span class="line">      <span class="attr">role:</span> <span class="string">admin</span></span><br><span class="line">  <span class="attr">allow_admin:</span>                  <span class="comment"># http://nginx.org/en/docs/http/ngx_http_access_module.html#allow</span></span><br><span class="line">    <span class="bullet">-</span> <span class="number">0.0</span><span class="number">.0</span><span class="number">.0</span><span class="string">/0</span> </span><br><span class="line"><span class="attr">etcd:</span></span><br><span class="line">  <span class="attr">host:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">http://etcd:2379</span></span><br><span class="line"></span><br></pre></td></tr></table></figure></li>
 </ul>
-<p>相应的读函数仍有可能返回比请求字节数要少的数据</p>
-</li>
-</ul>
-<p><strong>📚 Tips</strong></p>
-<blockquote>
-<p>另有一些标志适用于 TCP/IP 以外的协议族。举例来说，OSI 的传输层是基于记录的（不像 TCP 那样基于一个字节流），其输出操作支持 MSG_EOR 标志，指示逻辑记录的结束。</p>
-</blockquote>
-<p>flags 参数在设计上存在一个基本问题：它是按值传递的，而不是一个值-结果参数。因此它只能用于从进程向内核传递标志。内核无法向进程传回标志。对于 TCP/IP 协议这一点不成问题，因为 TCP/IP 几乎不需要从内核向进程传回标志。然而随着 OSI 协议被加到 4.3 BSD Reno 中，却提出了随输入操作向进程返送 MSG_EOR 标志的需求。4.3 BSD Reno 做出的决定是保持常用输入函数（recv 和 recvfrom）的参数不变，而改变 recvmsg 和 sendmsg 所用的 msghdr 结构（该结构新增一个整数 msg_flags 成员）。而且，该结构是按引用传递，内核就可以在返回时修改这些标志。这个决定同时意味着如果一个进程需要有内核更新标志，它就必须调用 recvmsg，而不是调用 recv 和 recvfrom。</p>
-<h2 id="1-2-返回值"><a href="#1-2-返回值" class="headerlink" title="1.2 返回值"></a>1.2 返回值</h2><ul>
-<li><h3 id="成功"><a href="#成功" class="headerlink" title="成功"></a>成功</h3><p>读入或者写出的字节数</p>
-</li>
-<li><h3 id="失败"><a href="#失败" class="headerlink" title="失败"></a>失败</h3><p>返回 -1</p>
-</li>
-</ul>
-<h1 id="2-函数执行流程"><a href="#2-函数执行流程" class="headerlink" title="2. 函数执行流程"></a>2. 函数执行流程</h1><blockquote>
-<p>以下流程均以同步式调用进行说明。</p>
-</blockquote>
-<h2 id="2-1-recv-函数"><a href="#2-1-recv-函数" class="headerlink" title="2.1 recv 函数"></a>2.1 recv 函数</h2><ol>
-<li>recv 先等待 sockfd 的发送缓冲中的数据被协议传送完毕，如果协议在传送 sockfd 的发送缓冲中的数据时出现网络错误，那么 recv 函数返回 SOCKET_ERROR。</li>
-<li>如果 sockfd 的发送缓冲中没有数据或者数据被协议成功发送完毕后，recv 先检查套接字 sockfd 的接收缓冲区，如果 sockfd 接收缓冲区中没有数据或者协议正在接收数据，那么 recv 就一直等待，直到协议把数据接收完毕。当协议把数据接收完毕，recv 函数就把 sockfd 的接收缓冲中的数据 copy 到 buff 中（注意协议接收到的数据可能大于 buff 的长度，所以 在这种情况下要调用几次 recv 函数才能把 sockfd 的接收缓冲中的数据 copy 完。recv 函数仅仅是 copy 数据，真正的接收数据是协议来完成的），</li>
-</ol>
-<p><strong>📚 Tips</strong></p>
-<blockquote>
-<p>recv 函数返回其实际 copy 的字节数。如果 recv 在 copy 时出错，那么它返回 SOCKET_ERROR；如果 recv 函数在等待协议接收数据时网络中断了，那么它返回 0。在 Unix 系统下，如果 recv 函数在等待协议接收数据时网络断开了，那么调用 recv 的进程会接收到一个 SIGPIPE 信号，进程对该信号的默认处理是进程终止。</p>
-</blockquote>
-<h2 id="2-2-send-函数"><a href="#2-2-send-函数" class="headerlink" title="2.2 send 函数"></a>2.2 send 函数</h2><ol>
-<li>send 先比较待发送数据的长度 nbytes 和套接字 sockfd 的发送缓冲的长度， 如果 nbytes 大于 sockfd 的发送缓冲区的长度，该函数返回 SOCKET_ERROR；</li>
-<li>如果 nbytes 小于或者等于 sockfd 的发送缓冲区的长度，那么 send 先检查协议是否正在发送 sockfd 的发送缓冲中的数据，如果是就等待协议把数据发送完，如果协议还没有开始发送 sockfd 的发送缓冲中的数据或者 sockfd 的发送缓冲中没有数据，那么 send 就比较 sockfd 的发送缓冲区的剩余空间和 nbytes。</li>
-<li>如果 nbytes 大于剩余空间大小，send 就一直等待协议把 sockfd 的发送缓冲中的数据发送完。</li>
-<li>如果 nbytes 小于剩余 空间大小，send 就仅仅把 buff 中的数据 copy 到剩余空间里（注意并不是 send 把 sockfd 的发送缓冲中的数据传到连接的另一端的，而是协议传的，send 仅仅是把 buff 中的数据 copy 到 sockfd 的发送缓冲区的剩余空间里）。</li>
-</ol>
-<p><strong>📚 Tips</strong></p>
-<blockquote>
-<p>如果 send 函数 copy 数据成功，就返回实际 copy 的字节数，如果 send 在 copy 数据时出现错误，那么 send 就返回 SOCKET_ERROR；如果 send 在等待协议传送数据时网络断开的话，那么 send 函数也返回 SOCKET_ERROR。要注意 send 函数把 buff 中的数据成功 copy 到 sockfd  的发送缓冲的剩余空间里后它就返回了，但是此时这些数据并不一定马上被传到连接的另一端。如果协议在后续的传送过程中出现网络错误的话，那么下一个 socket 函数就会返回 SOCKET_ERROR。（每一个除 send 外的 socket 函数在执 行的最开始总要先等待套接字的发送缓冲中的数据被协议传送完毕才能继续，如果在等待时出现网络错误，那么该 socket 函数就返回 SOCKET_ERROR）。在 Unix 系统下，如果 send 在等待协议传送数据时网络断开的话，调用 send 的进程会接收到一个 SIGPIPE 信号，进程对该信号的默认处理是进程终止。通过测试发现，异步 socket 的 send 函数在网络刚刚断开时还能发送返回相应的字节数，同时使用 select 检测也是可写的，但是过几秒钟之后，再 send 就会出错了，返回 -1。select 也不能检测出可写了。</p>
-</blockquote>
-<hr>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
-<li>【Unix 网络编程卷一】</li>
-<li><a target="_blank" rel="noopener" href="https://www.cnblogs.com/jianqiang2010/archive/2010/08/20/1804598.html">【Socket send 函数和 recv 函数详解】</a></li>
-</ul>
-
+<h1 id="持续更新…"><a href="#持续更新…" class="headerlink" title="持续更新…"></a>持续更新…</h1>
     
 
     
@@ -356,7 +259,7 @@
         </li>
         <li>
           <strong>本文链接：</strong>
-          <a href="https://tubetrue01.github.io/articles/2021/08/16/c_unix/Socket(一)recv与send函数/" title="Socket（一）recv 与 send 函数" target="_blank">https://tubetrue01.github.io/articles/2021/08/16/c_unix/Socket(一)recv与send函数/</a>
+          <a href="https://tubetrue01.github.io/articles/2020/12/17/apisix/apisix(一)docker-compose启动/" title="apisix（一）docker-compose 启动" target="_blank">https://tubetrue01.github.io/articles/2020/12/17/apisix/apisix(一)docker-compose启动/</a>
         </li>
         
         <li>
@@ -378,7 +281,7 @@
 		<ul class="article-tag-list">
 			 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">C</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">apisix</a>
         		</li>
       		
 		</ul>
@@ -434,7 +337,7 @@
     <a class="close js-modal-close" href="javascript:;"><i class="icon icon-close"></i></a>
     <p>扫一扫，分享到微信</p>
     <div class="wx-qrcode">
-     <!-- <img src="//pan.baidu.com/share/qrcode?url=https://tubetrue01.github.io/2021/08/16/c_unix/Socket(%E4%B8%80)recv%E4%B8%8Esend%E5%87%BD%E6%95%B0/" alt="微信分享二维码"> -->
+     <!-- <img src="//pan.baidu.com/share/qrcode?url=https://tubetrue01.github.io/2020/12/17/apisix/apisix(%E4%B8%80)docker-compose%E5%90%AF%E5%8A%A8/" alt="微信分享二维码"> -->
     </div>
 </div>
 
@@ -449,9 +352,18 @@
 
 <nav id="article-nav">
   
+    <a href="/articles/2020/12/17/c_mini/C%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%80)%E8%A7%A3%E6%9E%90%E5%A4%8D%E6%9D%82%E5%A3%B0%E6%98%8E/" id="article-nav-newer" class="article-nav-link-wrap">
+      <i class="icon-circle-left"></i>
+      <div class="article-nav-title">
+        
+          C 迷你系列（一）解析复杂声明
+        
+      </div>
+    </a>
   
-    <a href="/articles/2021/08/09/c_mini/C%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E5%85%AD)select%E4%B8%8Estdio%E6%B7%B7%E7%94%A8%E6%89%80%E5%B8%A6%E6%9D%A5%E7%9A%84%E9%97%AE%E9%A2%98/" id="article-nav-older" class="article-nav-link-wrap">
-      <div class="article-nav-title">C 迷你系列（六）select 与 stdio 混用所带来的问题</div>
+  
+    <a href="/articles/2020/12/17/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E4%BA%8C)pselect%E5%87%BD%E6%95%B0/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">IO 多路复用（二） pselect 函数</div>
       <i class="icon-circle-right"></i>
     </a>
   
@@ -478,7 +390,7 @@
                 </span>
                 <span class="tooltip-content">
                     <div class="toc-article">
-                    <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%BC%95%E8%A8%80"><span class="toc-number">1.</span> <span class="toc-text">引言</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#1-%E5%87%BD%E6%95%B0%E5%A3%B0%E6%98%8E"><span class="toc-number">2.</span> <span class="toc-text">1. 函数声明</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-1-%E5%8F%82%E6%95%B0"><span class="toc-number">2.1.</span> <span class="toc-text">1.1 参数</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#sockfd"><span class="toc-number">2.1.1.</span> <span class="toc-text">sockfd</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#buff"><span class="toc-number">2.1.2.</span> <span class="toc-text">buff</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#nbytes"><span class="toc-number">2.1.3.</span> <span class="toc-text">nbytes</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#flags"><span class="toc-number">2.1.4.</span> <span class="toc-text">flags</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-2-%E8%BF%94%E5%9B%9E%E5%80%BC"><span class="toc-number">2.2.</span> <span class="toc-text">1.2 返回值</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%88%90%E5%8A%9F"><span class="toc-number">2.2.1.</span> <span class="toc-text">成功</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A4%B1%E8%B4%A5"><span class="toc-number">2.2.2.</span> <span class="toc-text">失败</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#2-%E5%87%BD%E6%95%B0%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B"><span class="toc-number">3.</span> <span class="toc-text">2. 函数执行流程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#2-1-recv-%E5%87%BD%E6%95%B0"><span class="toc-number">3.1.</span> <span class="toc-text">2.1 recv 函数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-2-send-%E5%87%BD%E6%95%B0"><span class="toc-number">3.2.</span> <span class="toc-text">2.2 send 函数</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">4.</span> <span class="toc-text">参考</span></a></li></ol>
+                    <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%BC%95%E8%A8%80"><span class="toc-number">1.</span> <span class="toc-text">引言</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><span class="toc-number">2.</span> <span class="toc-text">配置文件</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#docker-compose-yaml"><span class="toc-number">2.1.</span> <span class="toc-text">docker-compose.yaml</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#apisix-dashboard-yaml"><span class="toc-number">2.1.1.</span> <span class="toc-text">apisix-dashboard.yaml</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#apisix-conf-yaml"><span class="toc-number">2.1.2.</span> <span class="toc-text">apisix-conf.yaml</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%8C%81%E7%BB%AD%E6%9B%B4%E6%96%B0%E2%80%A6"><span class="toc-number">3.</span> <span class="toc-text">持续更新…</span></a></li></ol>
                     </div>
                 </span>
             </div>
@@ -513,7 +425,7 @@ if(true){
   	repo: 'articles',
   	owner: 'Tubetrue01',
   	admin: ['Tubetrue01'],
-  	id: 'Mon Aug 16 2021 13:00:10 GMT+0800',
+  	id: 'Thu Dec 17 2020 15:59:17 GMT+0800',
   	distractionFreeMode: 'true'
 })
 gitalk.render('gitalk-container') 
