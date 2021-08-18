@@ -309,7 +309,7 @@
 <li>send 先比较待发送数据的长度 nbytes 和套接字 sockfd 的发送缓冲的长度， 如果 nbytes 大于 sockfd 的发送缓冲区的长度，该函数返回 SOCKET_ERROR；</li>
 <li>如果 nbytes 小于或者等于 sockfd 的发送缓冲区的长度，那么 send 先检查协议是否正在发送 sockfd 的发送缓冲中的数据，如果是就等待协议把数据发送完，如果协议还没有开始发送 sockfd 的发送缓冲中的数据或者 sockfd 的发送缓冲中没有数据，那么 send 就比较 sockfd 的发送缓冲区的剩余空间和 nbytes。</li>
 <li>如果 nbytes 大于剩余空间大小，send 就一直等待协议把 sockfd 的发送缓冲中的数据发送完。</li>
-<li>如果 nbytes 小于剩余 空间大小，send 就仅仅把 buff 中的数据 copy 到剩余空间里（注意并不是 send 把 sockfd 的发送缓冲中的数据传到连接的另一端的，而是协议传的，send 仅仅是把 buff 中的数据 copy 到 sockfd 的发送缓冲区的剩余空间里）。</li>
+<li>如果 nbytes 小于剩余空间大小，send 就仅仅把 buff 中的数据 copy 到剩余空间里（注意并不是 send 把 sockfd 的发送缓冲中的数据传到连接的另一端的，而是协议传的，send 仅仅是把 buff 中的数据 copy 到 sockfd 的发送缓冲区的剩余空间里）。</li>
 </ol>
 <p><strong>📚 Tips</strong></p>
 <blockquote>
