@@ -10,15 +10,15 @@
   <meta name="generator" content="hexo-theme-yilia-plus">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   
-  <meta name="description" content="引言 大多数套接字函数都需要一个指向套接字地址结构的指针作为参数。每个协议族都定义了它自己的套接字地址结构。这些结构的名字均已 sockaddr_ 开头，并以对应每个协议族的唯一后缀结尾。本篇文章将着重介绍一些我们在 socket 编程中常用的并且容易混淆的套接字地址结构。  IPv4IPv4 套接字地址结构通常也称为 “网际套接字地址结构”，它以 sockaddr_in 命名，定义在 &lt;n">
+  <meta name="description" content="引言 大多数套接字函数都需要一个指向套接字地址结构的指针作为参数。每个协议族都定义了它自己的套接字地址结构。这些结构的名字均以 sockaddr_ 开头，并以对应每个协议族的唯一后缀结尾。本篇文章将着重介绍一些我们在 socket 编程中常用的并且容易混淆的套接字地址结构。  IPv4IPv4 套接字地址结构通常也称为 “网际套接字地址结构”，它以 sockaddr_in 命名，定义在 &lt;n">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Socket（一）套接字地址结构">
 <meta property="og:url" content="https://tubetrue01.github.io/2021/08/17/c_unix/Socket(%E4%B8%80)%E5%A5%97%E6%8E%A5%E5%AD%97%E5%9C%B0%E5%9D%80%E7%BB%93%E6%9E%84/">
 <meta property="og:site_name" content="Tubetrue01">
-<meta property="og:description" content="引言 大多数套接字函数都需要一个指向套接字地址结构的指针作为参数。每个协议族都定义了它自己的套接字地址结构。这些结构的名字均已 sockaddr_ 开头，并以对应每个协议族的唯一后缀结尾。本篇文章将着重介绍一些我们在 socket 编程中常用的并且容易混淆的套接字地址结构。  IPv4IPv4 套接字地址结构通常也称为 “网际套接字地址结构”，它以 sockaddr_in 命名，定义在 &lt;n">
+<meta property="og:description" content="引言 大多数套接字函数都需要一个指向套接字地址结构的指针作为参数。每个协议族都定义了它自己的套接字地址结构。这些结构的名字均以 sockaddr_ 开头，并以对应每个协议族的唯一后缀结尾。本篇文章将着重介绍一些我们在 socket 编程中常用的并且容易混淆的套接字地址结构。  IPv4IPv4 套接字地址结构通常也称为 “网际套接字地址结构”，它以 sockaddr_in 命名，定义在 &lt;n">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2021-08-17T13:48:19.000Z">
-<meta property="article:modified_time" content="2021-08-20T01:14:09.972Z">
+<meta property="article:modified_time" content="2021-08-20T15:27:14.177Z">
 <meta property="article:author" content="Tubetrue01">
 <meta property="article:tag" content="C">
 <meta property="article:tag" content="Unix">
@@ -239,7 +239,7 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>大多数套接字函数都需要一个指向套接字地址结构的指针作为参数。每个协议族都定义了它自己的套接字地址结构。这些结构的名字均已 sockaddr_ 开头，并以对应每个协议族的唯一后缀结尾。本篇文章将着重介绍一些我们在 socket 编程中常用的并且容易混淆的套接字地址结构。</p>
+<p>大多数套接字函数都需要一个指向套接字地址结构的指针作为参数。每个协议族都定义了它自己的套接字地址结构。这些结构的名字均以 sockaddr_ 开头，并以对应每个协议族的唯一后缀结尾。本篇文章将着重介绍一些我们在 socket 编程中常用的并且容易混淆的套接字地址结构。</p>
 </blockquote>
 <h1 id="IPv4"><a href="#IPv4" class="headerlink" title="IPv4"></a>IPv4</h1><p>IPv4 套接字地址结构通常也称为 “网际套接字地址结构”，它以 sockaddr_in 命名，定义在 &lt;netinet/in.h&gt; 头文件中。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 以下定义取自 macOS </span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="keyword">__uint8_t</span>    <span class="keyword">sa_family_t</span>;</span><br><span class="line"><span class="keyword">typedef</span> <span class="keyword">__uint16_t</span>   <span class="keyword">in_port_t</span>;</span><br><span class="line"><span class="keyword">typedef</span> <span class="keyword">__uint32_t</span>   <span class="keyword">in_addr_t</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_in</span> </span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="keyword">uint8_t</span>           sin_len;       <span class="comment">// 8 位</span></span><br><span class="line">  <span class="keyword">sa_family_t</span>       sin_family;    <span class="comment">// 8 位</span></span><br><span class="line">  <span class="keyword">in_port_t</span>         sin_port;      <span class="comment">// 16 位</span></span><br><span class="line">  </span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">in_addr</span>    <span class="title">sin_addr</span>;</span>   </span><br><span class="line">  <span class="keyword">char</span>              sin_zero[<span class="number">8</span>];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">in_addr</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="keyword">in_addr_t</span>  s_addr;   <span class="comment">// 32 位</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
