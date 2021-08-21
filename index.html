@@ -260,13 +260,16 @@
 <p>src 下的 CMakeLists.txt 为：</p>
 <figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span>(MAIN_SOURCE</span><br><span class="line">        main.c</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_executable</span>(<span class="keyword">test</span> <span class="variable">$&#123;MAIN_SOURCE&#125;</span>)</span><br><span class="line"><span class="keyword">target_include_directories</span>(<span class="keyword">test</span> PRIVATE <span class="variable">$&#123;UTILS_HEADER&#125;</span>)</span><br><span class="line"><span class="keyword">target_link_libraries</span>(<span class="keyword">test</span> <span class="variable">$&#123;UTILS_LIB&#125;</span>)</span><br></pre></td></tr></table></figure>
 <ol>
-<li>6 行，我们将头文件编译到 test 目标对象中。这里有个 PRIVATE 关键字，相似的还有 PUBLIC、INTERFACE，那它们分别是什么意思呢？<ul>
+<li><p>6 行，我们将头文件编译到 test 目标对象中。这里有个 PRIVATE 关键字，相似的还有 PUBLIC、INTERFACE，那它们分别是什么意思呢？</p>
+<ul>
 <li><strong>PRIVATE</strong><br>私有，指被链接的库仅仅被目标使用，目标不对外暴露这个被链接的库的接口；</li>
 <li><strong>PUBLIC</strong><br>公有，指被链接的库不仅被目标使用，目标还对外暴露这个被链接的库的接口;</li>
 <li><strong>INTERFACE</strong><br>接口，指被链接的库不被目标使用，但目标对外暴露这个被链接的库的接口;</li>
 </ul>
+<p>如果理解起来比较费劲，没有关系，在后续的文章中，我会单独开一篇，详细讲解这些特性。</p>
 </li>
-<li>7 行，将生成的库链接到 test 中。</li>
+<li><p>7 行，将生成的库链接到 test 中。</p>
+</li>
 </ol>
 
     
