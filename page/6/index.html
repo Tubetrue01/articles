@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-c_mini/C迷你系列(六)select与stdio混用所带来的问题" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-c_unix/Socket(二)recv与send函数" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2021/08/09/c_mini/C%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E5%85%AD)select%E4%B8%8Estdio%E6%B7%B7%E7%94%A8%E6%89%80%E5%B8%A6%E6%9D%A5%E7%9A%84%E9%97%AE%E9%A2%98/" target="_blank">C 迷你系列（六）select 与 stdio 混用所带来的问题</a>
+	  <a class="article-title" href="/articles/2021/08/16/c_unix/Socket(%E4%BA%8C)recv%E4%B8%8Esend%E5%87%BD%E6%95%B0/" target="_blank">Socket（二）recv 与 send 函数</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2021/08/09/c_mini/C%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E5%85%AD)select%E4%B8%8Estdio%E6%B7%B7%E7%94%A8%E6%89%80%E5%B8%A6%E6%9D%A5%E7%9A%84%E9%97%AE%E9%A2%98/" class="archive-article-date">
-        <time datetime="2021-08-09T10:49:17.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-08-09</time>
+<a href="/articles/2021/08/16/c_unix/Socket(%E4%BA%8C)recv%E4%B8%8Esend%E5%87%BD%E6%95%B0/" class="archive-article-date">
+        <time datetime="2021-08-16T05:00:10.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-08-16</time>
 </a>
 
   
@@ -216,57 +216,110 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p> 在 《UNIX 网络编程》一书 135 页的末尾提到关于 select 与 stdio 相关函数混用的问题。这里我把它单独拿出来，以一个简单的例子说明一下。避免之后的使用中出现类似的问题。</p>
+<p>不论客户端还是服务端，都用 send 函数向对端发送数据。对于客户端来说，用 send 发送请求，对于服务端来说，用 send 发送响应。同时，她们都用 recv 函数从对端接收数据。</p>
 </blockquote>
-<h1 id="问题根源"><a href="#问题根源" class="headerlink" title="问题根源"></a>问题根源</h1><p>两者的缓冲区：</p>
-<ul>
-<li>系统 I/O 在内核空间中存在缓冲，而在用户空间没有；</li>
-<li>stdio 系列函数除了在内核空间中有缓存，在用户空间也有缓冲；</li>
-</ul>
-<p>缓冲区类型：</p>
-<ul>
-<li>全缓冲（大部分缓冲都是这类型）</li>
-<li>行缓冲（例如：stdio、stdout）</li>
-<li>无缓冲（例如：stderr）</li>
-</ul>
-<p>而具体的问题则是出现在 select 只会检测内核空间中的缓冲区，无法感知用户空间中的缓冲区。当数据从内核空间复制到用户空间的时候，即使该描述符对应的缓存空间有数据，select 也不会再给通知。如图：</p>
-<img src="/articles/2021/08/09/c_mini/C%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E5%85%AD)select%E4%B8%8Estdio%E6%B7%B7%E7%94%A8%E6%89%80%E5%B8%A6%E6%9D%A5%E7%9A%84%E9%97%AE%E9%A2%98/info.png" class="" width="650" height="500">
+<h1 id="1-函数声明"><a href="#1-函数声明" class="headerlink" title="1. 函数声明"></a>1. 函数声明</h1><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">ssize_t</span> <span class="title">recv</span><span class="params">(<span class="keyword">int</span> sockfd, <span class="keyword">void</span> *buff, <span class="keyword">size_t</span> nbytes, <span class="keyword">int</span> flags)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">ssize_t</span> <span class="title">send</span><span class="params">(<span class="keyword">int</span> sockfd, <span class="keyword">const</span> <span class="keyword">void</span> *buff, <span class="keyword">size_t</span> nbytes, <span class="keyword">int</span> flags)</span></span>;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
 
-
-<h1 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h1><ul>
-<li><h3 id="正常输出"><a href="#正常输出" class="headerlink" title="正常输出"></a>正常输出</h3></li>
+<h2 id="1-1-参数"><a href="#1-1-参数" class="headerlink" title="1.1 参数"></a>1.1 参数</h2><ul>
+<li><h3 id="sockfd"><a href="#sockfd" class="headerlink" title="sockfd"></a>sockfd</h3><p>对端的套接字描述符，用来从该描述符接收数据或者将数据发往该描述符。</p>
+</li>
+<li><h3 id="buff"><a href="#buff" class="headerlink" title="buff"></a>buff</h3><p>用来存放数据的缓冲区，由于 send 函数是将缓冲区中的数据发往对端，所以 buff 被修饰为 const。</p>
+</li>
+<li><h3 id="nbytes"><a href="#nbytes" class="headerlink" title="nbytes"></a>nbytes</h3><p>要发送数据的字节长度。</p>
+</li>
+<li><h3 id="flags"><a href="#flags" class="headerlink" title="flags"></a>flags</h3><p>该值为 0 或者为以下表中的一个或者多个常值的逻辑或。</p>
+<table>
+<thead>
+<tr>
+<th>flags</th>
+<th>说明</th>
+<th align="center">recv</th>
+<th align="center">send</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>MSG_DONTROUTE</td>
+<td>绕过路由表查找</td>
+<td align="center"></td>
+<td align="center">●</td>
+</tr>
+<tr>
+<td>MSG_DONTWAIT</td>
+<td>仅本操作非阻塞</td>
+<td align="center">●</td>
+<td align="center">●</td>
+</tr>
+<tr>
+<td>MSG_OOB</td>
+<td>发送或接收带外数据</td>
+<td align="center">●</td>
+<td align="center">●</td>
+</tr>
+<tr>
+<td>MSG_PEEK</td>
+<td>窥看外来数据</td>
+<td align="center">●</td>
+<td align="center"></td>
+</tr>
+<tr>
+<td>MSG_WAITALL</td>
+<td>等待所有消息</td>
+<td align="center">●</td>
+<td align="center"></td>
+</tr>
+</tbody></table>
+<p><strong>MSG_DONTROUTE</strong><br>本标志告知内核目的主机在某个直接连接的本地网络上，因而无需执行路由表查找。</p>
+<p><strong>MSG_DONTWAIT</strong><br>本标志在无需打开相应套接字的非阻塞标志的前提下，把单个 I/O 操作临时指定为非阻塞，接着执行 I/O 操作，然后关闭非阻塞标志。该标志是随 Net/3 新增设的，可能并非所有系统都支持它。</p>
+<p><strong>MSG_OOB</strong><br>对于 send，本标志志明即将发送带外数据。对于 recv，本标志指明即将读入的是带外数据而不是普通数据。</p>
+<p><strong>MSG_PEEK</strong><br>本标志适用于 recv 和 recvfrom，它允许我们查看已可读取的数据，而且系统不在 recv 或 recvfrom 返回后丢弃这些数据。</p>
+<p><strong>MSG_WAITALL</strong><br>本标志随 4.3 BSD Reno 引入。它告知内核不要在尚未读入请求数据的字节之前让一个读操作返回。如果系统支持本标志，我们就可以省略掉 readn 函数，而替之以如下宏：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> readn(fd, ptr, n) recv(fd, ptr, n, MSG_WAITALL)</span></span><br></pre></td></tr></table></figure>
+<p>即使指定了 MSG_WAITALL，如果发生下列情况之一：</p>
+<ul>
+<li>捕获一个信号</li>
+<li>连接被终止</li>
+<li>套接字发绳一个错误</li>
 </ul>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> BUFFER 3</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> BUFFER_LEN (BUFFER - 1)</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> n;</span><br><span class="line">    fd_set rset;</span><br><span class="line">    <span class="keyword">char</span> buffer[BUFFER];</span><br><span class="line">    FD_ZERO(&amp;rset);</span><br><span class="line">    <span class="keyword">for</span> (;;)</span><br><span class="line">    &#123;</span><br><span class="line">        FD_SET(fileno(<span class="built_in">stdin</span>), &amp;rset);</span><br><span class="line">        select(fileno(<span class="built_in">stdin</span>) + <span class="number">1</span>, &amp;rset, <span class="literal">NULL</span>, <span class="literal">NULL</span>, <span class="literal">NULL</span>);</span><br><span class="line">        n = read(fileno(<span class="built_in">stdin</span>), buffer, BUFFER_LEN);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;读取到：[%d] 字节，内容为：[%s]\n&quot;</span>, n, buffer);</span><br><span class="line">        <span class="built_in">memset</span>(buffer, <span class="number">0</span>, <span class="keyword">sizeof</span>(buffer));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">--- input</span><br><span class="line"><span class="number">123456</span></span><br><span class="line"></span><br><span class="line">--- output</span><br><span class="line">读取到：[<span class="number">2</span>] 字节，内容为：[<span class="number">12</span>]</span><br><span class="line">读取到：[<span class="number">2</span>] 字节，内容为：[<span class="number">34</span>]</span><br><span class="line">读取到：[<span class="number">2</span>] 字节，内容为：[<span class="number">56</span>]</span><br><span class="line">读取到：[<span class="number">1</span>] 字节，内容为：[</span><br><span class="line">]</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>相应的读函数仍有可能返回比请求字节数要少的数据</p>
+</li>
+</ul>
 <p><strong>📚 Tips</strong></p>
 <blockquote>
-<p>我们分配 3 字节大小的缓冲区，然后再每次读取玩缓冲中的数据之后，将缓冲中的数据清空，避免影响输出。当我们输入：123456 并按回车换行时（实际：123456\n），内容依次输出了。最后的 1 字节内容就是最后的换行符。</p>
+<p>另有一些标志适用于 TCP/IP 以外的协议族。举例来说，OSI 的传输层是基于记录的（不像 TCP 那样基于一个字节流），其输出操作支持 MSG_EOR 标志，指示逻辑记录的结束。</p>
 </blockquote>
-<p>我们分析一下从我们输出完并按下回车到显示时，都发生了什么：</p>
-<ol>
-<li>输入回车之后，数据从用户缓冲复制到了内核缓冲（行缓冲）；</li>
-<li>select 检测到 stdin 对应的内核缓冲有数据可读的时候，解除阻塞；</li>
-<li>read 函数取 2 个字节的数据到 buffer 中；</li>
-<li>printf 将 buffer 中的数据显示出来，并进行下次循环，阻塞到 select；</li>
-<li>由于内核中还有数据未读完，select 再次解除阻塞，直至数据取完为止；</li>
-</ol>
-<ul>
-<li><h3 id="混用时的问题"><a href="#混用时的问题" class="headerlink" title="混用时的问题"></a>混用时的问题</h3></li>
+<p>flags 参数在设计上存在一个基本问题：它是按值传递的，而不是一个值-结果参数。因此它只能用于从进程向内核传递标志。内核无法向进程传回标志。对于 TCP/IP 协议这一点不成问题，因为 TCP/IP 几乎不需要从内核向进程传回标志。然而随着 OSI 协议被加到 4.3 BSD Reno 中，却提出了随输入操作向进程返送 MSG_EOR 标志的需求。4.3 BSD Reno 做出的决定是保持常用输入函数（recv 和 recvfrom）的参数不变，而改变 recvmsg 和 sendmsg 所用的 msghdr 结构（该结构新增一个整数 msg_flags 成员）。而且，该结构是按引用传递，内核就可以在返回时修改这些标志。这个决定同时意味着如果一个进程需要有内核更新标志，它就必须调用 recvmsg，而不是调用 recv 和 recvfrom。</p>
+<h2 id="1-2-返回值"><a href="#1-2-返回值" class="headerlink" title="1.2 返回值"></a>1.2 返回值</h2><ul>
+<li><h3 id="成功"><a href="#成功" class="headerlink" title="成功"></a>成功</h3><p>读入或者写出的字节数</p>
+</li>
+<li><h3 id="失败"><a href="#失败" class="headerlink" title="失败"></a>失败</h3><p>返回 -1</p>
+</li>
 </ul>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> n;</span><br><span class="line">    fd_set rset;</span><br><span class="line">    FD_ZERO(&amp;rset);</span><br><span class="line">    <span class="keyword">for</span> (;;)</span><br><span class="line">    &#123;</span><br><span class="line">        FD_SET(fileno(<span class="built_in">stdin</span>), &amp;rset);</span><br><span class="line">        select(fileno(<span class="built_in">stdin</span>) + <span class="number">1</span>, &amp;rset, <span class="literal">NULL</span>, <span class="literal">NULL</span>, <span class="literal">NULL</span>);</span><br><span class="line">        n = getc(<span class="built_in">stdin</span>);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;内容为：[%c]\n&quot;</span>, n);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">---</span><br><span class="line">intput: <span class="number">123456</span></span><br><span class="line">output: 内容为：[<span class="number">1</span>]</span><br><span class="line">intput: <span class="number">9</span></span><br><span class="line">output: 内容为：[<span class="number">2</span>]</span><br><span class="line">output: 内容为：[<span class="number">3</span>]</span><br><span class="line">output: 内容为：[<span class="number">4</span>]</span><br><span class="line">output: 内容为：[<span class="number">5</span>]</span><br><span class="line">output: 内容为：[<span class="number">6</span>]</span><br><span class="line">output: 内容为：[</span><br><span class="line">output: ]</span><br><span class="line">output: 内容为：[<span class="number">9</span>]</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>我们发现输出已经出现问题了，我们继续分析一下该问题是怎么造成的：</p>
-<ol>
-<li>当我们输入 123456 之后，数据由用户空间缓冲复制到了内核缓冲；</li>
-<li>select 检测到有数据可读，解除阻塞；</li>
-<li>getc 函数从用户缓冲中取 1 字节数据，发现缓冲中无数据可读，于是将内核中的数据复制到用户缓冲，并取 1 字节作为输出；</li>
-<li>此时由于数据已经全部复制到了用户缓冲，所以 select 进入阻塞状态（即使用户空间的缓冲中有数据可读）；</li>
-<li>当输出 9 并回车时，该数据又被复制到了内核空间（行缓冲），select 解除阻塞；</li>
-<li>getc 函数从用户缓冲中取出 1 字节数据输出（由于用户缓冲中有数据，所以 getc 便不会再从内核中复制数据）；</li>
-<li>由于内核中有数据，所以 select 便再解除阻塞，getc 再取 1 字节直到 9 被复制到用户缓冲并输出为止；</li>
+<h1 id="2-函数执行流程"><a href="#2-函数执行流程" class="headerlink" title="2. 函数执行流程"></a>2. 函数执行流程</h1><blockquote>
+<p>以下流程均以同步式调用进行说明。</p>
+</blockquote>
+<h2 id="2-1-recv-函数"><a href="#2-1-recv-函数" class="headerlink" title="2.1 recv 函数"></a>2.1 recv 函数</h2><ol>
+<li>recv 先等待 sockfd 的发送缓冲中的数据被协议传送完毕，如果协议在传送 sockfd 的发送缓冲中的数据时出现网络错误，那么 recv 函数返回 SOCKET_ERROR。</li>
+<li>如果 sockfd 的发送缓冲中没有数据或者数据被协议成功发送完毕后，recv 先检查套接字 sockfd 的接收缓冲区，如果 sockfd 接收缓冲区中没有数据或者协议正在接收数据，那么 recv 就一直等待，直到协议把数据接收完毕。当协议把数据接收完毕，recv 函数就把 sockfd 的接收缓冲中的数据 copy 到 buff 中（注意协议接收到的数据可能大于 buff 的长度，所以 在这种情况下要调用几次 recv 函数才能把 sockfd 的接收缓冲中的数据 copy 完。recv 函数仅仅是 copy 数据，真正的接收数据是协议来完成的），</li>
 </ol>
 <p><strong>📚 Tips</strong></p>
 <blockquote>
-<p>仔细看最后的输出，你会发现 9 之后的换行符还留在用户空间缓冲中，该数据只能等下次再有数据输出到内核空间中才会得到输出。</p>
+<p>recv 函数返回其实际 copy 的字节数。如果 recv 在 copy 时出错，那么它返回 SOCKET_ERROR；如果 recv 函数在等待协议接收数据时网络中断了，那么它返回 0。在 Unix 系统下，如果 recv 函数在等待协议接收数据时网络断开了，那么调用 recv 的进程会接收到一个 SIGPIPE 信号，进程对该信号的默认处理是进程终止。</p>
 </blockquote>
+<h2 id="2-2-send-函数"><a href="#2-2-send-函数" class="headerlink" title="2.2 send 函数"></a>2.2 send 函数</h2><ol>
+<li>send 先比较待发送数据的长度 nbytes 和套接字 sockfd 的发送缓冲的长度， 如果 nbytes 大于 sockfd 的发送缓冲区的长度，该函数返回 SOCKET_ERROR；</li>
+<li>如果 nbytes 小于或者等于 sockfd 的发送缓冲区的长度，那么 send 先检查协议是否正在发送 sockfd 的发送缓冲中的数据，如果是就等待协议把数据发送完，如果协议还没有开始发送 sockfd 的发送缓冲中的数据或者 sockfd 的发送缓冲中没有数据，那么 send 就比较 sockfd 的发送缓冲区的剩余空间和 nbytes。</li>
+<li>如果 nbytes 大于剩余空间大小，send 就一直等待协议把 sockfd 的发送缓冲中的数据发送完。</li>
+<li>如果 nbytes 小于剩余空间大小，send 就仅仅把 buff 中的数据 copy 到剩余空间里（注意并不是 send 把 sockfd 的发送缓冲中的数据传到连接的另一端的，而是协议传的，send 仅仅是把 buff 中的数据 copy 到 sockfd 的发送缓冲区的剩余空间里）。</li>
+</ol>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>如果 send 函数 copy 数据成功，就返回实际 copy 的字节数，如果 send 在 copy 数据时出现错误，那么 send 就返回 SOCKET_ERROR；如果 send 在等待协议传送数据时网络断开的话，那么 send 函数也返回 SOCKET_ERROR。要注意 send 函数把 buff 中的数据成功 copy 到 sockfd  的发送缓冲的剩余空间里后它就返回了，但是此时这些数据并不一定马上被传到连接的另一端。如果协议在后续的传送过程中出现网络错误的话，那么下一个 socket 函数就会返回 SOCKET_ERROR。（每一个除 send 外的 socket 函数在执 行的最开始总要先等待套接字的发送缓冲中的数据被协议传送完毕才能继续，如果在等待时出现网络错误，那么该 socket 函数就返回 SOCKET_ERROR）。在 Unix 系统下，如果 send 在等待协议传送数据时网络断开的话，调用 send 的进程会接收到一个 SIGPIPE 信号，进程对该信号的默认处理是进程终止。通过测试发现，异步 socket 的 send 函数在网络刚刚断开时还能发送返回相应的字节数，同时使用 select 检测也是可写的，但是过几秒钟之后，再 send 就会出错了，返回 -1。select 也不能检测出可写了。</p>
+</blockquote>
+<hr>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
+<li>【Unix 网络编程卷一】</li>
+<li><a target="_blank" rel="noopener" href="https://www.cnblogs.com/jianqiang2010/archive/2010/08/20/1804598.html">【Socket send 函数和 recv 函数详解】</a></li>
+</ul>
 
     
 
@@ -293,7 +346,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2021/08/09/c_mini/C%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E5%85%AD)select%E4%B8%8Estdio%E6%B7%B7%E7%94%A8%E6%89%80%E5%B8%A6%E6%9D%A5%E7%9A%84%E9%97%AE%E9%A2%98/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2021/08/16/c_unix/Socket(%E4%BA%8C)recv%E4%B8%8Esend%E5%87%BD%E6%95%B0/">展开全文 >></a>
     </p>
     
 
@@ -327,7 +380,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/5/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/4/">4</a><a class="page-number" href="/articles/page/5/">5</a><span class="page-number current">6</span><a class="page-number" href="/articles/page/7/">7</a><a class="page-number" href="/articles/page/8/">8</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/14/">14</a><a class="extend next" rel="next" href="/articles/page/7/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/5/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/4/">4</a><a class="page-number" href="/articles/page/5/">5</a><span class="page-number current">6</span><a class="page-number" href="/articles/page/7/">7</a><a class="page-number" href="/articles/page/8/">8</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/15/">15</a><a class="extend next" rel="next" href="/articles/page/7/">下一页</a>
     </nav>
   
 
