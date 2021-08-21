@@ -18,7 +18,7 @@
 <meta property="og:description" content="引言 上一篇文章 【开启】 我们从零开始搭建起来了一个简单的 hello world 程序。并在文章的结尾，我们写了一个工具类，用于相加两个数，那么本章就围绕这个工具类展开。  你也可以封装库我们回顾一下项目结构： 123456test |---src      |---main.c      |---utils.c      |---utils.h |---CMakeLists.txt 我们直接">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2021-08-21T01:46:50.000Z">
-<meta property="article:modified_time" content="2021-08-21T06:21:45.255Z">
+<meta property="article:modified_time" content="2021-08-21T06:30:59.243Z">
 <meta property="article:author" content="Tubetrue01">
 <meta property="article:tag" content="C">
 <meta property="article:tag" content="CMake">
@@ -265,7 +265,7 @@
 <p>我们着重看一下 14 行以及 18 行。其中 14 行告诉编译器，应该去哪里找库文件，UTILS_LIB 用于存放类库信息，NAMES 跟 PATHS 分别代表了类库的名字以及查找路径，注意我们生成的类库都以 lib + 源码文件的名字开头，如本例中 utils 编译出来的类库叫做 libutils.a 。但是我们使用 find_library 查找时，名字可以不用加 lib。<br>找到类库之后，我们需要将该类库链接到我们的目标程序，这也是 target_link_libraries 所做的工作。该命令则是告诉编译器将 ${UTILS_LIB} 类库链接到 test 这个目标程序。<br>接下来就可以启动或者编译我们的源程序了！</p>
 <p><strong>📚 Tips</strong></p>
 <blockquote>
-<p>target_link_libraries 必须要放到 add_executable 指令的下边，也就是说，必须要先生成目标文件，才可以为目标文件创建链接属性。除了 target_link_libraries 命令外，<code>link_libraries($&#123;UTILS_LIB&#125;)</code> 也可以链接，但是这个命令范围会比较广，而且只有放到根路径中的 CMakeLists.txt 才会生效。除此之外还有另外一个不推荐的指令 <code>target_link_libraries(test PRIVATE $&#123;PROJECT_SOURCE\_DIR&#125;/src/utils.c)</code> 也可以做到相似的功能。不过还是推荐 target_link_libraries 链接类库。</p>
+<p>target_link_libraries 必须要放到 add_executable 指令的下边，也就是说，必须要先生成目标文件，才可以为目标文件创建链接属性。除了 target_link_libraries 命令外，<code>link_libraries($&#123;UTILS_LIB&#125;)</code> 也可以链接，如果我们的类库需要全局链接，那么可以使用该命令（并且只有放到根路径中的 CMakeLists.txt 才会生效），否则还是建议使用 target_link_libraries。除此之外还有另外一个不再推荐的指令 target_link_libraries() 。</p>
 </blockquote>
 <h2 id="动态库"><a href="#动态库" class="headerlink" title="动态库"></a>动态库</h2><p>创建好静态类库之后，我们这次创建动态库，方法很简单，只将 <code>add_library(utils STATIC $&#123;UTILS_SOURCE&#125;)</code> 修改为 <code>add_library(utils SHARED $&#123;UTILS_SOURCE&#125;)</code> 即可。</p>
 <p>删除 build 路径，重新编译，当动态库创建好之后，启动我们的项目，提示：</p>
