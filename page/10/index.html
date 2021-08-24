@@ -245,12 +245,12 @@
 </ul>
 <h1 id="3-0-JNI-开发-（Java）"><a href="#3-0-JNI-开发-（Java）" class="headerlink" title="3.0 JNI 开发 （Java）"></a>3.0 JNI 开发 （Java）</h1><ol>
 <li>创建一个包含 <strong>native</strong> 方法的 Java 类<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title">sayHi</span><span class="params">(String who, <span class="keyword">int</span> times)</span></span>;</span><br></pre></td></tr></table></figure></li>
-<li>载入实现该方法的类库<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">System.loadLibrary(<span class="string">&quot;HelloImpl&quot;</span>);</span><br></pre></td></tr></table></figure></li>
+<li>载入实现该方法的库<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">System.loadLibrary(<span class="string">&quot;HelloImpl&quot;</span>);</span><br></pre></td></tr></table></figure></li>
 <li>Java 调用本地方法</li>
 </ol>
 <p><strong>Demo</strong></p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.marakana.jniexamples;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Hello</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title">sayHi</span><span class="params">(String who, <span class="keyword">int</span> times)</span></span>;   <span class="comment">// 1</span></span><br><span class="line">    <span class="comment">// 2</span></span><br><span class="line">    <span class="keyword">static</span> &#123;</span><br><span class="line">        System.loadLibrary(<span class="string">&quot;HelloImpl&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span> <span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        Hello hello = <span class="keyword">new</span> Hello();</span><br><span class="line">        hello.sayHi(args[<span class="number">0</span>], Integer.parseInt(args[<span class="number">1</span>])); <span class="comment">// 3</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>其中：<br>1、3 C/C++ 将实现 <strong>sayHi</strong> 方法，并且编译成库文件<br>2 类库的名称：</p>
+<p>其中：<br>1、3 C/C++ 将实现 <strong>sayHi</strong> 方法，并且编译成库文件<br>2 库的名称：</p>
 <ul>
 <li><strong>Linux</strong><br>libHelloImpl.so</li>
 <li><strong>Windows</strong><br>HelloImpl.dll</li>
@@ -258,7 +258,7 @@
 </ul>
 <p><strong>注意：</strong></p>
 <blockquote>
-<p>Java 载入的类库叫 <strong>HelloImpl</strong>。</p>
+<p>Java 载入的库叫 <strong>HelloImpl</strong>。</p>
 </blockquote>
 <h1 id="4-0-JNI-开发（C）"><a href="#4-0-JNI-开发（C）" class="headerlink" title="4.0 JNI 开发（C）"></a>4.0 JNI 开发（C）</h1><ul>
 <li>我们用 JDK 提供的工具 javah 生成包含 sayHi 方法原型的头文件 package_name_classname.h。<ol>
@@ -274,8 +274,8 @@
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;com_marakana_jniexamples_Hello.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function">JNIEXPORT <span class="keyword">void</span> JNICALL <span class="title">Java_com_marakana_jniexamples_Hello_sayHi</span><span class="params">(JNIEnv *env, jobject obj, jstring who, jint times)</span> </span>&#123;</span><br><span class="line">  jint i;</span><br><span class="line">  jboolean iscopy;</span><br><span class="line">  <span class="keyword">const</span> <span class="keyword">char</span> *name;</span><br><span class="line">  name = (*env) -&gt; GetStringUTFChars(env, who, &amp;iscopy);</span><br><span class="line">  <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; times; i++) &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Hello %s\n&quot;</span>, name);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <h1 id="5-0-JNI-开发-编译"><a href="#5-0-JNI-开发-编译" class="headerlink" title="5.0 JNI 开发 (编译)"></a>5.0 JNI 开发 (编译)</h1><ul>
 <li>我们接下来编译并且运行它（不同的系统会有不同的编译结果）。</li>
-<li>生成相应的类库 libHelloImpl.so, HelloImpl.dll, libHelloImpl.jnilib。</li>
-<li>设置 LD_LIBRARY_PATH 为你类库保存的路径。</li>
+<li>生成相应的库 libHelloImpl.so, HelloImpl.dll, libHelloImpl.jnilib。</li>
+<li>设置 LD_LIBRARY_PATH 为你库保存的路径。</li>
 <li>运行应用程序。</li>
 </ul>
 <p>例如：为了编译类路径中的 com_marakana_jniexamples_Hello.c 文件（前提是你得确保 .h 以及 .c 文件在那）。</p>
@@ -289,7 +289,7 @@
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">java com.marakana.jniexamples.Hello Student 5</span><br><span class="line">Hello Student</span><br><span class="line">Hello Student</span><br><span class="line">Hello Student</span><br><span class="line">Hello Student</span><br><span class="line">Hello Student</span><br></pre></td></tr></table></figure>
 <p><strong>📚 Tips</strong></p>
 <blockquote>
-<p>比较常见的问题是 java.lang.UnsatisfiedLinkError 错误，而导致该错误的一般问题是共享库名称的错误、类库并没有在指定的搜索路径上或者 Java 代码载入了错误的类库。</p>
+<p>比较常见的问题是 java.lang.UnsatisfiedLinkError 错误，而导致该错误的一般问题是共享库名称的错误、库并没有在指定的搜索路径上或者 Java 代码载入了错误的库。</p>
 </blockquote>
 <h1 id="6-0-类型转换"><a href="#6-0-类型转换" class="headerlink" title="6.0 类型转换"></a>6.0 类型转换</h1><ul>
 <li>一般情况，程序需要向本地方法传递参数以及接收本地方法的返回值。</li>

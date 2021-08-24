@@ -18,7 +18,7 @@
 <meta property="og:description" content="引言 我们在使用 target 相关指令时，它们多有一个共同类型的参数 PRIVATE、INTERFACE、PUBLIC 那么这几个参数到底是什么意思呢？本文将为大家揭晓。  传播机制为了说明清楚，我们以一个 demo 开始，首先给出项目结构： 12345678910111213141516171819202122232425262728test   |---libA        |---inc">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2021-08-23T11:38:50.000Z">
-<meta property="article:modified_time" content="2021-08-24T01:19:55.943Z">
+<meta property="article:modified_time" content="2021-08-24T01:31:56.505Z">
 <meta property="article:author" content="Tubetrue01">
 <meta property="article:tag" content="CMake">
 <meta name="twitter:card" content="summary">
@@ -281,13 +281,13 @@
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;sub.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">sub</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">puts</span>(<span class="string">&quot;the info from sub function of libC&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>最后我们看下它的 CMakeLists.txt 文件：</p>
 <figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">add_library</span>(libC STATIC libC.c subModule/sub.c)</span><br><span class="line"></span><br><span class="line"><span class="keyword">target_include_directories</span>(libC</span><br><span class="line">        PUBLIC <span class="keyword">include</span></span><br><span class="line">        PRIVATE . subModule</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line"><span class="keyword">target_compile_definitions</span>(libC PUBLIC -DTEST_LIB_C)</span><br></pre></td></tr></table></figure>
-<p>我们把 libC.c、subModule\sub.c 共同编译成类库 libC，暴露 include 下的头文件，将当前路径以及 subModule 下的头文件隐藏掉。最后我们定义了一个 PUBLIC 级别的宏给库 libC。</p>
+<p>我们把 libC.c、subModule\sub.c 共同编译成库 libC，暴露 include 下的头文件，将当前路径以及 subModule 下的头文件隐藏掉。最后我们定义了一个 PUBLIC 级别的宏给库 libC。</p>
 </li>
-<li><h3 id="libD"><a href="#libD" class="headerlink" title="libD"></a>libD</h3><p>libD 是一个特殊的类库，它只有头文件，没有源码。</p>
+<li><h3 id="libD"><a href="#libD" class="headerlink" title="libD"></a>libD</h3><p>libD 是一个特殊的库，它只有头文件，没有源码。</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> TEST_LIBD_H</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> TEST_LIBD_H</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LIB_D <span class="meta-string">&quot;LIB_D is only a header&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">//TEST_LIBD_H</span></span></span><br></pre></td></tr></table></figure>
 <p>在它的头文件里，我们自定义个宏 LIB_D 。我们看下它的 CMakeLists.txt 文件：</p>
 <figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">add_library</span>(libD INTERFACE)</span><br><span class="line"></span><br><span class="line"><span class="keyword">target_include_directories</span>(libD</span><br><span class="line">        INTERFACE libD.h</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line"><span class="keyword">target_compile_definitions</span>(libD INTERFACE -DTEST_LIB_D)</span><br></pre></td></tr></table></figure>
-<p>注意添加类库时，我们这里指定了 INTERFACE 关键字，同时在链接头文件时，也指定了 INTERFACE。在最后我们定义的宏也必须是 INTERFACE。也就是说，当类库的可见级别为 INTERFACE 时，所有的链接可见性都必须是 INTERFACE。这其实是说的通的，因为只有向外暴露接口时才会是 INTERFACE。如果保函源码了，那它就得是 PUBLIC 级别，否则就只能是 PRIVATE 了。</p>
+<p>注意添加库时，我们这里指定了 INTERFACE 关键字，同时在链接头文件时，也指定了 INTERFACE。在最后我们定义的宏也必须是 INTERFACE。也就是说，当库的可见级别为 INTERFACE 时，所有的链接可见性都必须是 INTERFACE。这其实是说的通的，因为只有向外暴露接口时才会是 INTERFACE。如果保函源码了，那它就得是 PUBLIC 级别，否则就只能是 PRIVATE 了。</p>
 </li>
 </ul>
 <h1 id="main-函数"><a href="#main-函数" class="headerlink" title="main 函数"></a>main 函数</h1><p>既然库都已经准备好了，我们最后的重点就是 main 函数了。首先我们先看下它的 CMakeLists.txt 文件：</p>
@@ -302,11 +302,11 @@
 <li>main 链接了 libD，所以可以读取 libD 头文件中的宏信息，于是输出第 7 行。</li>
 <li>接下来是宏输出，因为 libA 的宏可见性为 PRIVATE，所以 main 不可见。libB 的宏设置为 PUBLIC，而 libB 又是通过 libA 暴露给 main 的，所以第 8 行得以输出。虽然 libC 的宏也是 PUBLIC，但是它被 libB 隐藏掉了。那么 main 自然是访问不了 libC 的宏的，但是 libB 可以访问。最后 libD 中定义的 INTERFACE 宏可以顺利被 main 访问，输出第 9 行。</li>
 </ul>
-<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>根据以上测试，如果我们定义类库 A 以及类库 B。</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>根据以上测试，如果我们定义库 A 以及库 B。</p>
 <ul>
-<li>如果类库 A 只有在自己的源码中使用了类库 B 的功能且类库 A 对外提供的头文件不包含任何类库 B 中的信息时，我们用 PRIVATE 进行链接类库 B。</li>
-<li>如果类库 A 在它对外暴露的头文件中包含了类库 B 中的头文件，同时类库 A 的源码里也引入了类库 B 中的实现，那么类库 A 必须以 PUBLIC 方式链接类库 B（当其他库链接类库 A 时，将类库 B 暴露给它）。</li>
-<li>如果类库 A 只在它对外提供的头文件中引入了类库 B 的头文件，类库 A 的代码并没有引入（也就是类库 A 的源码也没有引入它对外提供的头文件）或者类库 B 本身就是一个 head-only 类库，那么必须使用 INTERFACE 进行链接。</li>
+<li>如果库 A 只有在自己的源码中使用了库 B 的功能且库 A 对外提供的头文件不包含任何库 B 中的信息时，我们用 PRIVATE 进行链接库 B。</li>
+<li>如果库 A 在它对外暴露的头文件中包含了库 B 中的头文件，同时库 A 的源码里也引入了库 B 中的实现，那么库 A 必须以 PUBLIC 方式链接库 B（当其他库链接库 A 时，将库 B 暴露给它）。</li>
+<li>如果库 A 只在它对外提供的头文件中引入了库 B 的头文件，库 A 的代码并没有引入（也就是库 A 的源码也没有引入它对外提供的头文件）或者库 B 本身就是一个 head-only 库，那么必须使用 INTERFACE 进行链接。</li>
 </ul>
 <hr>
 <h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
