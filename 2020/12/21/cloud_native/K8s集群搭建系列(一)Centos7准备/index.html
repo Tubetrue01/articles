@@ -6,23 +6,30 @@
   <meta name="renderer" content="webkit">
   <meta http-equiv="X-UA-Compatible" content="IE=edge" >
   <link rel="dns-prefetch" href="https://tubetrue01.github.io">
-  <title>C 迷你系列（一）解析复杂声明 | Tubetrue01</title>
+  <title>K8s 集群搭建系列（一） Centos 7 准备 | Tubetrue01</title>
   <meta name="generator" content="hexo-theme-yilia-plus">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   
-  <meta name="description" content="引言 这里会讲解一些在 C 中常常遇到的比较复杂的声明，这些声明可能会劝退你学习 C 的热情，但是相信我，读完这一篇之后，你会发现，再复杂的声明也不过如此嘛。  规则 A. 声明从它的名字开始读取，然后按照优先级顺序依次读取。 B. 优先级从高到低依次是&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; B1. 声明中被括号括起来的那部分。&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;">
+  <meta name="description" content="引言 心血来潮，打算重整一下我的 K8s 环境，反正也是要重新搭建，不如趁着这次机会开一专题记录一下，从零开始搭建。这一篇呢，我们主要讲解 Centos 7 的准备（本来想用 Centos 8 无奈已经被官方抛弃了 【详情】），好了直接进入主题。  环境与版本 Mac（macOS 10.14.6 ）宿主机 虚拟机 VMware Fusion CentOS-7-x86_64-Minimal-1908">
 <meta property="og:type" content="article">
-<meta property="og:title" content="C 迷你系列（一）解析复杂声明">
-<meta property="og:url" content="https://tubetrue01.github.io/2020/12/17/c_mini/C%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%80)%E8%A7%A3%E6%9E%90%E5%A4%8D%E6%9D%82%E5%A3%B0%E6%98%8E/">
+<meta property="og:title" content="K8s 集群搭建系列（一） Centos 7 准备">
+<meta property="og:url" content="https://tubetrue01.github.io/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/">
 <meta property="og:site_name" content="Tubetrue01">
-<meta property="og:description" content="引言 这里会讲解一些在 C 中常常遇到的比较复杂的声明，这些声明可能会劝退你学习 C 的热情，但是相信我，读完这一篇之后，你会发现，再复杂的声明也不过如此嘛。  规则 A. 声明从它的名字开始读取，然后按照优先级顺序依次读取。 B. 优先级从高到低依次是&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; B1. 声明中被括号括起来的那部分。&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;">
+<meta property="og:description" content="引言 心血来潮，打算重整一下我的 K8s 环境，反正也是要重新搭建，不如趁着这次机会开一专题记录一下，从零开始搭建。这一篇呢，我们主要讲解 Centos 7 的准备（本来想用 Centos 8 无奈已经被官方抛弃了 【详情】），好了直接进入主题。  环境与版本 Mac（macOS 10.14.6 ）宿主机 虚拟机 VMware Fusion CentOS-7-x86_64-Minimal-1908">
 <meta property="og:locale" content="en_US">
-<meta property="article:published_time" content="2020-12-17T07:59:17.000Z">
-<meta property="article:modified_time" content="2021-08-25T01:58:03.138Z">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/01.png">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/02.png">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/03.png">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/04.png">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/05.png">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/06.png">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/07.png">
+<meta property="article:published_time" content="2020-12-21T05:27:00.000Z">
+<meta property="article:modified_time" content="2021-08-26T01:54:17.677Z">
 <meta property="article:author" content="Tubetrue01">
-<meta property="article:tag" content="Mini">
-<meta property="article:tag" content="C">
+<meta property="article:tag" content="K8s">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://tubetrue01.github.io/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/01.png">
   
     <link rel="alternative" href="/articles/atom.xml" title="Tubetrue01" type="application/atom+xml">
   
@@ -185,14 +192,14 @@
               class="anm-canvas"></canvas>
           </div>
           <div id="js-content" class="content-ll">
-            <article id="post-c_mini/C迷你系列(一)解析复杂声明" class="article article-type-post " itemscope itemprop="blogPost">
+            <article id="post-cloud_native/K8s集群搭建系列(一)Centos7准备" class="article article-type-post " itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
   
   
     <h1 class="article-title" itemprop="name">
-      C 迷你系列（一）解析复杂声明
+      K8s 集群搭建系列（一） Centos 7 准备
     </h1>
   
 
@@ -204,8 +211,8 @@
               <i class="icon-smile icon"></i> 阅读数：<span id="busuanzi_value_page_pv"></span>次
         </span>
 
-<a href="/articles/2020/12/17/c_mini/C%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%80)%E8%A7%A3%E6%9E%90%E5%A4%8D%E6%9D%82%E5%A3%B0%E6%98%8E/" class="archive-article-date">
-        <time datetime="2020-12-17T07:59:17.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-12-17</time>
+<a href="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/" class="archive-article-date">
+        <time datetime="2020-12-21T05:27:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-12-21</time>
 </a>
 
   
@@ -218,7 +225,7 @@
       <!-- 百度字体平台:http://fontstore.baidu.com/static/editor/index.html -->
       <i class="icon-statistics"></i>
       <span class="post-meta-item-text"> 字数统计:</span>
-      <span class="post-count">1.6k字</span>
+      <span class="post-count">715字</span>
     </span>
   </span>
 
@@ -227,7 +234,7 @@
     <span class="post-meta-item-icon">
       <i class="icon-book icon"></i>
       <span class="post-meta-item-text"> 阅读时长≈</span>
-      <span class="post-count">5分</span>
+      <span class="post-count">3分</span>
     </span>
   </span>
 </div>
@@ -239,44 +246,70 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>这里会讲解一些在 C 中常常遇到的比较复杂的声明，这些声明可能会劝退你学习 C 的热情，但是相信我，读完这一篇之后，你会发现，再复杂的声明也不过如此嘛。</p>
+<p>心血来潮，打算重整一下我的 K8s 环境，反正也是要重新搭建，不如趁着这次机会开一专题记录一下，从零开始搭建。这一篇呢，我们主要讲解 Centos 7 的准备（本来想用 Centos 8 无奈已经被官方抛弃了 <a target="_blank" rel="noopener" href="https://blog.centos.org/2020/12/future-is-centos-stream/">【详情】</a>），好了直接进入主题。</p>
 </blockquote>
-<h1 id="规则"><a href="#规则" class="headerlink" title="规则"></a>规则</h1><ul>
-<li>A. 声明从它的名字开始读取，然后按照优先级顺序依次读取。</li>
-<li>B. 优先级从高到低依次是<br>&nbsp;&nbsp;&nbsp;&nbsp; B1. 声明中被括号括起来的那部分。<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;B2. 后缀操作符：括号 () 表示这是一个函数；方括号 [] 表示这是一个数组。<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;B3. 前缀操作符：星号 * 表示指针。</li>
-<li>C. 如果 const 或 volatile 关键字的后面紧跟类型说明符（如 int，long 等），那么它作用于类型说明符。在其他情况下，const 和 volatile 关键字作用于它左边紧邻的指针星号。</li>
-<li>D. restrict 关键字用来修饰指针，一般都是出现在 * 的后边。</li>
+<h1 id="环境与版本"><a href="#环境与版本" class="headerlink" title="环境与版本"></a>环境与版本</h1><ul>
+<li><strong>Mac（macOS 10.14.6 ）宿主机</strong></li>
+<li><strong>虚拟机 VMware Fusion</strong></li>
+<li><strong>CentOS-7-x86_64-Minimal-1908.iso</strong><h1 id="开始"><a href="#开始" class="headerlink" title="开始"></a>开始</h1><h3 id="网络设置"><a href="#网络设置" class="headerlink" title="网络设置"></a>网络设置</h3>网络这里选择【与我的 Mac 共享】，之所以采用 NAT 模式而不是桥接模式是因为，如果在公司使用的话，ip 这里会是个问题，因为每个虚拟机都需要一个桥接 ip</li>
 </ul>
-<h1 id="简单类型说明"><a href="#简单类型说明" class="headerlink" title="简单类型说明"></a>简单类型说明</h1><blockquote>
-<p>有了以上规则，我们可以一步一步开始了。</p>
-</blockquote>
-<ul>
-<li><strong>int p</strong><br>这是一个普通的整型变量。</li>
-<li><strong>int *p</strong><br>首先从 p 开始，先与 * 结合，说明 p 是一个指针，然后再与 int 结合，说明指针所指向的内容的类型为 int 。<br><strong>总结</strong>： p 是一个整型数据的指针。</li>
-<li><strong>int p[3]</strong><br>首先从 p 开始，先与 [] 结合，说明 p 是一个数组，然后与 int 结合，说明数组里的元素是整型的。<br><strong>总结</strong>： p 是一个由整型数据组成的数组。</li>
-<li><strong>int *p[3]</strong><br>首先从 p 开始，先与 [] 结合，因为其优先级比 * 高，所以 p 是一个数组，然后再与 * 结合，说明数组里的元素是指针类型，然后再与 int 结合，说明指针所指向的内容的类型是整型的。<br><strong>总结</strong>：p 是一个由整型数据的指针所组成的数组。</li>
-<li><strong>int (*p)[3]</strong><br>首先从 p 开始，先与 * 结合，说明 p 是一个指针然后再与 [] 结合 ，说明指针所指向的内容是一个数组，然后再与 int 结合，说明数组里的元素是整型的。<br><strong>总结</strong>：所以 p 是一个指向由整型数据组成的数组的指针。</li>
-<li><strong>int **p</strong><br>首先从 p 开始，先与 * 结合，说是 p 是一个指针，然后再与 * 结合，指针所指向的元素是指针，然后再与 int 结合，说明该指针所指向的元素是整型数据。由于二级指针以及更高级的指针极少用在复杂的类型中，所以后面更复杂的类型我们就不考虑多级指针了，最多只考虑一级指针。<br><strong>总结</strong>：二级指针多出现在为一级指针分配内存的场景下。</li>
-<li><strong>int p(int)</strong><br>从 p 开始，先与 () 结合，说明 p 是一个函数，然后进入 () 里分析，说明该函数有一个整型变量的参数，然后再与外面的 int 结合，说明函数的返回值是一个整型数据。<br><strong>总结</strong>：p 是一个具有一个 int 类型的参数，返回值为整型的函数。</li>
-<li><strong>int (*p)(int)</strong><br>从 p 开始，先与指针结合，说明P 是一个指针，然后与 () 结合，说明指针指向的是一个函数，然后再与 () 里的 int 结合，说明函数有一个 int 型的参数，再与最外层的 int 结合，说明函数的返回类型是整型。<br><strong>总结</strong>： p 是一个指向 “具有一个整型参数且返回类型为整型的函数” 的指针。<h1 id="复杂类型说明"><a href="#复杂类型说明" class="headerlink" title="复杂类型说明"></a>复杂类型说明</h1><blockquote>
-<p>有了以上基础，我们可以挑战一下稍微复杂一点的声明了。</p>
-</blockquote>
-</li>
-<li><strong>int *(*p(int))[3]</strong><br>从 p 开始，先与 () 结合，说明 p 是一个函数，然后进入 () 里面，与 int 结合，说明函数有一个整型变量参数，然后再与外面的 * 结合，说明函数返回的是一个指针，然后到最外面一层，先与 [] 结合，说明返回的指针指向的是一个数组，然后再与 * 结合，说明数组里的元素是指针，然后再与 int 结合，说明指针指向的内容是整型数据。<br><strong>总结</strong>：所以 p 是一个 “具有一个整型参数且返回一个指向由整型指针变量组成的数组” 的指针变量的函数。</li>
-<li><strong>int *(* p[3])(int)</strong><br>从 p 开始，先与 [] 结合，说明 p 是一个数组，在与 * 集合，说明数组的元素是指针，在与 () 集合，说明指针指向的是函数，进入 () 里面，与 int 集合，说明函数有一个整型参数，在与最外边的 * 结合，说明函数返回一个指针，在与 int 结合，说明返回的指针指向一个整型。<br><strong>总结</strong>：p 是一个 “具有一个 int 类型参数且返回指向 int 类型指针的函数指针组成” 的数组。</li>
-<li><strong>void (*signal(int, void(*func)(int)))(int)</strong><blockquote>
-<p>我们最后以这个著名的函数收尾，这应该算是最复杂的声明了吧，如果还有更复杂的，欢迎大家留言。长话短说，让我们开始吧！<br>从 signal 开始，先跟 () 结合，说明 signal 是一个函数，进入到 () 里面，该函数有两个参数，一个是 int 类型的，一个是具有 int 类型的参数且无返回值的函数指针（分析：从 func 开始，先与 * 结合，说明 func 是一个指针，与 () 结合，说明这个指针指向一个函数，进入 () 里面，与 int 结合，说明指向的函数有一个 int 类型的参数，最后与 void 结合，说明该函数没有返回值），在与 * 结合，说明函数返回一个指针，在与最右边的 () 集合，说明指针指向一个函数，进入 () 里面，与 int 结合，说明该函数有一个 int 类型的参数，最后与 void 集合，说明该函数没有返回值。</p>
-</blockquote>
-</li>
-</ul>
-<p>虽然比较复杂，但是我们可以利用 typedef 关键字简化它来对本章进行收尾。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 表示 func 是一个函数指针，指向一个参数为 int，返回值为 void 的函数。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">typedef</span> <span class="title">void</span> <span class="params">(*func)</span><span class="params">(<span class="keyword">int</span>)</span>；</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function"><span class="comment">/*</span></span></span><br><span class="line"><span class="comment"><span class="function"> * 表示 signal 是一个函数，它接受两个参数，一个是 int，一个是 func，返回值为 func</span></span></span><br><span class="line"><span class="comment"><span class="function"> */</span></span></span><br><span class="line"><span class="function">func <span class="title">signal</span><span class="params">(<span class="keyword">int</span>, func)</span></span>;</span><br></pre></td></tr></table></figure>
+<img src="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/01.png" class="" width="600">
 
-<hr>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
-<li><a target="_blank" rel="noopener" href="https://item.jd.com/12976420.html">C 专家编程</a></li>
-<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/soonfly/article/details/51131141">让你不再害怕指针——C指针详解(经典,非常详细)</a></li>
+<p>磁盘这里我这里用了10 GiB，没办法，电脑磁盘太小，而且这个集群只跑 demo 用。<br>CPU 跟内存这一块需要稍微注意一下：</p>
+<img src="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/02.png" class="" width="600">
+
+<p>我这里分配了所需资源的最小值，当然这个可以动态调整，所以关系不大。记住这里分配的动态 ip、网关等，我们需要把它设置成静态的。</p>
+<img src="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/03.png" class="" width="600">
+
+<h3 id="静态-ip（当然也可以进入系统里设置，如果你不嫌麻烦的话）"><a href="#静态-ip（当然也可以进入系统里设置，如果你不嫌麻烦的话）" class="headerlink" title="静态 ip（当然也可以进入系统里设置，如果你不嫌麻烦的话）"></a>静态 ip（当然也可以进入系统里设置，如果你不嫌麻烦的话）</h3><img src="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/04.png" class="" width="600">
+
+<p>这里你可以 ping 一下这个 ip，看宿主机是否可以连接到你的虚拟机内部</p>
+<img src="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/05.png" class="" width="600">
+
+<h3 id="分区"><a href="#分区" class="headerlink" title="分区"></a>分区</h3><p>占用空间较大的就是 / 以及 /var，如果你的磁盘足够大，其他分区也可以调整的大一些。</p>
+<img src="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/06.png" class="" width="600">
+
+<p>安装中。。。。</p>
+<img src="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/07.png" class="" width="600">
+
+<h1 id="必要软件安装"><a href="#必要软件安装" class="headerlink" title="必要软件安装"></a>必要软件安装</h1><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 更新 yum</span></span><br><span class="line">[root@localhost ~]# yum update -y</span><br><span class="line"><span class="meta">#</span><span class="bash"> 安装 vim 以及 ifconfig</span></span><br><span class="line">[root@localhost ~]# yum install -y vim net-tools.x86_64</span><br></pre></td></tr></table></figure>
+
+<h1 id="免密登录"><a href="#免密登录" class="headerlink" title="免密登录"></a>免密登录</h1><ul>
+<li><strong>密钥生成</strong></li>
 </ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Tubetrue01:~:% ssh-keygen -t rsa -C &quot;Your Email&quot;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><strong>上传至你的虚拟机</strong></li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Tubetrue01:~:% ssh-copy-id -i ~/.ssh/id_rsa.pub root@server </span><br></pre></td></tr></table></figure>
+<ul>
+<li><strong>sshd 设置</strong></li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 编辑配置文件</span></span><br><span class="line">[root@localhost ~]# vim /etc/ssh/sshd_config </span><br><span class="line"><span class="meta">#</span><span class="bash"> 修改值</span></span><br><span class="line">PubkeyAuthentication yes</span><br><span class="line">PasswordAuthentication no</span><br><span class="line"><span class="meta">#</span><span class="bash"> 重启 sshd</span></span><br><span class="line">[root@localhost ~]# systemctl restart sshd</span><br></pre></td></tr></table></figure>
+<h1 id="内核升级（非必须）"><a href="#内核升级（非必须）" class="headerlink" title="内核升级（非必须）"></a>内核升级（非必须）</h1><p>我们可以把内核升级一下，然后开启 BBR 算法。</p>
+<ul>
+<li><strong>内核安装</strong></li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org</span><br><span class="line">[root@localhost ~]# rpm -Uvh https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm</span><br><span class="line">[root@localhost ~]# yum --enablerepo=elrepo-kernel install -y kernel-ml</span><br><span class="line">[root@localhost ~]# grub2-set-default 0</span><br></pre></td></tr></table></figure>
+<ul>
+<li><strong>关闭开机读秒</strong></li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 编辑配置文件</span></span><br><span class="line">[root@localhost ~]# vim /boot/grub2/grub.cfg</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 将超时时间设置为 0</span></span><br><span class="line">if [ x$feature_timeout_style = xy ] ; then</span><br><span class="line">  set timeout_style=menu</span><br><span class="line"><span class="meta">  #</span><span class="bash"> <span class="built_in">set</span> timeout=5</span></span><br><span class="line">  set timeout = 0</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 重启</span></span><br><span class="line">[root@localhost ~]# reboot</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>内核查看</strong></li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# uname -r</span><br><span class="line">5.10.2-1.el7.elrepo.x86_64</span><br></pre></td></tr></table></figure>
+<ul>
+<li><strong>开启 BBR</strong></li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# echo &quot;net.core.default_qdisc = fq&quot; &gt;&gt; /etc/sysctl.conf</span><br><span class="line">[root@localhost ~]# echo &quot;net.ipv4.tcp_congestion_control = bbr&quot; &gt;&gt; /etc/sysctl.conf</span><br><span class="line">[root@localhost ~]# sysctl -p</span><br><span class="line"><span class="meta">#</span><span class="bash"> 查看是否开启</span></span><br><span class="line">[root@localhost ~]# lsmod | grep bbr</span><br><span class="line">tcp_bbr                20480  1 </span><br></pre></td></tr></table></figure>
+<ul>
+<li><strong>设置资源配置</strong></li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 编辑文件</span></span><br><span class="line">[root@localhost ~]# vim /etc/security/limits.conf</span><br><span class="line"><span class="meta">#</span><span class="bash"> 尾部添加</span></span><br><span class="line">* soft nofile 65535</span><br><span class="line">* hard nofile 65535</span><br><span class="line"><span class="meta">#</span><span class="bash"> 运行指令</span></span><br><span class="line">[root@localhost ~]# ulimit -n 65535</span><br></pre></td></tr></table></figure>
+<hr>
+<h1 id="尾声"><a href="#尾声" class="headerlink" title="尾声"></a>尾声</h1><p>好了，系统已经准备完毕，我们马上进入下一步 <a href="">【Docker 安装】</a>。</p>
 
     
 
@@ -291,7 +324,7 @@
         </li>
         <li>
           <strong>本文链接：</strong>
-          <a href="https://tubetrue01.github.io/articles/2020/12/17/c_mini/C迷你系列(一)解析复杂声明/" title="C 迷你系列（一）解析复杂声明" target="_blank">https://tubetrue01.github.io/articles/2020/12/17/c_mini/C迷你系列(一)解析复杂声明/</a>
+          <a href="https://tubetrue01.github.io/articles/2020/12/21/cloud_native/K8s集群搭建系列(一)Centos7准备/" title="K8s 集群搭建系列（一） Centos 7 准备" target="_blank">https://tubetrue01.github.io/articles/2020/12/21/cloud_native/K8s集群搭建系列(一)Centos7准备/</a>
         </li>
         
         <li>
@@ -313,11 +346,7 @@
 		<ul class="article-tag-list">
 			 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color5">Mini</a>
-        		</li>
-      		 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">C</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">K8s</a>
         		</li>
       		
 		</ul>
@@ -373,7 +402,7 @@
     <a class="close js-modal-close" href="javascript:;"><i class="icon icon-close"></i></a>
     <p>扫一扫，分享到微信</p>
     <div class="wx-qrcode">
-     <!-- <img src="//pan.baidu.com/share/qrcode?url=https://tubetrue01.github.io/2020/12/17/c_mini/C%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%80)%E8%A7%A3%E6%9E%90%E5%A4%8D%E6%9D%82%E5%A3%B0%E6%98%8E/" alt="微信分享二维码"> -->
+     <!-- <img src="//pan.baidu.com/share/qrcode?url=https://tubetrue01.github.io/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/" alt="微信分享二维码"> -->
     </div>
 </div>
 
@@ -388,18 +417,18 @@
 
 <nav id="article-nav">
   
-    <a href="/articles/2020/12/17/apisix/apisix(%E4%B8%80)docker-compose%E5%90%AF%E5%8A%A8/" id="article-nav-newer" class="article-nav-link-wrap">
+    <a href="/articles/2021/01/16/java_trans/%5B%E8%AF%91%5DJava_Native_Interface(JNI)/" id="article-nav-newer" class="article-nav-link-wrap">
       <i class="icon-circle-left"></i>
       <div class="article-nav-title">
         
-          apisix（一）docker-compose 启动
+          Java Native Interface (JNI)【译】
         
       </div>
     </a>
   
   
-    <a href="/articles/2020/12/17/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E4%BA%8C)pselect%E5%87%BD%E6%95%B0/" id="article-nav-older" class="article-nav-link-wrap">
-      <div class="article-nav-title">IO 多路复用（二） pselect 函数</div>
+    <a href="/articles/2020/12/18/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E4%B8%89)poll%E5%87%BD%E6%95%B0/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">IO 多路复用（三）poll 函数</div>
       <i class="icon-circle-right"></i>
     </a>
   
@@ -426,7 +455,7 @@
                 </span>
                 <span class="tooltip-content">
                     <div class="toc-article">
-                    <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%BC%95%E8%A8%80"><span class="toc-number">1.</span> <span class="toc-text">引言</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E8%A7%84%E5%88%99"><span class="toc-number">2.</span> <span class="toc-text">规则</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AE%80%E5%8D%95%E7%B1%BB%E5%9E%8B%E8%AF%B4%E6%98%8E"><span class="toc-number">3.</span> <span class="toc-text">简单类型说明</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%A4%8D%E6%9D%82%E7%B1%BB%E5%9E%8B%E8%AF%B4%E6%98%8E"><span class="toc-number">4.</span> <span class="toc-text">复杂类型说明</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">5.</span> <span class="toc-text">参考</span></a></li></ol>
+                    <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%BC%95%E8%A8%80"><span class="toc-number">1.</span> <span class="toc-text">引言</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83%E4%B8%8E%E7%89%88%E6%9C%AC"><span class="toc-number">2.</span> <span class="toc-text">环境与版本</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%BC%80%E5%A7%8B"><span class="toc-number">3.</span> <span class="toc-text">开始</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BD%91%E7%BB%9C%E8%AE%BE%E7%BD%AE"><span class="toc-number">3.0.1.</span> <span class="toc-text">网络设置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%9D%99%E6%80%81-ip%EF%BC%88%E5%BD%93%E7%84%B6%E4%B9%9F%E5%8F%AF%E4%BB%A5%E8%BF%9B%E5%85%A5%E7%B3%BB%E7%BB%9F%E9%87%8C%E8%AE%BE%E7%BD%AE%EF%BC%8C%E5%A6%82%E6%9E%9C%E4%BD%A0%E4%B8%8D%E5%AB%8C%E9%BA%BB%E7%83%A6%E7%9A%84%E8%AF%9D%EF%BC%89"><span class="toc-number">3.0.2.</span> <span class="toc-text">静态 ip（当然也可以进入系统里设置，如果你不嫌麻烦的话）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%86%E5%8C%BA"><span class="toc-number">3.0.3.</span> <span class="toc-text">分区</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%BF%85%E8%A6%81%E8%BD%AF%E4%BB%B6%E5%AE%89%E8%A3%85"><span class="toc-number">4.</span> <span class="toc-text">必要软件安装</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%85%8D%E5%AF%86%E7%99%BB%E5%BD%95"><span class="toc-number">5.</span> <span class="toc-text">免密登录</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%86%85%E6%A0%B8%E5%8D%87%E7%BA%A7%EF%BC%88%E9%9D%9E%E5%BF%85%E9%A1%BB%EF%BC%89"><span class="toc-number">6.</span> <span class="toc-text">内核升级（非必须）</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%B0%BE%E5%A3%B0"><span class="toc-number">7.</span> <span class="toc-text">尾声</span></a></li></ol>
                     </div>
                 </span>
             </div>
@@ -461,7 +490,7 @@ if(true){
   	repo: 'articles',
   	owner: 'Tubetrue01',
   	admin: ['Tubetrue01'],
-  	id: 'Thu Dec 17 2020 15:59:17 GMT+0800',
+  	id: 'Mon Dec 21 2020 13:27:00 GMT+0800',
   	distractionFreeMode: 'true'
 })
 gitalk.render('gitalk-container') 
