@@ -247,11 +247,11 @@
 <h1 id="免密登录"><a href="#免密登录" class="headerlink" title="免密登录"></a>免密登录</h1><ul>
 <li><strong>密钥生成</strong></li>
 </ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Tubetrue01:~:% ssh-keygen -t rsa -C &quot;Your Email&quot;</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Tubetrue01:~:% ssh-keygen -o -a 100 -t ed25519 -f &quot;The path where you store&quot; -C &quot;Your Email&quot;</span><br></pre></td></tr></table></figure>
 <ul>
 <li><strong>上传至你的虚拟机</strong></li>
 </ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Tubetrue01:~:% ssh-copy-id -i ~/.ssh/id_rsa.pub root@server </span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Tubetrue01:~:% ssh-copy-id -i &quot;The path where you store&quot;/id_ed25519.pub root@server </span><br></pre></td></tr></table></figure>
 <ul>
 <li><strong>sshd 设置</strong></li>
 </ul>
