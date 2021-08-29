@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-cloud_native/K8s集群搭建系列(一)Centos7准备" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-cloud_native/K8s集群搭建系列(二)Docker安装" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/" target="_blank">K8s 集群搭建系列（一） Centos 7 准备</a>
+	  <a class="article-title" href="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%BA%8C)Docker%E5%AE%89%E8%A3%85/" target="_blank">K8s 集群搭建系列（二） Docker 安装</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/" class="archive-article-date">
-        <time datetime="2020-12-21T05:27:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-12-21</time>
+<a href="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%BA%8C)Docker%E5%AE%89%E8%A3%85/" class="archive-article-date">
+        <time datetime="2020-12-21T05:44:47.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-12-21</time>
 </a>
 
   
@@ -216,70 +216,17 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>心血来潮，打算重整一下我的 K8s 环境，反正也是要重新搭建，不如趁着这次机会开一专题记录一下，从零开始搭建。这一篇呢，我们主要讲解 Centos 7 的准备（本来想用 Centos 8 无奈已经被官方抛弃了 <a target="_blank" rel="noopener" href="https://blog.centos.org/2020/12/future-is-centos-stream/">【详情】</a>），好了直接进入主题。</p>
+<p>承接上一章<a href="https://tubetrue01.github.io/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87">【K8s 集群搭建系列（一） Centos 7 准备】</a>，我们进行下一步，安装 Docker。好了，让我们开始吧！</p>
 </blockquote>
-<h1 id="环境与版本"><a href="#环境与版本" class="headerlink" title="环境与版本"></a>环境与版本</h1><ul>
-<li><strong>Mac（macOS 10.14.6 ）宿主机</strong></li>
-<li><strong>虚拟机 VMware Fusion</strong></li>
-<li><strong>CentOS-7-x86_64-Minimal-1908.iso</strong><h1 id="开始"><a href="#开始" class="headerlink" title="开始"></a>开始</h1><h3 id="网络设置"><a href="#网络设置" class="headerlink" title="网络设置"></a>网络设置</h3>网络这里选择【与我的 Mac 共享】，之所以采用 NAT 模式而不是桥接模式是因为，如果在公司使用的话，ip 这里会是个问题，因为每个虚拟机都需要一个桥接 ip</li>
+<h1 id="Docker-安装"><a href="#Docker-安装" class="headerlink" title="Docker 安装"></a>Docker 安装</h1><ul>
+<li><strong>必要工具安装</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# yum install -y yum-utils</span><br></pre></td></tr></table></figure></li>
+<li><strong>添加 Docker 源</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo</span><br></pre></td></tr></table></figure></li>
+<li><strong>安装 Docker</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# yum makecache fast</span><br><span class="line">[root@localhost ~]# yum install -y docker-ce-19.03.12</span><br></pre></td></tr></table></figure></li>
+<li><strong>开机自启</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# systemctl enable docker </span><br><span class="line">[root@localhost ~]# systemctl start docker</span><br></pre></td></tr></table></figure></li>
+<li><strong>配置镜像源</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# vim /etc/docker/daemon.json</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 添加以下内容</span></span><br><span class="line">&#123;</span><br><span class="line">  &quot;registry-mirrors&quot;: [</span><br><span class="line">    &quot;https://registry.docker-cn.com&quot;</span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 重启 Docker</span></span><br><span class="line">[root@localhost ~]# systemctl daemon-reload</span><br><span class="line">[root@localhost ~]# systemctl restart docker</span><br></pre></td></tr></table></figure></li>
 </ul>
-<img src="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/01.png" class="" width="600">
-
-<p>磁盘这里我这里用了10 GiB，没办法，电脑磁盘太小，而且这个集群只跑 demo 用。<br>CPU 跟内存这一块需要稍微注意一下：</p>
-<img src="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/02.png" class="" width="600">
-
-<p>我这里分配了所需资源的最小值，当然这个可以动态调整，所以关系不大。记住这里分配的动态 ip、网关等，我们需要把它设置成静态的。</p>
-<img src="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/03.png" class="" width="600">
-
-<h3 id="静态-ip（当然也可以进入系统里设置，如果你不嫌麻烦的话）"><a href="#静态-ip（当然也可以进入系统里设置，如果你不嫌麻烦的话）" class="headerlink" title="静态 ip（当然也可以进入系统里设置，如果你不嫌麻烦的话）"></a>静态 ip（当然也可以进入系统里设置，如果你不嫌麻烦的话）</h3><img src="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/04.png" class="" width="600">
-
-<p>这里你可以 ping 一下这个 ip，看宿主机是否可以连接到你的虚拟机内部</p>
-<img src="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/05.png" class="" width="600">
-
-<h3 id="分区"><a href="#分区" class="headerlink" title="分区"></a>分区</h3><p>占用空间较大的就是 / 以及 /var，如果你的磁盘足够大，其他分区也可以调整的大一些。</p>
-<img src="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/06.png" class="" width="600">
-
-<p>安装中。。。。</p>
-<img src="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/07.png" class="" width="600">
-
-<h1 id="必要软件安装"><a href="#必要软件安装" class="headerlink" title="必要软件安装"></a>必要软件安装</h1><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 更新 yum</span></span><br><span class="line">[root@localhost ~]# yum update -y</span><br><span class="line"><span class="meta">#</span><span class="bash"> 安装 vim 以及 ifconfig</span></span><br><span class="line">[root@localhost ~]# yum install -y vim net-tools.x86_64</span><br></pre></td></tr></table></figure>
-
-<h1 id="免密登录"><a href="#免密登录" class="headerlink" title="免密登录"></a>免密登录</h1><ul>
-<li><strong>密钥生成</strong></li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Tubetrue01:~:% ssh-keygen -o -a 100 -t ed25519 -f &quot;The path where you store&quot; -C &quot;Your Email&quot;</span><br></pre></td></tr></table></figure>
-<ul>
-<li><strong>上传至你的虚拟机</strong></li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Tubetrue01:~:% ssh-copy-id -i &quot;The path where you store&quot;/id_ed25519.pub root@server </span><br></pre></td></tr></table></figure>
-<ul>
-<li><strong>sshd 设置</strong></li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 编辑配置文件</span></span><br><span class="line">[root@localhost ~]# vim /etc/ssh/sshd_config </span><br><span class="line"><span class="meta">#</span><span class="bash"> 修改值</span></span><br><span class="line">PubkeyAuthentication yes</span><br><span class="line">PasswordAuthentication no</span><br><span class="line"><span class="meta">#</span><span class="bash"> 重启 sshd</span></span><br><span class="line">[root@localhost ~]# systemctl restart sshd</span><br></pre></td></tr></table></figure>
-<h1 id="内核升级（非必须）"><a href="#内核升级（非必须）" class="headerlink" title="内核升级（非必须）"></a>内核升级（非必须）</h1><p>我们可以把内核升级一下，然后开启 BBR 算法。</p>
-<ul>
-<li><strong>内核安装</strong></li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org</span><br><span class="line">[root@localhost ~]# rpm -Uvh https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm</span><br><span class="line">[root@localhost ~]# yum --enablerepo=elrepo-kernel install -y kernel-ml</span><br><span class="line">[root@localhost ~]# grub2-set-default 0</span><br></pre></td></tr></table></figure>
-<ul>
-<li><strong>关闭开机读秒</strong></li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 编辑配置文件</span></span><br><span class="line">[root@localhost ~]# vim /boot/grub2/grub.cfg</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 将超时时间设置为 0</span></span><br><span class="line">if [ x$feature_timeout_style = xy ] ; then</span><br><span class="line">  set timeout_style=menu</span><br><span class="line"><span class="meta">  #</span><span class="bash"> <span class="built_in">set</span> timeout=5</span></span><br><span class="line">  set timeout = 0</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 重启</span></span><br><span class="line">[root@localhost ~]# reboot</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><strong>内核查看</strong></li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# uname -r</span><br><span class="line">5.10.2-1.el7.elrepo.x86_64</span><br></pre></td></tr></table></figure>
-<ul>
-<li><strong>开启 BBR</strong></li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# echo &quot;net.core.default_qdisc = fq&quot; &gt;&gt; /etc/sysctl.conf</span><br><span class="line">[root@localhost ~]# echo &quot;net.ipv4.tcp_congestion_control = bbr&quot; &gt;&gt; /etc/sysctl.conf</span><br><span class="line">[root@localhost ~]# sysctl -p</span><br><span class="line"><span class="meta">#</span><span class="bash"> 查看是否开启</span></span><br><span class="line">[root@localhost ~]# lsmod | grep bbr</span><br><span class="line">tcp_bbr                20480  1 </span><br></pre></td></tr></table></figure>
-<ul>
-<li><strong>设置资源配置</strong></li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 编辑文件</span></span><br><span class="line">[root@localhost ~]# vim /etc/security/limits.conf</span><br><span class="line"><span class="meta">#</span><span class="bash"> 尾部添加</span></span><br><span class="line">* soft nofile 65535</span><br><span class="line">* hard nofile 65535</span><br><span class="line"><span class="meta">#</span><span class="bash"> 运行指令</span></span><br><span class="line">[root@localhost ~]# ulimit -n 65535</span><br></pre></td></tr></table></figure>
 <hr>
-<h1 id="尾声"><a href="#尾声" class="headerlink" title="尾声"></a>尾声</h1><p>好了，系统已经准备完毕，我们马上进入下一步 <a href="https://tubetrue01.github.io/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%BA%8C)Docker%E5%AE%89%E8%A3%85">【Docker 安装】</a>。</p>
+<h1 id="尾声"><a href="#尾声" class="headerlink" title="尾声"></a>尾声</h1><p>Docker 已经安装完毕了，我们可以迅速进入下一章<a href="https://tubetrue01.github.io/articles/2020/12/22/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%89)K8s%E5%90%AF%E5%8A%A8">【K8s 搭建】</a>。</p>
 
     
 
@@ -306,7 +253,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%BA%8C)Docker%E5%AE%89%E8%A3%85/">展开全文 >></a>
     </p>
     
 
@@ -340,7 +287,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/12/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/11/">11</a><a class="page-number" href="/articles/page/12/">12</a><span class="page-number current">13</span><a class="page-number" href="/articles/page/14/">14</a><a class="page-number" href="/articles/page/15/">15</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/20/">20</a><a class="extend next" rel="next" href="/articles/page/14/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/12/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/11/">11</a><a class="page-number" href="/articles/page/12/">12</a><span class="page-number current">13</span><a class="page-number" href="/articles/page/14/">14</a><a class="page-number" href="/articles/page/15/">15</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/21/">21</a><a class="extend next" rel="next" href="/articles/page/14/">下一页</a>
     </nav>
   
 
