@@ -6,21 +6,25 @@
   <meta name="renderer" content="webkit">
   <meta http-equiv="X-UA-Compatible" content="IE=edge" >
   <link rel="dns-prefetch" href="https://tubetrue01.github.io">
-  <title>Tubetrue01</title>
+  <title>SpringMVC 篇（二）DispatcherServlet 请求 | Tubetrue01</title>
   <meta name="generator" content="hexo-theme-yilia-plus">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   
-    
-    <!-- <meta name="keywords" content="">
-    <meta name="description" content=""> -->
-  
-  <meta property="og:type" content="website">
-<meta property="og:title" content="Tubetrue01">
-<meta property="og:url" content="https://tubetrue01.github.io/page/19/">
+  <meta name="description" content="引言 前一篇文章 【SpringMVC 篇（一）DispatcherServlet 初始化】 中介绍了刷新的触发、基础组建的加载以及以 HandlerMapping 为例讲解了一下 url 与 controller 的映射。那么这篇文章将继续介绍 DispatcherServlet 关于请求处理的部分。  请求在开始介绍 DispatcherServlet 处理请求之前，我们回忆一下原始的 ser">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SpringMVC 篇（二）DispatcherServlet 请求">
+<meta property="og:url" content="https://tubetrue01.github.io/2021/01/23/java_spring/SpringMVC%E7%AF%87(%E4%BA%8C)DispatcherServlet%E8%AF%B7%E6%B1%82/">
 <meta property="og:site_name" content="Tubetrue01">
+<meta property="og:description" content="引言 前一篇文章 【SpringMVC 篇（一）DispatcherServlet 初始化】 中介绍了刷新的触发、基础组建的加载以及以 HandlerMapping 为例讲解了一下 url 与 controller 的映射。那么这篇文章将继续介绍 DispatcherServlet 关于请求处理的部分。  请求在开始介绍 DispatcherServlet 处理请求之前，我们回忆一下原始的 ser">
 <meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2021/01/23/java_spring/SpringMVC%E7%AF%87(%E4%BA%8C)DispatcherServlet%E8%AF%B7%E6%B1%82/01.png">
+<meta property="article:published_time" content="2021-01-23T06:24:00.000Z">
+<meta property="article:modified_time" content="2021-09-03T05:39:32.144Z">
 <meta property="article:author" content="Tubetrue01">
+<meta property="article:tag" content="Java">
+<meta property="article:tag" content="Spring">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://tubetrue01.github.io/articles/2021/01/23/java_spring/SpringMVC%E7%AF%87(%E4%BA%8C)DispatcherServlet%E8%AF%B7%E6%B1%82/01.png">
   
     <link rel="alternative" href="/articles/atom.xml" title="Tubetrue01" type="application/atom+xml">
   
@@ -183,32 +187,53 @@
               class="anm-canvas"></canvas>
           </div>
           <div id="js-content" class="content-ll">
-            
-
-  
-    <article id="post-c_unix/IO多路复用(三)poll函数" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+            <article id="post-java_spring/SpringMVC篇(二)DispatcherServlet请求" class="article article-type-post " itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
   
   
-    <h1 itemprop="name">
-	
-	  <a class="article-title" href="/articles/2020/12/18/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E4%B8%89)poll%E5%87%BD%E6%95%B0/" target="_blank">IO 多路复用（三）poll 函数</a>
-  
+    <h1 class="article-title" itemprop="name">
+      SpringMVC 篇（二）DispatcherServlet 请求
     </h1>
   
 
 
   
   
-<a href="/articles/2020/12/18/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E4%B8%89)poll%E5%87%BD%E6%95%B0/" class="archive-article-date">
-        <time datetime="2020-12-18T08:35:36.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-12-18</time>
+        
+        <span id="busuanzi_container_page_pv" style='display:none' class="archive-article-date">
+              <i class="icon-smile icon"></i> 阅读数：<span id="busuanzi_value_page_pv"></span>次
+        </span>
+
+<a href="/articles/2021/01/23/java_spring/SpringMVC%E7%AF%87(%E4%BA%8C)DispatcherServlet%E8%AF%B7%E6%B1%82/" class="archive-article-date">
+        <time datetime="2021-01-23T06:24:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-01-23</time>
 </a>
 
   
   
     
+<div style="margin-top:10px;">
+  <span class="post-time">
+    <span class="post-meta-item-icon">
+      <!-- fonts.scss -->
+      <!-- 百度字体平台:http://fontstore.baidu.com/static/editor/index.html -->
+      <i class="icon-statistics"></i>
+      <span class="post-meta-item-text"> 字数统计:</span>
+      <span class="post-count">2.2k字</span>
+    </span>
+  </span>
+
+  <span class="post-time">
+    &nbsp; | &nbsp;
+    <span class="post-meta-item-icon">
+      <i class="icon-book icon"></i>
+      <span class="post-meta-item-text"> 阅读时长≈</span>
+      <span class="post-count">9分</span>
+    </span>
+  </span>
+</div>
+
 
   
   </header>
@@ -216,139 +241,79 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>据说 poll 函数起源于 SVR3，最初局限于流设备。而到了 SVR4 取消了这种限制，允许 poll 工作在任何描述符上。 功能与 select 类似，不过在处理流设备时，它能够提供额外的信息。</p>
+<p>前一篇文章 <a href="https://tubetrue01.github.io/articles/2021/01/21/java_spring/SpringMVC%E7%AF%87(%E4%B8%80)DispatcherServlet%E5%88%9D%E5%A7%8B%E5%8C%96">【SpringMVC 篇（一）DispatcherServlet 初始化】</a> 中介绍了刷新的触发、基础组建的加载以及以 HandlerMapping 为例讲解了一下 url 与 controller 的映射。那么这篇文章将继续介绍 DispatcherServlet 关于请求处理的部分。</p>
 </blockquote>
-<h1 id="1-0-函数原型"><a href="#1-0-函数原型" class="headerlink" title="1.0 函数原型"></a>1.0 函数原型</h1><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/poll.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">poll</span><span class="params">(struct pollfd *fdarray, <span class="keyword">nfds_t</span> nfds, <span class="keyword">int</span> timeout)</span></span>;</span><br></pre></td></tr></table></figure>
-<h2 id="1-1-参数"><a href="#1-1-参数" class="headerlink" title="1.1 参数"></a>1.1 参数</h2><h3 id="fdarray"><a href="#fdarray" class="headerlink" title="fdarray"></a>fdarray</h3><blockquote>
-<p>该参数是指向一个结构数组第一个元素的指针。每个数组元素都是一个 pollfd 结构体，用于指定测试某个描述符 fd 的条件。我们看一下它的原型：</p>
+<h1 id="请求"><a href="#请求" class="headerlink" title="请求"></a>请求</h1><p>在开始介绍 DispatcherServlet 处理请求之前，我们回忆一下原始的 servlet 是如何处理请求的。</p>
+<p>Servlet</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">service</span><span class="params">(ServletRequest req, ServletResponse res)</span> <span class="keyword">throws</span> ServletException, IOException</span>;</span><br></pre></td></tr></table></figure>
+<p>servlet 是一个接口，该接口中的 service 方法可以说是核心方法，所有的请求都会由该方法进行调度。根据请求的方法来引导你到 doXXX 系列的方法。而 doXXX 系列的方法并没有在该接口中进行声明，而是放到了它的子类 HttpServlet 中。而 DispatcherServlet 也是一个 servlet，所以它也按照该流程处理请求。</p>
+<h1 id="时序图"><a href="#时序图" class="headerlink" title="时序图"></a>时序图</h1><blockquote>
+<p>我们先看一下请求是如何通过 HttpServlet 以及 FrameworkServlet 中转到 DispatcherServlet 的。</p>
 </blockquote>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">pollfd</span> </span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="keyword">int</span>   fd;       <span class="comment">/* descriptor to check */</span></span><br><span class="line">  <span class="keyword">short</span> events;   <span class="comment">/* events of interest on fd */</span></span><br><span class="line">  <span class="keyword">short</span> revents;  <span class="comment">/* events that occurred on fd */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-<ul>
-<li>fd 这个不用多说，就是描述符了。</li>
-<li>events 就是我们关心的当前描述符的事件。</li>
-<li>revents 函数把当前描述符的事件状态结果保存在该成员中。</li>
-</ul>
-<p>这就理解为，把描述符、关心的事件、事件的状态封装成了一个对象。这些对象组成起来就构成了这个结构数组。它避免了像 select 函数中间三个参数都是值-结果参数。</p>
-<p><strong>说明</strong></p>
-<blockquote>
-<p><strong>值-结果参数：</strong> 该参数在函数调用的时候作为值传递给函数，函数执行完毕之后将执行结果保存到该参数中，所谓一参两用。值-结果参数一定要传指针。</p>
+<img src="/articles/2021/01/23/java_spring/SpringMVC%E7%AF%87(%E4%BA%8C)DispatcherServlet%E8%AF%B7%E6%B1%82/01.png" class="" width="500">
+
+<p>先对请求进行分析：</p>
+<ol>
+<li>请求进入 HttpServlet 的 service(ServletRequest, ServletResponse) 方法，该方法将 ServletRequest 、ServletResponse 转化为 HttpServletRequest、HttpServletResponse。</li>
+<li>HttpServlet 调用 FrameworkServlet 的 service(ServletRequest, ServletResponse) 方法。该方法对请求的 Http 方法进行判断，然后调用 HttpServlet 的 service(ServletRequest, ServletResponse) 方法。</li>
+<li>HttpServlet 的 service(ServletRequest, ServletResponse) 方法根据请求调用 FrameworkServlet 的 doXXX 系列方法。</li>
+<li>FrameworkServlet 的 doXXX 方法调用 processRequest 方法，该方法将请求转到 DispatcherServlet 的 doService() 方法。</li>
+<li>DispatcherServlet 的 doService() 方法调用 doDispatcher() 方法。</li>
+</ol>
+<p>过程比较绕，但是最终调用的其实就是 DispatcherServlet 的 doDispatch() 方法了，不过在介绍它之前，我想有必要从 FrameworkServlet 的 processRequest() 方法开始。看它有没有对请求对象做处理。</p>
+<h1 id="FrameworkServlet"><a href="#FrameworkServlet" class="headerlink" title="FrameworkServlet"></a>FrameworkServlet</h1><blockquote>
+<p>DispatcherServlet 的直接父类。</p>
 </blockquote>
-<p>对于 events 跟 revents 参数，它们每一个都由指定某个特定条件的一位或多位构成，下面是一些常值：</p>
-<table>
-<thead>
-<tr>
-<th>常值</th>
-<th align="center">是否作为 events 的输入</th>
-<th align="center">是否作为 revents 结果</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><strong>POLLIN</strong></td>
-<td align="center">$\bullet$</td>
-<td align="center">$\bullet$</td>
-<td>普通或优先级带数据可读</td>
-</tr>
-<tr>
-<td><strong>POLLRDNORM</strong></td>
-<td align="center">$\bullet$</td>
-<td align="center">$\bullet$</td>
-<td>普通数据可读</td>
-</tr>
-<tr>
-<td><strong>POLLRDBAND</strong></td>
-<td align="center">$\bullet$</td>
-<td align="center">$\bullet$</td>
-<td>优先级带数据可读</td>
-</tr>
-<tr>
-<td><strong>POLLPRI</strong></td>
-<td align="center">$\bullet$</td>
-<td align="center">$\bullet$</td>
-<td>高优先级数据可读</td>
-</tr>
-<tr>
-<td><strong>POLLOUT</strong></td>
-<td align="center">$\bullet$</td>
-<td align="center">$\bullet$</td>
-<td>普通数据可写</td>
-</tr>
-<tr>
-<td><strong>POLLWRNORM</strong></td>
-<td align="center">$\bullet$</td>
-<td align="center">$\bullet$</td>
-<td>普通数据可写</td>
-</tr>
-<tr>
-<td><strong>POLLWRBAND</strong></td>
-<td align="center">$\bullet$</td>
-<td align="center">$\bullet$</td>
-<td>优先级带数据可写</td>
-</tr>
-<tr>
-<td><strong>POLLERR</strong></td>
-<td align="center">$\circ$</td>
-<td align="center">$\bullet$</td>
-<td>发生错误</td>
-</tr>
-<tr>
-<td><strong>POLLHUP</strong></td>
-<td align="center">$\circ$</td>
-<td align="center">$\bullet$</td>
-<td>发生挂起</td>
-</tr>
-<tr>
-<td><strong>POLLNVAL</strong></td>
-<td align="center">$\circ$</td>
-<td align="center">$\bullet$</td>
-<td>描述符不是一个打开的文件</td>
-</tr>
-</tbody></table>
-<p><strong>📚 Tips</strong></p>
-<blockquote>
-<p>我们需要记住 poll 识别三类数据：普通、优先级带、高优先级。</p>
+<p>FrameworkServlet</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">processRequest</span><span class="params">(HttpServletRequest request, HttpServletResponse response)</span></span></span><br><span class="line"><span class="function">			<span class="keyword">throws</span> ServletException, IOException </span>&#123;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">long</span> startTime = System.currentTimeMillis();</span><br><span class="line">		Throwable failureCause = <span class="keyword">null</span>;</span><br><span class="line">        <span class="comment">// 从当前线程或其子线程中获取原始本地化上下文对象</span></span><br><span class="line">		LocaleContext previousLocaleContext = LocaleContextHolder.getLocaleContext();</span><br><span class="line">        <span class="comment">// 从请求对象中获取本地化信息，然后构建出本地化上下文对象</span></span><br><span class="line">		LocaleContext localeContext = buildLocaleContext(request);</span><br><span class="line">        <span class="comment">// 从当前线程及其子线程中获取原始 RequestAttributes 对象</span></span><br><span class="line">		RequestAttributes previousAttributes = RequestContextHolder.getRequestAttributes();</span><br><span class="line">        <span class="comment">// 根据当前请求、响应对象以及原始 previousAttributes 创建 requestAttributes  对象</span></span><br><span class="line">		ServletRequestAttributes requestAttributes = buildRequestAttributes(request, response, previousAttributes);</span><br><span class="line">        <span class="comment">// 创建异步管理器，并与当前请求对象关联（设置到 request 属性表中）</span></span><br><span class="line">		WebAsyncManager asyncManager = WebAsyncUtils.getAsyncManager(request);  </span><br><span class="line">        <span class="comment">// 为异步管理器注册拦截器（设置 ContextHolder 对象，以及请求之后将其清空）</span></span><br><span class="line">		asyncManager.registerCallableInterceptor(FrameworkServlet.class.getName(), <span class="keyword">new</span> RequestBindingInterceptor());</span><br><span class="line">        <span class="comment">// 分别初始化 localeContextHolder 以及 requestContextHolder 对象</span></span><br><span class="line">		initContextHolders(request, localeContext, requestAttributes);</span><br><span class="line"></span><br><span class="line">		<span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 这里开始调用 DispatcherServlet 中的 doService() 方法</span></span><br><span class="line">			doService(request, response);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">catch</span> (ServletException | IOException ex) &#123;</span><br><span class="line">			failureCause = ex;</span><br><span class="line">			<span class="keyword">throw</span> ex;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">catch</span> (Throwable ex) &#123;</span><br><span class="line">			failureCause = ex;</span><br><span class="line">			<span class="keyword">throw</span> <span class="keyword">new</span> NestedServletException(<span class="string">&quot;Request processing failed&quot;</span>, ex);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="comment">// 请求完成之后，会将之前的 context 对象恢复到 ContextHolder 中</span></span><br><span class="line">			resetContextHolders(request, previousLocaleContext, previousAttributes);</span><br><span class="line">			<span class="keyword">if</span> (requestAttributes != <span class="keyword">null</span>) &#123;</span><br><span class="line">				requestAttributes.requestCompleted();</span><br><span class="line">			&#125;</span><br><span class="line">			logResult(request, response, failureCause, asyncManager);</span><br><span class="line">            <span class="comment">// 发布事件 </span></span><br><span class="line">			publishRequestHandledEvent(request, response, startTime, failureCause);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+<p>这个方法主要的作用就是获取之前设置的 context 对象，然后为当前 request 建立 ContextHolder （ThreadLocal）对象，并在请求完毕之后将其恢复到之前获取的 context 对象（如果为空就直接清除），同时发布处理事件。这里有个疑问，就是既然先获取之前的 context 对象，那么肯定有个入口会设置该值，那么是什么时候设置的呢？而且，请求之后必须要清空 ContextHolder ，那么这里并没有看到相关的清空操作。那么 Spring 是怎么做的呢？大家可以思考一下。<br>我们继续分析，打开 DispatcherServlet 的 doService() 方法。</p>
+<h1 id="doService"><a href="#doService" class="headerlink" title="doService"></a>doService</h1><blockquote>
+<p>doService 是一个覆盖的方法，供父类调用，而该方法只是做一下请求的准备工作，然后将具体请求处理交由 doDispatch 方法。</p>
 </blockquote>
-<p><strong>补充：</strong></p>
-<blockquote>
-<p>POLLIN 可被定义为 POLLRDNORM 和 POLLRDBAND 的逻辑或；POLLOUT 等同于 POLLWRNORM。</p>
+<p>DispatcherServlet</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line">   <span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">doService</span><span class="params">(HttpServletRequest request, HttpServletResponse response)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">	logRequest(request);</span><br><span class="line">       <span class="comment">// 这里就是对 request 中的属性进行快照备份</span></span><br><span class="line">	Map&lt;String, Object&gt; attributesSnapshot = <span class="keyword">null</span>;</span><br><span class="line">	<span class="keyword">if</span> (WebUtils.isIncludeRequest(request)) &#123;</span><br><span class="line">		attributesSnapshot = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line">		Enumeration&lt;?&gt; attrNames = request.getAttributeNames();</span><br><span class="line">		<span class="keyword">while</span> (attrNames.hasMoreElements()) &#123;</span><br><span class="line">			String attrName = (String) attrNames.nextElement();</span><br><span class="line">			<span class="keyword">if</span> (<span class="keyword">this</span>.cleanupAfterInclude || attrName.startsWith(DEFAULT_STRATEGIES_PREFIX)) &#123;</span><br><span class="line">				attributesSnapshot.put(attrName, request.getAttribute(attrName));</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">       <span class="comment">// 将相关的解析器、容器保存到 request 中</span></span><br><span class="line">	request.setAttribute(WEB_APPLICATION_CONTEXT_ATTRIBUTE, getWebApplicationContext());</span><br><span class="line">	request.setAttribute(LOCALE_RESOLVER_ATTRIBUTE, <span class="keyword">this</span>.localeResolver);</span><br><span class="line">	request.setAttribute(THEME_RESOLVER_ATTRIBUTE, <span class="keyword">this</span>.themeResolver);</span><br><span class="line">	request.setAttribute(THEME_SOURCE_ATTRIBUTE, getThemeSource());</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (<span class="keyword">this</span>.flashMapManager != <span class="keyword">null</span>) &#123;</span><br><span class="line">		FlashMap inputFlashMap = <span class="keyword">this</span>.flashMapManager.retrieveAndUpdate(request, response);</span><br><span class="line">		<span class="keyword">if</span> (inputFlashMap != <span class="keyword">null</span>) &#123;</span><br><span class="line">			request.setAttribute(INPUT_FLASH_MAP_ATTRIBUTE, Collections.unmodifiableMap(inputFlashMap));</span><br><span class="line">		&#125;</span><br><span class="line">		request.setAttribute(OUTPUT_FLASH_MAP_ATTRIBUTE, <span class="keyword">new</span> FlashMap());</span><br><span class="line">		request.setAttribute(FLASH_MAP_MANAGER_ATTRIBUTE, <span class="keyword">this</span>.flashMapManager);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	RequestPath previousRequestPath = <span class="keyword">null</span>;</span><br><span class="line">	<span class="keyword">if</span> (<span class="keyword">this</span>.parseRequestPath) &#123;</span><br><span class="line">		previousRequestPath = (RequestPath) request.getAttribute(ServletRequestPathUtils.PATH_ATTRIBUTE);</span><br><span class="line">		ServletRequestPathUtils.parseAndCache(request);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">           <span class="comment">// 调用 doDispatcher 处理请求</span></span><br><span class="line">		doDispatch(request, response);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">finally</span> &#123;</span><br><span class="line">           <span class="comment">// 同步方法的处理 </span></span><br><span class="line">		<span class="keyword">if</span> (!WebAsyncUtils.getAsyncManager(request).isConcurrentHandlingStarted()) &#123;</span><br><span class="line">               <span class="comment">// 恢复原始属性快照</span></span><br><span class="line">			<span class="keyword">if</span> (attributesSnapshot != <span class="keyword">null</span>) &#123;</span><br><span class="line">				restoreAttributesAfterInclude(request, attributesSnapshot);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		ServletRequestPathUtils.setParsedRequestPath(previousRequestPath, request);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1 id="doDispatch"><a href="#doDispatch" class="headerlink" title="doDispatch"></a>doDispatch</h1><blockquote>
+<p>doDispatch 是处理请求的核心方法</p>
 </blockquote>
-<p>还要注意的是，如果是 TCP 和 UDP 套接字，一下的条件会引起 poll 返回特定的 revent （然而不性的是， POSIX 在其 poll 的定义中留了许多空洞，会造成多种方式可返回相同的条件）。</p>
-<ul>
-<li><strong>所有正规 TCP 数据和所有 UDP 数据都被认为是普通数据。</strong></li>
-<li><strong>TCP 的带外数据被认为是优先级带数据。</strong></li>
-<li><strong>当 TCP 连接的读半部分关闭时（譬如收到了一个来自对端的 FIN），也被认为是普通数据，随后的读操作将返回 0。</strong></li>
-<li><strong>TCP 连接存在错误既可认为是普通数据，也可认为是错误（POLLERR）。无论哪种情况，随后的读操作将返回 -1，并把 errno 设置成合适的值。这可用于处理诸如接收到 RST 或发生超时等条件。</strong></li>
-<li><strong>在监听套接字上有新的连接可用既可认为是普通数据，也可认为是优先级数据。大多数实现视为普通数据。</strong></li>
-<li><strong>非阻塞式 connect 的完成被认为是使相应套接字可写。</strong></li>
-</ul>
-<h3 id="nfds"><a href="#nfds" class="headerlink" title="nfds"></a>nfds</h3><p>该参数指定了结构数组（也就是第一个参数）中元素的个数。该参数被声明为：nfds_t 类型，对应的其实是：unsigned int。</p>
-<h3 id="timeout"><a href="#timeout" class="headerlink" title="timeout"></a>timeout</h3><p>该参数指定了 poll 函数返回前等待多长时间。</p>
-<ul>
-<li><strong>INFTIM</strong><br>永久等待。</li>
-<li><strong>0</strong><br>立刻返回，不阻塞进程。</li>
-<li><strong>n</strong><br>指定等待毫秒数 n。</li>
-</ul>
-<p>INFTIM 常值被定义为一个负值。如果系统不能提供毫秒级精度的定时器，该值就向上舍入到最接近的支持值。</p>
-<p><strong>补充：</strong></p>
-<blockquote>
-<p>POSIX 规范要求在头文件 &lt;poll.h&gt; 中定义 INFTIM，不过许多系统仍然把它定义在头文件 &lt;sys/stropts.h&gt; 中。</p>
-</blockquote>
-<h2 id="1-2-返回值"><a href="#1-2-返回值" class="headerlink" title="1.2 返回值"></a>1.2 返回值</h2><ul>
-<li><strong>0</strong><br>运行超时。</li>
-<li><strong>-1</strong><br>函数执行发生错误。</li>
-<li><strong>n</strong><br>已经就绪的描述符数量，即成员 revents 值非 0 的描述符数量。</li>
-</ul>
-<p>如果不想关心某个描述符，只需要把该描述符对应的 pollfd 结构的 fd 成员设置成一个负值就可以了。poll 函数将会忽略这样的 pollfd 结构的 events 成员，并且返回时，将它的 revents 成员值置为 0。</p>
-<h1 id="2-0-注意"><a href="#2-0-注意" class="headerlink" title="2.0 注意"></a>2.0 注意</h1><p>对于 poll 函数，就不再需要关心每个进程中最大描述符的数量之类的问题了，因为 poll 函数采用 pollfd 结构体数组的方式传递给内核，并且把传递数组元素的数量给内核的责任交给了调用者。所以，内核也就不在需要知道类似 fd_set 的固定大小的数据类型了。</p>
+<p>DispatcherServlet</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">doDispatch</span><span class="params">(HttpServletRequest request, HttpServletResponse response)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="comment">// 待处理的请求 </span></span><br><span class="line">		HttpServletRequest processedRequest = request;</span><br><span class="line">        <span class="comment">// 请求的完成链，包括拦截器等 </span></span><br><span class="line">		HandlerExecutionChain mappedHandler = <span class="keyword">null</span>;</span><br><span class="line">        <span class="comment">// 文件上传解析 </span></span><br><span class="line">		<span class="keyword">boolean</span> multipartRequestParsed = <span class="keyword">false</span>;</span><br><span class="line">        <span class="comment">// 从当前请求中获取异步处理器（这里获取的其实都是空的处理器，因为程序目前还不知道当前请求是不是异步处理的，后续的文章在进行相关介绍）</span></span><br><span class="line">		WebAsyncManager asyncManager = WebAsyncUtils.getAsyncManager(request);</span><br><span class="line">		<span class="keyword">try</span> &#123;</span><br><span class="line">			ModelAndView mv = <span class="keyword">null</span>;</span><br><span class="line">			Exception dispatchException = <span class="keyword">null</span>;</span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">                <span class="comment">// 判断当前请求是否是文件上传请求 </span></span><br><span class="line">				processedRequest = checkMultipart(request);</span><br><span class="line">				multipartRequestParsed = (processedRequest != request);</span><br><span class="line"></span><br><span class="line">                <span class="comment">// 获取当前请求的处理器</span></span><br><span class="line">				mappedHandler = getHandler(processedRequest);</span><br><span class="line">                <span class="comment">// 404 </span></span><br><span class="line">				<span class="keyword">if</span> (mappedHandler == <span class="keyword">null</span>) &#123;</span><br><span class="line">					noHandlerFound(processedRequest, response);</span><br><span class="line">					<span class="keyword">return</span>;</span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">				<span class="comment">// 获取当前处理的处理器适配器，用于真实的处理请求</span></span><br><span class="line">				HandlerAdapter ha = getHandlerAdapter(mappedHandler.getHandler());</span><br><span class="line">		                  <span class="comment">// 如果是 Get、Header 方法的话，获取最近修改时间，进行相关的优化操作</span></span><br><span class="line">				String method = request.getMethod();</span><br><span class="line">				<span class="keyword">boolean</span> isGet = <span class="string">&quot;GET&quot;</span>.equals(method);</span><br><span class="line">				<span class="keyword">if</span> (isGet || <span class="string">&quot;HEAD&quot;</span>.equals(method)) &#123;</span><br><span class="line">					<span class="keyword">long</span> lastModified = ha.getLastModified(request, mappedHandler.getHandler());</span><br><span class="line">					<span class="keyword">if</span> (<span class="keyword">new</span> ServletWebRequest(request, response).checkNotModified(lastModified) &amp;&amp; isGet) &#123;</span><br><span class="line">						<span class="keyword">return</span>;</span><br><span class="line">					&#125;</span><br><span class="line">				&#125;</span><br><span class="line">                <span class="comment">// 前置拦截器</span></span><br><span class="line">				<span class="keyword">if</span> (!mappedHandler.applyPreHandle(processedRequest, response)) &#123;</span><br><span class="line">					<span class="keyword">return</span>;</span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">				<span class="comment">// 开始处理请求</span></span><br><span class="line">				mv = ha.handle(processedRequest, response, mappedHandler.getHandler());</span><br><span class="line">                <span class="comment">// 如果是异步处理，直接返回</span></span><br><span class="line">				<span class="keyword">if</span> (asyncManager.isConcurrentHandlingStarted()) &#123;</span><br><span class="line">					<span class="keyword">return</span>;</span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">				applyDefaultViewName(processedRequest, mv);</span><br><span class="line">                 <span class="comment">// 后置拦截器（如果是异步的话，到这之前已经返回了）</span></span><br><span class="line">				mappedHandler.applyPostHandle(processedRequest, response, mv);</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">				dispatchException = ex;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">catch</span> (Throwable err) &#123;</span><br><span class="line">                <span class="comment">// As of 4.3, we&#x27;re processing Errors thrown from handler methods as well,</span></span><br><span class="line">                <span class="comment">// making them available for @ExceptionHandler methods and other scenarios.</span></span><br><span class="line">				dispatchException = <span class="keyword">new</span> NestedServletException(<span class="string">&quot;Handler dispatch failed&quot;</span>, err);</span><br><span class="line">			&#125;</span><br><span class="line">            <span class="comment">// 最后的结果、视图、异常的处理，当然拦截器中的 afterCompletion() 方法也会在这一步进行调用（异步处理除外）</span></span><br><span class="line">			processDispatchResult(processedRequest, response, mappedHandler, mv, dispatchException);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">			triggerAfterCompletion(processedRequest, response, mappedHandler, ex);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">catch</span> (Throwable err) &#123;</span><br><span class="line">			triggerAfterCompletion(processedRequest, response, mappedHandler,</span><br><span class="line">					<span class="keyword">new</span> NestedServletException(<span class="string">&quot;Handler processing failed&quot;</span>, err));</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">finally</span> &#123;</span><br><span class="line">			<span class="keyword">if</span> (asyncManager.isConcurrentHandlingStarted()) &#123;</span><br><span class="line">                <span class="comment">// 前边提到一点，如果是异步请求的话，postHandle 以及 afterCompletion 方法是不会生效的，所以这里是针对于异步请求的拦截器处理</span></span><br><span class="line">				<span class="keyword">if</span> (mappedHandler != <span class="keyword">null</span>) &#123;</span><br><span class="line">					mappedHandler.applyAfterConcurrentHandlingStarted(processedRequest, response);</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="comment">// 如果是文件上传请求，这里会对资源进行处理</span></span><br><span class="line">				<span class="keyword">if</span> (multipartRequestParsed) &#123;</span><br><span class="line">					cleanupMultipart(processedRequest);</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+<p>相关的说明已经详细的在代码中标注了。大体上我们可以总结如下：</p>
+<ol>
+<li>每个请求都会赋予一个异步管理器。</li>
+<li>拦截器 preHandle() 方法的调用。</li>
+<li>真实请求的调用。</li>
+<li>如果是异步请求，那么拦截器的 postHandle() 和 afterCompletion() 方法是不会生效的，这里需要使用 AsyncHandlerInterceptor 拦截器。</li>
+</ol>
+<h1 id="RequestContextFilter"><a href="#RequestContextFilter" class="headerlink" title="RequestContextFilter"></a>RequestContextFilter</h1><p>还记得我们之前提到的就是 ContextHolder 是什么时候进行属性配置的吗？其实在请求进来的时候，先经过一轮轮的 Filter 处理，其中之一的 RequestContextFilter 就是用来做这个工作的。我们看一下它的代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">doFilterInternal</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">        HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)</span></span></span><br><span class="line"><span class="function">        <span class="keyword">throws</span> ServletException, IOException </span>&#123;</span><br><span class="line"></span><br><span class="line">    ServletRequestAttributes attributes = <span class="keyword">new</span> ServletRequestAttributes(request, response);</span><br><span class="line">    <span class="comment">// 进行 ContextHolder 的初始化工作，这里会初始化两个 ContextHolder，一个是 LocaleContextHolder ，一个是 RequestContextHolder。</span></span><br><span class="line">    initContextHolders(request, attributes);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// 请求向下传递</span></span><br><span class="line">        filterChain.doFilter(request, response);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">finally</span> &#123;</span><br><span class="line">         <span class="comment">// 请求完成之后，为了避免内存泄漏，这里需要将 ContextHolder 重置。</span></span><br><span class="line">        resetContextHolders();</span><br><span class="line">        <span class="keyword">if</span> (logger.isTraceEnabled()) &#123;</span><br><span class="line">            logger.trace(<span class="string">&quot;Cleared thread-bound request context: &quot;</span> + request);</span><br><span class="line">        &#125;</span><br><span class="line">        attributes.requestCompleted();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 初始化 ContextHolder</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">initContextHolders</span><span class="params">(HttpServletRequest request, ServletRequestAttributes requestAttributes)</span> </span>&#123;</span><br><span class="line">    LocaleContextHolder.setLocale(request.getLocale(), <span class="keyword">this</span>.threadContextInheritable);</span><br><span class="line">    RequestContextHolder.setRequestAttributes(requestAttributes, <span class="keyword">this</span>.threadContextInheritable);</span><br><span class="line">    <span class="keyword">if</span> (logger.isTraceEnabled()) &#123;</span><br><span class="line">        logger.trace(<span class="string">&quot;Bound request context to thread: &quot;</span> + request);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 重置 ContextHolder</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">resetContextHolders</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    LocaleContextHolder.resetLocaleContext();</span><br><span class="line">    RequestContextHolder.resetRequestAttributes();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>代码很简单，无非就是请求之前初始化 ContextHolder，请求之后清空 ContextHolder。我们在项目中常用的 RequestContextHolder 是怎么来的，到这里我想大家已经豁然开朗了。</p>
 <hr>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
-<li><a target="_blank" rel="noopener" href="https://item.jd.com/12715718.html">Unix 网络编程 卷一</a></li>
-</ul>
+<h1 id="尾声"><a href="#尾声" class="headerlink" title="尾声"></a>尾声</h1><p>这篇文章我们介绍了请求的处理流程，把 DispatcherServlet 核心方法介绍了一遍。有人可能会提出疑问，请求的调用讲的并不是很详细，@RequestBody 以及 @ResponseBody 的处理都没提到。不要紧，因为接下来的系列文章 <a href="">【SpringMVC 篇 消息转换器】</a> 会对请求接下来的处理进行详细的介绍。</p>
 
     
 
     
 
+    
+    <div class="declare"> 
+      <ul class="post-copyright">
+        <li>
+          <strong>本文作者：</strong>
+          Tubetrue01
+        </li>
+        <li>
+          <strong>本文链接：</strong>
+          <a href="https://tubetrue01.github.io/articles/2021/01/23/java_spring/SpringMVC篇(二)DispatcherServlet请求/" title="SpringMVC 篇（二）DispatcherServlet 请求" target="_blank">https://tubetrue01.github.io/articles/2021/01/23/java_spring/SpringMVC篇(二)DispatcherServlet请求/</a>
+        </li>
+        
+        <li>
+          <strong>版权声明： </strong>
+          
+          本博客所有文章除特别声明外，均采用 <a href="https://github.com/JoeyBling/hexo-theme-yilia-plus/blob/master/LICENSE" rel="external nofollow" target="_blank">MIT</a> 许可协议。转载请注明出处！
+        </li>
+        
+      </ul>
+    </div>
     
 
   </div>
@@ -360,11 +325,11 @@
 		<ul class="article-tag-list">
 			 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">C</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color5">Java</a>
         		</li>
       		 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color5">Unix</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">Spring</a>
         		</li>
       		
 		</ul>
@@ -373,16 +338,85 @@
     
 
     
-    <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2020/12/18/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E4%B8%89)poll%E5%87%BD%E6%95%B0/">展开全文 >></a>
-    </p>
+
     
+    
+<div class="share-btn share-icons tooltip-left">
+  <div class="tooltip tooltip-east">
+    <span class="tooltip-item">
+      <a href="javascript:;" class="share-sns share-outer">
+        <i class="icon icon-share"></i>
+      </a>
+    </span>
+    <span class="tooltip-content">
+      <div class="share-wrap">
+        <div class="share-icons">
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="icon icon-weibo"></i>
+          </a>
+          <!-- <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="icon icon-weixin"></i>
+          </a> -->
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="icon icon-qq"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="icon icon-douban"></i>
+          </a>
+          <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a>
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="icon icon-facebook"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="icon icon-twitter"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="icon icon-google"></i>
+          </a>
+        </div>
+      </div>
+    </span>
+  </div>
+</div>
+
+<div class="page-modal wx-share js-wx-box">
+    <a class="close js-modal-close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+     <!-- <img src="//pan.baidu.com/share/qrcode?url=https://tubetrue01.github.io/2021/01/23/java_spring/SpringMVC%E7%AF%87(%E4%BA%8C)DispatcherServlet%E8%AF%B7%E6%B1%82/" alt="微信分享二维码"> -->
+    </div>
+</div>
+
+<div class="mask js-mask"></div>
 
     
     <div class="clearfix"></div>
   </div>
   </div>
 </article>
+
+
+<nav id="article-nav">
+  
+    <a href="/articles/2021/02/08/c_mini/C%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%BA%8C)%E6%9F%94%E6%80%A7%E6%95%B0%E7%BB%84/" id="article-nav-newer" class="article-nav-link-wrap">
+      <i class="icon-circle-left"></i>
+      <div class="article-nav-title">
+        
+          C 迷你系列（二）柔性数组
+        
+      </div>
+    </a>
+  
+  
+    <a href="/articles/2021/01/21/java_spring/SpringMVC%E7%AF%87(%E4%B8%80)DispatcherServlet%E5%88%9D%E5%A7%8B%E5%8C%96/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">SpringMVC 篇（一）DispatcherServlet 初始化</div>
+      <i class="icon-circle-right"></i>
+    </a>
+  
+</nav>
+
 
 <aside class="wrap-side-operation">
     <div class="mod-side-operation">
@@ -397,6 +431,19 @@
         </div>
         
         
+        <div class="toc-container tooltip-left">
+            <i class="icon-font icon-category"></i>
+            <div class="tooltip tooltip-east">
+                <span class="tooltip-item">
+                </span>
+                <span class="tooltip-content">
+                    <div class="toc-article">
+                    <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%BC%95%E8%A8%80"><span class="toc-number">1.</span> <span class="toc-text">引言</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E8%AF%B7%E6%B1%82"><span class="toc-number">2.</span> <span class="toc-text">请求</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">3.</span> <span class="toc-text">时序图</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#FrameworkServlet"><span class="toc-number">4.</span> <span class="toc-text">FrameworkServlet</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#doService"><span class="toc-number">5.</span> <span class="toc-text">doService</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#doDispatch"><span class="toc-number">6.</span> <span class="toc-text">doDispatch</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#RequestContextFilter"><span class="toc-number">7.</span> <span class="toc-text">RequestContextFilter</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%B0%BE%E5%A3%B0"><span class="toc-number">8.</span> <span class="toc-text">尾声</span></a></li></ol>
+                    </div>
+                </span>
+            </div>
+        </div>
+        
     </div>
 </aside>
 
@@ -405,12 +452,36 @@
 
 
 
+
+
+
+
+
+
+
+
+  <div id="gitalk-container" style="padding: 0px 30px 0px 30px;"></div> 
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css">
+<script src="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js"></script>
+<script type="text/javascript">
+
+if(true){
+	var gitalk = new Gitalk({
+  	clientID: 'b78837f065395b7c4761',
+  	clientSecret: '58c95c03db39e7430738d663bfc8337a5c8e1e80',
+  	repo: 'articles',
+  	owner: 'Tubetrue01',
+  	admin: ['Tubetrue01'],
+  	id: 'Sat Jan 23 2021 14:24:00 GMT+0800',
+  	distractionFreeMode: 'true'
+})
+gitalk.render('gitalk-container') 
+}
+</script>
   
-  
-    <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/18/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/17/">17</a><a class="page-number" href="/articles/page/18/">18</a><span class="page-number current">19</span><a class="page-number" href="/articles/page/20/">20</a><a class="page-number" href="/articles/page/21/">21</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/25/">25</a><a class="extend next" rel="next" href="/articles/page/20/">下一页</a>
-    </nav>
-  
+
+
 
 
 
@@ -446,8 +517,8 @@
     <script>
 	var yiliaConfig = {
 		mathjax: true,
-		isHome: true,
-		isPost: false,
+		isHome: false,
+		isPost: true,
 		isArchive: false,
 		isTag: false,
 		isCategory: false,
