@@ -21,7 +21,7 @@
 <meta property="og:image" content="https://tubetrue01.github.io/articles/2021/09/05/c_unix/Three-Way-Handshake/02.jpg">
 <meta property="og:image" content="https://tubetrue01.github.io/articles/2021/09/05/c_unix/Three-Way-Handshake/03.jpg">
 <meta property="article:published_time" content="2021-09-05T10:42:18.810Z">
-<meta property="article:modified_time" content="2021-09-05T12:00:08.897Z">
+<meta property="article:modified_time" content="2021-09-05T13:54:57.275Z">
 <meta property="article:author" content="Tubetrue01">
 <meta property="article:tag" content="Unix">
 <meta name="twitter:card" content="summary">
@@ -221,7 +221,7 @@
       <!-- 百度字体平台:http://fontstore.baidu.com/static/editor/index.html -->
       <i class="icon-statistics"></i>
       <span class="post-meta-item-text"> 字数统计:</span>
-      <span class="post-count">2k字</span>
+      <span class="post-count">2.1k字</span>
     </span>
   </span>
 
@@ -300,7 +300,9 @@
 <p>注意两个队列的总和不会超过 listen 函数中的 backlog 大小。</p>
 </blockquote>
 </li>
-<li><h3 id="netstat"><a href="#netstat" class="headerlink" title="netstat"></a>netstat</h3><p>Send-Q 以及 Recv-Q 信息也可以通过 netstat 命令显示。只不过，如果连接并非处于监听状态，Recv-Q 表示收到的数据仍然在缓存里并没有被程序读取。Recv-Q 对应的数值表示未读取的字节数。Send-Q 对应的数值表示发送队列中未被远程主机确认的字节数。</p>
+</ul>
+<ul>
+<li><h3 id="netstat"><a href="#netstat" class="headerlink" title="netstat"></a>netstat</h3><p>Send-Q 以及 Recv-Q 信息也可以通过 netstat 命令显示。如果连接并非处于监听状态，Recv-Q 表示收到的数据仍然在缓存里并没有被程序读取。Recv-Q 对应的数值表示未读取的字节数。Send-Q 对应的数值表示发送队列中未被远程主机确认的字节数。</p>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[root@server ~]# netstat -tn  </span><br><span class="line">Active Internet connections (w/o servers)</span><br><span class="line">Proto Recv-Q Send-Q Local Address   Foreign Address State  </span><br><span class="line">tcp0  0 100.81.180.187:8182  10.183.199.10:15260 SYN_RECV   </span><br><span class="line">tcp0  0 100.81.180.187:43511 10.137.67.18:19796  TIME_WAIT   </span><br><span class="line">tcp0  0 100.81.180.187:2376  100.81.183.84:42459 ESTABLISHED</span><br></pre></td></tr></table></figure>
 <p>有一点需要特别注意，通过 <code>netstat -tn</code> 命令展示的 Recv-Q 数据与 Accept 队列或者 SYN 队列无关。这里需要特别强调，以免与 <code>ss -lnt</code> 展示的 Recv-Q 数据相混淆。</p>
 <p>下图 <code>netstat -t</code> 展示的 Recv-Q 已经积累了大部分数据，这些数据一般是由 CPU 处理失败导致的。</p>
@@ -310,6 +312,10 @@
   <img src="/articles/2021/09/05/c_unix/Three-Way-Handshake/03.jpg" class="" width="866">
 
 <hr>
+<p>  <strong>📚 Tips</strong></p>
+<blockquote>
+<p>LISTEN 状态: Recv-Q 表示的当前等待服务端调用 accept 完成三次握手的 listen backlog 数值，也就是说，当客户端通过 connect() 去连接正在 listen() 的服务端时，这些连接会一直处于这个 queue 里面直到被服务端 accept()；Send-Q 表示的则是最大的 listen backlog 数值，这就就是上面提到的 min(backlog, somaxconn) 的值。<br>  其余状态: Recv-Q 表示 receive queue 中的 bytes 数量；Send-Q 表示 send queue 中的 bytes 数值。</p>
+</blockquote>
 <ul>
 <li><h3 id="验证过程"><a href="#验证过程" class="headerlink" title="验证过程"></a>验证过程</h3><p>为了验证以上描述的信息，将 backlog 大小设置为 10（当然，值越小，越容易溢出），继续运行测试程序。当客户端出现异常信息后，在服务端通过 ss 命令观察到的信息如下：</p>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Fri May  5 13:50:23 CST 2017</span><br><span class="line">Recv-Q   Send-Q    Local Address:Port    Peer Address:Port</span><br><span class="line">11         10         *:3306               *:*</span><br></pre></td></tr></table></figure>
