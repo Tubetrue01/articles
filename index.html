@@ -256,7 +256,7 @@
 </ul>
 <p>三次握手中，在服务端收到 SYN 包之后，服务端将连接信息放到 SYN 队列里，接着发送 SYN-ACK 包给客户端。</p>
 <p>服务端收到客户端发送来的 ACK 包。如果 Accept 队列未满，那么将会从 SYN 队列中删除，并将它放到 Accept 队列中。或者按照 <code>tcp_abort_on_overflow</code> 指示执行。</p>
-<p>此时，如果 Accept 队列已满而 <code>tcp_abort_on_overflow</code> 为 0，一段时间后，服务端就会再次发送一个 SYN-ACK 包给客户端（也就是，它会重复握手的第二步）。即时客户端超时很短，这也很容易导致客户端异常。</p>
+<p>此时，如果 Accept 队列已满而 <code>tcp_abort_on_overflow</code> 为 0，一段时间后，服务端就会再次发送一个 SYN-ACK 包给客户端（也就是，它会重复握手的第二步）。即使客户端超时很短，这也很容易导致客户端异常。</p>
 <p>CentOS 下，第二步会重试 5 次。</p>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@server ~]# cat /proc/sys/net/ipv4/tcp_synack_retries</span><br><span class="line">5</span><br></pre></td></tr></table></figure>
 
