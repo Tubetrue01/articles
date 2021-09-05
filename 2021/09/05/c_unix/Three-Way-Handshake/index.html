@@ -21,7 +21,7 @@
 <meta property="og:image" content="https://tubetrue01.github.io/articles/2021/09/05/c_unix/Three-Way-Handshake/02.jpg">
 <meta property="og:image" content="https://tubetrue01.github.io/articles/2021/09/05/c_unix/Three-Way-Handshake/03.jpg">
 <meta property="article:published_time" content="2021-09-05T10:42:18.810Z">
-<meta property="article:modified_time" content="2021-09-05T11:12:25.456Z">
+<meta property="article:modified_time" content="2021-09-05T12:00:08.897Z">
 <meta property="article:author" content="Tubetrue01">
 <meta property="article:tag" content="Unix">
 <meta name="twitter:card" content="summary">
@@ -221,7 +221,7 @@
       <!-- 百度字体平台:http://fontstore.baidu.com/static/editor/index.html -->
       <i class="icon-statistics"></i>
       <span class="post-meta-item-text"> 字数统计:</span>
-      <span class="post-count">1.9k字</span>
+      <span class="post-count">2k字</span>
     </span>
   </span>
 
@@ -293,7 +293,7 @@
 </li>
 <li><h3 id="ss"><a href="#ss" class="headerlink" title="ss"></a>ss</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@server ~]# ss -lnt</span><br><span class="line">Recv-Q   Send-Q   Local Address:Port    Peer Address:Port </span><br><span class="line">0          50               *:3306             *:*</span><br></pre></td></tr></table></figure>
 <p>这里，Send-Q 为 50 说明 3306 监听端口的 Accept 队列能接受的连接最多 50。Recv-Q 表示当前 Accept 队列使用了多少。</p>
-<p>Accept 队列的大小依赖于 <code>min(backlog, somaxconn)</code>。backlog 参数是创建 socket 时，传递的。somaxconn 是一个系统级的参数。</p>
+<p>Accept 队列的大小依赖于 <code>min(backlog, somaxconn)</code>。backlog 参数是创建 socket 时，listen 函数的第二个参数。somaxconn 则是一个系统级的参数。</p>
 <p>SYN 队列的大小依赖于 <code>max(64, /proc/sys/net/ipv4/tcp_max_syn_backlog)</code>，不同的系统版本可能会有不同。</p>
 <p><strong>📚 Tips</strong></p>
 <blockquote>
