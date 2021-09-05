@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-c_unix/IO多路复用(三)poll函数" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-cloud_native/K8s集群搭建系列(一)Centos7准备" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2020/12/18/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E4%B8%89)poll%E5%87%BD%E6%95%B0/" target="_blank">IO 多路复用（三）poll 函数</a>
+	  <a class="article-title" href="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/" target="_blank">K8s 集群搭建系列（一） Centos 7 准备</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2020/12/18/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E4%B8%89)poll%E5%87%BD%E6%95%B0/" class="archive-article-date">
-        <time datetime="2020-12-18T08:35:36.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-12-18</time>
+<a href="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/" class="archive-article-date">
+        <time datetime="2020-12-21T05:27:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-12-21</time>
 </a>
 
   
@@ -216,134 +216,70 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>据说 poll 函数起源于 SVR3，最初局限于流设备。而到了 SVR4 取消了这种限制，允许 poll 工作在任何描述符上。 功能与 select 类似，不过在处理流设备时，它能够提供额外的信息。</p>
+<p>心血来潮，打算重整一下我的 K8s 环境，反正也是要重新搭建，不如趁着这次机会开一专题记录一下，从零开始搭建。这一篇呢，我们主要讲解 Centos 7 的准备（本来想用 Centos 8 无奈已经被官方抛弃了 <a target="_blank" rel="noopener" href="https://blog.centos.org/2020/12/future-is-centos-stream/">【详情】</a>），好了直接进入主题。</p>
 </blockquote>
-<h1 id="1-0-函数原型"><a href="#1-0-函数原型" class="headerlink" title="1.0 函数原型"></a>1.0 函数原型</h1><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/poll.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">poll</span><span class="params">(struct pollfd *fdarray, <span class="keyword">nfds_t</span> nfds, <span class="keyword">int</span> timeout)</span></span>;</span><br></pre></td></tr></table></figure>
-<h2 id="1-1-参数"><a href="#1-1-参数" class="headerlink" title="1.1 参数"></a>1.1 参数</h2><h3 id="fdarray"><a href="#fdarray" class="headerlink" title="fdarray"></a>fdarray</h3><blockquote>
-<p>该参数是指向一个结构数组第一个元素的指针。每个数组元素都是一个 pollfd 结构体，用于指定测试某个描述符 fd 的条件。我们看一下它的原型：</p>
-</blockquote>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">pollfd</span> </span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="keyword">int</span>   fd;       <span class="comment">/* descriptor to check */</span></span><br><span class="line">  <span class="keyword">short</span> events;   <span class="comment">/* events of interest on fd */</span></span><br><span class="line">  <span class="keyword">short</span> revents;  <span class="comment">/* events that occurred on fd */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<h1 id="环境与版本"><a href="#环境与版本" class="headerlink" title="环境与版本"></a>环境与版本</h1><ul>
+<li><strong>Mac（macOS 10.14.6 ）宿主机</strong></li>
+<li><strong>虚拟机 VMware Fusion</strong></li>
+<li><strong>CentOS-7-x86_64-Minimal-1908.iso</strong><h1 id="开始"><a href="#开始" class="headerlink" title="开始"></a>开始</h1><h3 id="网络设置"><a href="#网络设置" class="headerlink" title="网络设置"></a>网络设置</h3>网络这里选择【与我的 Mac 共享】，之所以采用 NAT 模式而不是桥接模式是因为，如果在公司使用的话，ip 这里会是个问题，因为每个虚拟机都需要一个桥接 ip</li>
+</ul>
+<img src="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/01.png" class="" width="600">
+
+<p>磁盘这里我这里用了10 GiB，没办法，电脑磁盘太小，而且这个集群只跑 demo 用。<br>CPU 跟内存这一块需要稍微注意一下：</p>
+<img src="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/02.png" class="" width="600">
+
+<p>我这里分配了所需资源的最小值，当然这个可以动态调整，所以关系不大。记住这里分配的动态 ip、网关等，我们需要把它设置成静态的。</p>
+<img src="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/03.png" class="" width="600">
+
+<h3 id="静态-ip（当然也可以进入系统里设置，如果你不嫌麻烦的话）"><a href="#静态-ip（当然也可以进入系统里设置，如果你不嫌麻烦的话）" class="headerlink" title="静态 ip（当然也可以进入系统里设置，如果你不嫌麻烦的话）"></a>静态 ip（当然也可以进入系统里设置，如果你不嫌麻烦的话）</h3><img src="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/04.png" class="" width="600">
+
+<p>这里你可以 ping 一下这个 ip，看宿主机是否可以连接到你的虚拟机内部</p>
+<img src="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/05.png" class="" width="600">
+
+<h3 id="分区"><a href="#分区" class="headerlink" title="分区"></a>分区</h3><p>占用空间较大的就是 / 以及 /var，如果你的磁盘足够大，其他分区也可以调整的大一些。</p>
+<img src="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/06.png" class="" width="600">
+
+<p>安装中。。。。</p>
+<img src="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/07.png" class="" width="600">
+
+<h1 id="必要软件安装"><a href="#必要软件安装" class="headerlink" title="必要软件安装"></a>必要软件安装</h1><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 更新 yum</span></span><br><span class="line">[root@localhost ~]# yum update -y</span><br><span class="line"><span class="meta">#</span><span class="bash"> 安装 vim 以及 ifconfig</span></span><br><span class="line">[root@localhost ~]# yum install -y vim net-tools.x86_64</span><br></pre></td></tr></table></figure>
+
+<h1 id="免密登录"><a href="#免密登录" class="headerlink" title="免密登录"></a>免密登录</h1><ul>
+<li><strong>密钥生成</strong></li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Tubetrue01:~:% ssh-keygen -o -a 100 -t ed25519 -f &quot;The path where you store&quot; -C &quot;Your Email&quot;</span><br></pre></td></tr></table></figure>
 <ul>
-<li>fd 这个不用多说，就是描述符了。</li>
-<li>events 就是我们关心的当前描述符的事件。</li>
-<li>revents 函数把当前描述符的事件状态结果保存在该成员中。</li>
+<li><strong>上传至你的虚拟机</strong></li>
 </ul>
-<p>这就理解为，把描述符、关心的事件、事件的状态封装成了一个对象。这些对象组成起来就构成了这个结构数组。它避免了像 select 函数中间三个参数都是值-结果参数。</p>
-<p><strong>说明</strong></p>
-<blockquote>
-<p><strong>值-结果参数：</strong> 该参数在函数调用的时候作为值传递给函数，函数执行完毕之后将执行结果保存到该参数中，所谓一参两用。值-结果参数一定要传指针。</p>
-</blockquote>
-<p>对于 events 跟 revents 参数，它们每一个都由指定某个特定条件的一位或多位构成，下面是一些常值：</p>
-<table>
-<thead>
-<tr>
-<th>常值</th>
-<th align="center">是否作为 events 的输入</th>
-<th align="center">是否作为 revents 结果</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><strong>POLLIN</strong></td>
-<td align="center">$\bullet$</td>
-<td align="center">$\bullet$</td>
-<td>普通或优先级带数据可读</td>
-</tr>
-<tr>
-<td><strong>POLLRDNORM</strong></td>
-<td align="center">$\bullet$</td>
-<td align="center">$\bullet$</td>
-<td>普通数据可读</td>
-</tr>
-<tr>
-<td><strong>POLLRDBAND</strong></td>
-<td align="center">$\bullet$</td>
-<td align="center">$\bullet$</td>
-<td>优先级带数据可读</td>
-</tr>
-<tr>
-<td><strong>POLLPRI</strong></td>
-<td align="center">$\bullet$</td>
-<td align="center">$\bullet$</td>
-<td>高优先级数据可读</td>
-</tr>
-<tr>
-<td><strong>POLLOUT</strong></td>
-<td align="center">$\bullet$</td>
-<td align="center">$\bullet$</td>
-<td>普通数据可写</td>
-</tr>
-<tr>
-<td><strong>POLLWRNORM</strong></td>
-<td align="center">$\bullet$</td>
-<td align="center">$\bullet$</td>
-<td>普通数据可写</td>
-</tr>
-<tr>
-<td><strong>POLLWRBAND</strong></td>
-<td align="center">$\bullet$</td>
-<td align="center">$\bullet$</td>
-<td>优先级带数据可写</td>
-</tr>
-<tr>
-<td><strong>POLLERR</strong></td>
-<td align="center">$\circ$</td>
-<td align="center">$\bullet$</td>
-<td>发生错误</td>
-</tr>
-<tr>
-<td><strong>POLLHUP</strong></td>
-<td align="center">$\circ$</td>
-<td align="center">$\bullet$</td>
-<td>发生挂起</td>
-</tr>
-<tr>
-<td><strong>POLLNVAL</strong></td>
-<td align="center">$\circ$</td>
-<td align="center">$\bullet$</td>
-<td>描述符不是一个打开的文件</td>
-</tr>
-</tbody></table>
-<p><strong>📚 Tips</strong></p>
-<blockquote>
-<p>我们需要记住 poll 识别三类数据：普通、优先级带、高优先级。</p>
-</blockquote>
-<p><strong>补充：</strong></p>
-<blockquote>
-<p>POLLIN 可被定义为 POLLRDNORM 和 POLLRDBAND 的逻辑或；POLLOUT 等同于 POLLWRNORM。</p>
-</blockquote>
-<p>还要注意的是，如果是 TCP 和 UDP 套接字，一下的条件会引起 poll 返回特定的 revent （然而不性的是， POSIX 在其 poll 的定义中留了许多空洞，会造成多种方式可返回相同的条件）。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Tubetrue01:~:% ssh-copy-id -i &quot;The path where you store&quot;/id_ed25519.pub root@server </span><br></pre></td></tr></table></figure>
 <ul>
-<li><strong>所有正规 TCP 数据和所有 UDP 数据都被认为是普通数据。</strong></li>
-<li><strong>TCP 的带外数据被认为是优先级带数据。</strong></li>
-<li><strong>当 TCP 连接的读半部分关闭时（譬如收到了一个来自对端的 FIN），也被认为是普通数据，随后的读操作将返回 0。</strong></li>
-<li><strong>TCP 连接存在错误既可认为是普通数据，也可认为是错误（POLLERR）。无论哪种情况，随后的读操作将返回 -1，并把 errno 设置成合适的值。这可用于处理诸如接收到 RST 或发生超时等条件。</strong></li>
-<li><strong>在监听套接字上有新的连接可用既可认为是普通数据，也可认为是优先级数据。大多数实现视为普通数据。</strong></li>
-<li><strong>非阻塞式 connect 的完成被认为是使相应套接字可写。</strong></li>
+<li><strong>sshd 设置</strong></li>
 </ul>
-<h3 id="nfds"><a href="#nfds" class="headerlink" title="nfds"></a>nfds</h3><p>该参数指定了结构数组（也就是第一个参数）中元素的个数。该参数被声明为：nfds_t 类型，对应的其实是：unsigned int。</p>
-<h3 id="timeout"><a href="#timeout" class="headerlink" title="timeout"></a>timeout</h3><p>该参数指定了 poll 函数返回前等待多长时间。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 编辑配置文件</span></span><br><span class="line">[root@localhost ~]# vim /etc/ssh/sshd_config </span><br><span class="line"><span class="meta">#</span><span class="bash"> 修改值</span></span><br><span class="line">PubkeyAuthentication yes</span><br><span class="line">PasswordAuthentication no</span><br><span class="line"><span class="meta">#</span><span class="bash"> 重启 sshd</span></span><br><span class="line">[root@localhost ~]# systemctl restart sshd</span><br></pre></td></tr></table></figure>
+<h1 id="内核升级（非必须）"><a href="#内核升级（非必须）" class="headerlink" title="内核升级（非必须）"></a>内核升级（非必须）</h1><p>我们可以把内核升级一下，然后开启 BBR 算法。</p>
 <ul>
-<li><strong>INFTIM</strong><br>永久等待。</li>
-<li><strong>0</strong><br>立刻返回，不阻塞进程。</li>
-<li><strong>n</strong><br>指定等待毫秒数 n。</li>
+<li><strong>内核安装</strong></li>
 </ul>
-<p>INFTIM 常值被定义为一个负值。如果系统不能提供毫秒级精度的定时器，该值就向上舍入到最接近的支持值。</p>
-<p><strong>补充：</strong></p>
-<blockquote>
-<p>POSIX 规范要求在头文件 &lt;poll.h&gt; 中定义 INFTIM，不过许多系统仍然把它定义在头文件 &lt;sys/stropts.h&gt; 中。</p>
-</blockquote>
-<h2 id="1-2-返回值"><a href="#1-2-返回值" class="headerlink" title="1.2 返回值"></a>1.2 返回值</h2><ul>
-<li><strong>0</strong><br>运行超时。</li>
-<li><strong>-1</strong><br>函数执行发生错误。</li>
-<li><strong>n</strong><br>已经就绪的描述符数量，即成员 revents 值非 0 的描述符数量。</li>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org</span><br><span class="line">[root@localhost ~]# rpm -Uvh https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm</span><br><span class="line">[root@localhost ~]# yum --enablerepo=elrepo-kernel install -y kernel-ml</span><br><span class="line">[root@localhost ~]# grub2-set-default 0</span><br></pre></td></tr></table></figure>
+<ul>
+<li><strong>关闭开机读秒</strong></li>
 </ul>
-<p>如果不想关心某个描述符，只需要把该描述符对应的 pollfd 结构的 fd 成员设置成一个负值就可以了。poll 函数将会忽略这样的 pollfd 结构的 events 成员，并且返回时，将它的 revents 成员值置为 0。</p>
-<h1 id="2-0-注意"><a href="#2-0-注意" class="headerlink" title="2.0 注意"></a>2.0 注意</h1><p>对于 poll 函数，就不再需要关心每个进程中最大描述符的数量之类的问题了，因为 poll 函数采用 pollfd 结构体数组的方式传递给内核，并且把传递数组元素的数量给内核的责任交给了调用者。所以，内核也就不在需要知道类似 fd_set 的固定大小的数据类型了。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 编辑配置文件</span></span><br><span class="line">[root@localhost ~]# vim /boot/grub2/grub.cfg</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 将超时时间设置为 0</span></span><br><span class="line">if [ x$feature_timeout_style = xy ] ; then</span><br><span class="line">  set timeout_style=menu</span><br><span class="line"><span class="meta">  #</span><span class="bash"> <span class="built_in">set</span> timeout=5</span></span><br><span class="line">  set timeout = 0</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 重启</span></span><br><span class="line">[root@localhost ~]# reboot</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>内核查看</strong></li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# uname -r</span><br><span class="line">5.10.2-1.el7.elrepo.x86_64</span><br></pre></td></tr></table></figure>
+<ul>
+<li><strong>开启 BBR</strong></li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# echo &quot;net.core.default_qdisc = fq&quot; &gt;&gt; /etc/sysctl.conf</span><br><span class="line">[root@localhost ~]# echo &quot;net.ipv4.tcp_congestion_control = bbr&quot; &gt;&gt; /etc/sysctl.conf</span><br><span class="line">[root@localhost ~]# sysctl -p</span><br><span class="line"><span class="meta">#</span><span class="bash"> 查看是否开启</span></span><br><span class="line">[root@localhost ~]# lsmod | grep bbr</span><br><span class="line">tcp_bbr                20480  1 </span><br></pre></td></tr></table></figure>
+<ul>
+<li><strong>设置资源配置</strong></li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 编辑文件</span></span><br><span class="line">[root@localhost ~]# vim /etc/security/limits.conf</span><br><span class="line"><span class="meta">#</span><span class="bash"> 尾部添加</span></span><br><span class="line">* soft nofile 65535</span><br><span class="line">* hard nofile 65535</span><br><span class="line"><span class="meta">#</span><span class="bash"> 运行指令</span></span><br><span class="line">[root@localhost ~]# ulimit -n 65535</span><br></pre></td></tr></table></figure>
 <hr>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
-<li><a target="_blank" rel="noopener" href="https://item.jd.com/12715718.html">Unix 网络编程 卷一</a></li>
-</ul>
+<h1 id="尾声"><a href="#尾声" class="headerlink" title="尾声"></a>尾声</h1><p>好了，系统已经准备完毕，我们马上进入下一步 <a href="https://tubetrue01.github.io/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%BA%8C)Docker%E5%AE%89%E8%A3%85">【Docker 安装】</a>。</p>
 
     
 
@@ -360,11 +296,7 @@
 		<ul class="article-tag-list">
 			 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">C</a>
-        		</li>
-      		 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color5">Unix</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">K8s</a>
         		</li>
       		
 		</ul>
@@ -374,7 +306,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2020/12/18/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E4%B8%89)poll%E5%87%BD%E6%95%B0/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87/">展开全文 >></a>
     </p>
     
 
@@ -408,7 +340,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/18/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/17/">17</a><a class="page-number" href="/articles/page/18/">18</a><span class="page-number current">19</span><a class="page-number" href="/articles/page/20/">20</a><a class="page-number" href="/articles/page/21/">21</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/25/">25</a><a class="extend next" rel="next" href="/articles/page/20/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/18/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/17/">17</a><a class="page-number" href="/articles/page/18/">18</a><span class="page-number current">19</span><a class="page-number" href="/articles/page/20/">20</a><a class="page-number" href="/articles/page/21/">21</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/26/">26</a><a class="extend next" rel="next" href="/articles/page/20/">下一页</a>
     </nav>
   
 

@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-c_cmake/cmake迷你系列(四)同步构建库" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-c_cmake/cmake迷你系列(五)配置导出API" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2021/08/21/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E5%9B%9B)%E5%90%8C%E6%AD%A5%E6%9E%84%E5%BB%BA%E5%BA%93/" target="_blank">cmake 迷你系列（四）同步构建库</a>
+	  <a class="article-title" href="/articles/2021/08/21/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%BA%94)%E9%85%8D%E7%BD%AE%E5%AF%BC%E5%87%BAAPI/" target="_blank">cmake 迷你系列（五）配置导出 API</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2021/08/21/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E5%9B%9B)%E5%90%8C%E6%AD%A5%E6%9E%84%E5%BB%BA%E5%BA%93/" class="archive-article-date">
-        <time datetime="2021-08-21T07:38:50.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-08-21</time>
+<a href="/articles/2021/08/21/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%BA%94)%E9%85%8D%E7%BD%AE%E5%AF%BC%E5%87%BAAPI/" class="archive-article-date">
+        <time datetime="2021-08-21T11:38:50.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-08-21</time>
 </a>
 
   
@@ -216,25 +216,17 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>在 <a href="https://tubetrue01.github.io/articles/2021/08/21/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%BA%8C)%E5%88%9B%E5%BB%BA%E4%BD%A0%E8%87%AA%E5%B7%B1%E7%9A%84%E5%BA%93/">【创建你自己的库】</a> 这篇文章中，我们遇到一个问题，就是必须先创建库，然后才能编译我们的源程序，那么有没有办法让我们的源程序与库同时编译呢？答案是肯定的。</p>
+<p>提供的 api 时候需要根据不同的场景，制定不同的导出策略也就是函数的可见性。cmake 实现起来也十分简单。</p>
 </blockquote>
-<h1 id="构造同步编译"><a href="#构造同步编译" class="headerlink" title="构造同步编译"></a>构造同步编译</h1><p>其实思路很简单，就是在根 CMakeLists.txt 文件中，把创建库的指令写好，然后目标文件引入即可。我们来看一下具体内容：</p>
-<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.21</span>)</span><br><span class="line"><span class="keyword">project</span>(<span class="keyword">test</span> VERSION <span class="number">0.0</span>.<span class="number">1</span> LANGUAGES C)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CMAKE_C_STANDARD <span class="number">11</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(LIB_INSTALL_DIR <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/libs/lib)</span><br><span class="line"><span class="keyword">set</span>(LIB_INCLUDE_DIR <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/libs/<span class="keyword">include</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">option</span>(EMBED_SOURCE <span class="string">&quot;using embed source to build&quot;</span> <span class="keyword">ON</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (EMBED_SOURCE)</span><br><span class="line">    <span class="keyword">message</span>(STATUS <span class="string">&quot;start build...&quot;</span>)</span><br><span class="line">    <span class="keyword">include_directories</span>(<span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/utils)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">set</span>(UTILS_SOURCE</span><br><span class="line">            <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/utils/utils.c</span><br><span class="line">            )</span><br><span class="line"></span><br><span class="line">    <span class="keyword">file</span>(STRINGS <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/utils/VERSION version)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">add_library</span>(utils STATIC <span class="variable">$&#123;UTILS_SOURCE&#125;</span>)</span><br><span class="line">    <span class="keyword">add_library</span>(utils-share SHARED <span class="variable">$&#123;UTILS_SOURCE&#125;</span>)</span><br><span class="line">    <span class="keyword">set_target_properties</span>(utils-share PROPERTIES</span><br><span class="line">            OUTPUT_NAME utils</span><br><span class="line">            VERSION <span class="variable">$&#123;version&#125;</span></span><br><span class="line">            PUBLIC_HEADER utils/utils.h</span><br><span class="line">            )</span><br><span class="line"></span><br><span class="line">    <span class="keyword">install</span>(TARGETS utils utils-share</span><br><span class="line">            ARCHIVE DESTINATION <span class="variable">$&#123;LIB_INSTALL_DIR&#125;</span></span><br><span class="line">            LIBRARY DESTINATION <span class="variable">$&#123;LIB_INSTALL_DIR&#125;</span></span><br><span class="line">            PUBLIC_HEADER DESTINATION <span class="variable">$&#123;LIB_INCLUDE_DIR&#125;</span></span><br><span class="line">            PUBLIC_HEADER DESTINATION <span class="variable">$&#123;LIB_INCLUDE_DIR&#125;</span></span><br><span class="line">            )</span><br><span class="line"></span><br><span class="line"><span class="keyword">endif</span> ()</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_subdirectory</span>(src)</span><br></pre></td></tr></table></figure>
-<p>有了前几篇文章的基础，这段代码就不难理解了。</p>
-<ol>
-<li>10 行，我们添加一个开关，是否采用内嵌代码编译。</li>
-<li>12 ~ 37 行进行编译库。</li>
-<li>13 行，我们打印构建日志，这里只是单纯的标记构建开始。</li>
-<li>14 行，引入头文件。</li>
-<li>16 行，指定源码路径。</li>
-<li>20 行，指定动态库的版本号。</li>
-<li>22 ~ 23 行，添加库。</li>
-<li>24 行，设置库属性。</li>
-<li>30 行，将库安装到指定路径。</li>
-</ol>
-<p>我们再看一下 src 下的 CMakeLists.txt 文件：</p>
-<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span>(MAIN_SOURCE</span><br><span class="line">        main.c</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_executable</span>(<span class="keyword">test</span> <span class="variable">$&#123;MAIN_SOURCE&#125;</span>)</span><br><span class="line"><span class="keyword">target_link_libraries</span>(<span class="keyword">test</span> PRIVATE utils)</span><br><span class="line"></span><br><span class="line"><span class="keyword">install</span>(TARGETS <span class="keyword">test</span></span><br><span class="line">        RUNTIME DESTINATION <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/bin</span><br><span class="line">        )</span><br></pre></td></tr></table></figure>
-<p>这里我们去掉了之前的 <code>target_include_directories(test PRIVATE $&#123;UTILS_HEADER&#125;)</code>，因为已经 <code>include_directories($&#123;PROJECT_SOURCE_DIR&#125;/utils)</code> 过了。然后 <code>target_link_libraries(test PRIVATE utils)</code> 这里，我们用 utils 库的名字（即 <code>add_library(utils STATIC $&#123;UTILS_SOURCE&#125;)</code> 指定的名字）取代之前的变量。<br>最后我们使用 install 命令，将源码打包成 bin 文件，并放到 ${PROJECT_SOURCE_DIR}/bin 路径下，其中 RUNTIME 代表可执行文件的意思。</p>
+<h1 id="再探-utils"><a href="#再探-utils" class="headerlink" title="再探 utils"></a>再探 utils</h1><p>我们看下 utils 的头文件：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> TEST_UTILS_H</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> TEST_UTILS_H</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">add</span><span class="params">(<span class="keyword">int</span>,<span class="keyword">int</span>)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">//TEST_UTILS_H</span></span></span><br></pre></td></tr></table></figure>
+<p>这里只声明了一个函数，现在我们需要根据不同的场合配置 add 函数的可见性。我们创建另外一个头文件 api.h 并定义以下宏：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> TEST_API_H</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> TEST_API_H</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> DEFAULT  __attribute__((visibility(<span class="meta-string">&quot;default&quot;</span>)))</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> HIDDEN   __attribute__((visibility(<span class="meta-string">&quot;hidden&quot;</span>)))</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> !defined(API)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> API  DEFAULT</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">//TEST_API_H</span></span></span><br></pre></td></tr></table></figure>
+<p>然后在我们的 utils.h 头文件中引入该头文件：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> TEST_UTILS_H</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> TEST_UTILS_H</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;api.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function">API <span class="keyword">int</span> <span class="title">add</span><span class="params">(<span class="keyword">int</span>, <span class="keyword">int</span>)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">inline</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">add_online</span><span class="params">(<span class="keyword">int</span> a, <span class="keyword">int</span> b)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> a + b;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">//TEST_UTILS_H</span></span></span><br></pre></td></tr></table></figure>
+<p>其中为 add 函数添加 API 宏，然后我们添加另一个内联函数 add_online，该函数只是为了概述一下内联函数的用法，也就是说在头文件里内联函数必须要声明为 static 的，一是为了防止函数重复定义，一是如果不声明为 static，utils.c 就必须再声明一次该函数，同时必须去掉 inline 关键字。否则会提示找不到符号。回归正题，我们需要在根路径中的 CMakeLists.txt 文件中添加 API 宏的导出策略：</p>
+<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">target_compile_definitions</span>(utils-share PUBLIC -DAPI=DEFAULT)</span><br></pre></td></tr></table></figure>
+<p>我们可以通过配置 -DAPI=DEFAULT 或者 -DAPI=HIDDEN 以决定不同的导出策略。当然，该功能只限定于动态库，静态库直接编译到源码中，所以制定导出策略也没有太大的意义。</p>
 
     
 
@@ -265,7 +257,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2021/08/21/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E5%9B%9B)%E5%90%8C%E6%AD%A5%E6%9E%84%E5%BB%BA%E5%BA%93/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2021/08/21/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%BA%94)%E9%85%8D%E7%BD%AE%E5%AF%BC%E5%87%BAAPI/">展开全文 >></a>
     </p>
     
 
@@ -299,7 +291,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/2/">上一页</a><a class="page-number" href="/articles/">1</a><a class="page-number" href="/articles/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/articles/page/4/">4</a><a class="page-number" href="/articles/page/5/">5</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/25/">25</a><a class="extend next" rel="next" href="/articles/page/4/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/2/">上一页</a><a class="page-number" href="/articles/">1</a><a class="page-number" href="/articles/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/articles/page/4/">4</a><a class="page-number" href="/articles/page/5/">5</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/26/">26</a><a class="extend next" rel="next" href="/articles/page/4/">下一页</a>
     </nav>
   
 
