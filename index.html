@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2021/09/05/c_unix/TCP(%E4%B8%80)Three-Way-Handshake/" target="_blank">TCP（一）三次握手</a>
+	  <a class="article-title" href="/articles/2021/09/04/c_unix/TCP(%E4%B8%80)Three-Way-Handshake/" target="_blank">TCP（一）三次握手</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2021/09/05/c_unix/TCP(%E4%B8%80)Three-Way-Handshake/" class="archive-article-date">
-        <time datetime="2021-09-05T10:42:18.810Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-09-05</time>
+<a href="/articles/2021/09/04/c_unix/TCP(%E4%B8%80)Three-Way-Handshake/" class="archive-article-date">
+        <time datetime="2021-09-04T15:52:58.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-09-04</time>
 </a>
 
   
@@ -232,7 +232,7 @@
 <li>最后，客户端发送 ACK 包给服务器，告知它收到了服务器发来的 SYN-ACK 包（此时，服务端已经通过端口 61270 与客户端建立连接）。</li>
 </ol>
 <hr>
-<img src="/articles/2021/09/05/c_unix/TCP(%E4%B8%80)Three-Way-Handshake/01.jpg" class="" width="923">
+<img src="/articles/2021/09/04/c_unix/TCP(%E4%B8%80)Three-Way-Handshake/01.jpg" class="" width="923">
 
 <hr>
 <h2 id="快速解决问题"><a href="#快速解决问题" class="headerlink" title="快速解决问题"></a>快速解决问题</h2><p>根据问题现象分析，很像是当建立 TCP 连接时 TCP 已完成连接队列已经满了（我们稍后讨论它）。为了确认，我们通过以下命令查看一下队列的溢出信息 <code>netstat -s | egrep &#39;listen&#39;</code> ：</p>
@@ -246,7 +246,7 @@
 <p>这个例子很简单，该问题只是因为三次握手时完成队列被填满导致的，而只有进入到队列的，服务才能从 listen 转变为 accept。对于默认值只有 50 的 backlog 来说，溢出容易发生。一旦发生溢出，三次握手第三步，服务端就会忽略客户端发过来的 ACK 包。服务端将会定期重复第二步（发送 SYN-ACK 包给客户端）。如果连接没有进入队列，这就会导致一个异常。</p>
 <p>尽管问题解决了，但是这并没有让人满意，接下来我们更深入的了解一下整个过程。</p>
 <h1 id="深入话题：TCP-握手机制与队列"><a href="#深入话题：TCP-握手机制与队列" class="headerlink" title="深入话题：TCP 握手机制与队列"></a>深入话题：TCP 握手机制与队列</h1><hr>
-<img src="/articles/2021/09/05/c_unix/TCP(%E4%B8%80)Three-Way-Handshake/02.jpg" class="" width="873">
+<img src="/articles/2021/09/04/c_unix/TCP(%E4%B8%80)Three-Way-Handshake/02.jpg" class="" width="873">
 
 <hr>
 <p>如上图，有两个队列：</p>
@@ -283,7 +283,7 @@
 </li>
 </ul>
 <hr>
-  <img src="/articles/2021/09/05/c_unix/TCP(%E4%B8%80)Three-Way-Handshake/03.jpg" class="" width="866">
+  <img src="/articles/2021/09/04/c_unix/TCP(%E4%B8%80)Three-Way-Handshake/03.jpg" class="" width="866">
 
 <hr>
 <p>  <strong>📚 Tips</strong></p>
@@ -333,7 +333,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2021/09/05/c_unix/TCP(%E4%B8%80)Three-Way-Handshake/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2021/09/04/c_unix/TCP(%E4%B8%80)Three-Way-Handshake/">展开全文 >></a>
     </p>
     
 
