@@ -22,7 +22,7 @@
 <meta property="og:image" content="https://tubetrue01.github.io/articles/2021/02/08/redis/Redis%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90(%E4%B8%80)%E7%AE%80%E5%8D%95%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2SDS/03.png">
 <meta property="og:image" content="https://tubetrue01.github.io/articles/2021/02/08/redis/Redis%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90(%E4%B8%80)%E7%AE%80%E5%8D%95%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2SDS/04.png">
 <meta property="article:published_time" content="2021-02-08T07:38:03.000Z">
-<meta property="article:modified_time" content="2021-09-30T07:19:49.265Z">
+<meta property="article:modified_time" content="2021-09-30T07:21:10.575Z">
 <meta property="article:author" content="Tubetrue01">
 <meta property="article:tag" content="redis">
 <meta name="twitter:card" content="summary">
@@ -334,8 +334,8 @@
 <hr>
 <p>本文主要介绍了 SDS 相关的基础概念以及比较核心方法，SDS 为上层提供了丰富的 API，本文就不再介绍了。通过这几个核心方法的分析，其实大家可以看到，大多数都是围绕 s 以及常用的宏展开的，只要大家把宏看懂记住配合指针操作，那么 SDS 的其他 API 也同样简单。当然，本文主要讲解 Redis 源码，所以默认大家是熟练 C 的，所以对一些相关运算及概念不会做过多介绍。感兴趣的可以看看我的关于 C 系列的文章</p>
 <hr>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>-【Redis 5 设计与源码分析】</p>
-<ul>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
+<li>【Redis 5 设计与源码分析】</li>
 <li><a target="_blank" rel="noopener" href="https://github.com/redis/redis/tree/6.0">【Redis 6.0.x】</a></li>
 </ul>
 
