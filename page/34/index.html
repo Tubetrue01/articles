@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-c_unix/信号(一)sigaction函数" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-c_unix/IO多路复用(二)pselect函数" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2020/12/16/c_unix/%E4%BF%A1%E5%8F%B7(%E4%B8%80)sigaction%E5%87%BD%E6%95%B0/" target="_blank">信号（一）sigaction 函数</a>
+	  <a class="article-title" href="/articles/2020/12/17/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E4%BA%8C)pselect%E5%87%BD%E6%95%B0/" target="_blank">IO 多路复用（二） pselect 函数</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2020/12/16/c_unix/%E4%BF%A1%E5%8F%B7(%E4%B8%80)sigaction%E5%87%BD%E6%95%B0/" class="archive-article-date">
-        <time datetime="2020-12-16T08:37:33.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-12-16</time>
+<a href="/articles/2020/12/17/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E4%BA%8C)pselect%E5%87%BD%E6%95%B0/" class="archive-article-date">
+        <time datetime="2020-12-17T04:42:41.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-12-17</time>
 </a>
 
   
@@ -216,25 +216,49 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>sigaction 函数的功能是检查或修改（检查并修改）与指定信号相关的处理动作。此函数取代了早期 Unix 的 signal 函数。</p>
+<p>在上一篇文章 <a href="https://tubetrue01.github.io/articles/2020/12/15/c_io/IO-%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E4%B8%80)-select-%E5%87%BD%E6%95%B0/">【select 函数】</a> 中主要讲解了 select 相关的知识，本篇文章讲解它的增强版 pselect 函数。</p>
 </blockquote>
-<h1 id="1-0-函数声明"><a href="#1-0-函数声明" class="headerlink" title="1.0 函数声明"></a>1.0 函数声明</h1><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/signal.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">sigaction</span><span class="params">( <span class="keyword">int</span> signo,</span></span></span><br><span class="line"><span class="params"><span class="function">               <span class="keyword">const</span> struct sigaction *<span class="keyword">restrict</span> act,</span></span></span><br><span class="line"><span class="params"><span class="function">               struct sigaction *<span class="keyword">restrict</span> oact</span></span></span><br><span class="line"><span class="params"><span class="function">              )</span></span></span><br></pre></td></tr></table></figure>
-<h2 id="1-1-参数"><a href="#1-1-参数" class="headerlink" title="1.1 参数"></a>1.1 参数</h2><ul>
-<li><strong>signo</strong><br>要检测或者要修改其具体动作的信号编号。</li>
-<li><strong>act</strong><br>当该参数不为 NULL 时，指定要修改的新的动作。</li>
-<li><strong>oact</strong><br>当该参数不为 NULL 时，将该信号的上一个动作（更新前的动作）保存在该对象中。<h2 id="1-2-sigaction-结构体"><a href="#1-2-sigaction-结构体" class="headerlink" title="1.2 sigaction 结构体"></a>1.2 sigaction 结构体</h2><blockquote>
-<p>sigaction 函数的后两个参数都用到了该结构体。</p>
+<h1 id="1-0-pselect-函数"><a href="#1-0-pselect-函数" class="headerlink" title="1.0 pselect 函数"></a>1.0 pselect 函数</h1><blockquote>
+<p>pselect 函数是 POSIX 发明的，如今有许多 Unix 变种支持它。（ps: 具体有哪些，还没调研）</p>
 </blockquote>
-</li>
+<h1 id="1-1-函数声明"><a href="#1-1-函数声明" class="headerlink" title="1.1 函数声明"></a>1.1 函数声明</h1><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">pselect</span><span class="params">( <span class="keyword">int</span> nfds, </span></span></span><br><span class="line"><span class="params"><span class="function">             fd_set *<span class="keyword">restrict</span> readset, </span></span></span><br><span class="line"><span class="params"><span class="function">             fd_set *<span class="keyword">restrict</span> writeset,</span></span></span><br><span class="line"><span class="params"><span class="function">             fd_set *<span class="keyword">restrict</span> exceptset, </span></span></span><br><span class="line"><span class="params"><span class="function">             <span class="keyword">const</span> struct timespec *<span class="keyword">restrict</span> timeout,</span></span></span><br><span class="line"><span class="params"><span class="function">             <span class="keyword">const</span> <span class="keyword">sigset_t</span> *<span class="keyword">restrict</span> sigmask</span></span></span><br><span class="line"><span class="params"><span class="function">           )</span></span></span><br></pre></td></tr></table></figure>
+<p>相对于 select 函数的变化主要围绕最后两个参数展开，下面分别进行介绍。</p>
+<h2 id="1-2-参数"><a href="#1-2-参数" class="headerlink" title="1.2 参数"></a>1.2 参数</h2><ul>
+<li><strong>timeout 超时时间</strong></li>
 </ul>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/signal.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sigaction</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="keyword">void</span> (*sa_handler)(<span class="keyword">int</span>);		      <span class="comment">/* 信号处理函数地址 */</span></span><br><span class="line">  <span class="keyword">sigset_t</span> sa_mask;                           <span class="comment">/* 信号掩码集，当调用信号处理函数时，程序将阻塞 sa_mask 中的信号 */</span></span><br><span class="line">  <span class="keyword">int</span> sa_flag;                                <span class="comment">/* 位掩码，指定用于控制信号处理过程中的各种选项 */</span></span><br><span class="line">  <span class="keyword">void</span> (*sa_sigaction)(<span class="keyword">int</span>,<span class="keyword">siginfo_t</span>*,<span class="keyword">void</span>*); <span class="comment">/* 暂不用 */</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<h2 id="1-3-返回值"><a href="#1-3-返回值" class="headerlink" title="1.3 返回值"></a>1.3 返回值</h2><ul>
-<li><strong>0</strong><br>函数执行成功</li>
-<li><strong>-1</strong><br>函数执行失败</li>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">timespec</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">   <span class="keyword">time_t</span>  tv_sec;     <span class="comment">/* seconds */</span></span><br><span class="line">   <span class="keyword">long</span>    tv_nsec;    <span class="comment">/* nanoseconds */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>相比于 select 函数，该超时时间精确到了纳秒（select 超时时间是微妙）。</p>
+<ul>
+<li><strong>sigmask 信号掩码</strong><br>指定需要屏蔽的信号集，为什么会有这个参数？像 select 这一类系统调用不能很好的与信号进行交互。比如有如下场景：</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">handler</span><span class="params">(<span class="keyword">int</span> sig)</span> </span>&#123;&#125;</span><br><span class="line">    </span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span> *argv[])</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	fd_set readfds;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">sigaction</span> <span class="title">sa</span>;</span></span><br><span class="line">	<span class="keyword">int</span> nfds, ready;</span><br><span class="line"></span><br><span class="line">	sa.sa_handler = handler;     <span class="comment">/* Establish signal handler */</span></span><br><span class="line">	sigemptyset(&amp;sa.sa_mask);</span><br><span class="line">	sa.sa_flags = <span class="number">0</span>;</span><br><span class="line">	sigaction(SIGINT, &amp;sa, <span class="literal">NULL</span>);</span><br><span class="line">	<span class="comment">/* ... */</span>    </span><br><span class="line">	ready = select(nfds, &amp;readfds, <span class="literal">NULL</span>, <span class="literal">NULL</span>, <span class="literal">NULL</span>);</span><br><span class="line">	<span class="comment">/* ... */</span></span><br></pre></td></tr></table></figure>
+<p>当 select 函数返回的时候，我们就可以根据返回值以及错误码 <strong>errno</strong>  来确定到底发生了什么。如果 <strong>errno</strong> 的值等于 <strong>EINTR</strong>，我们就知道 select 函数是被信号中断的。但是这里有个问题，就是当信号在 sigaction 函数调用之后 select 函数调用之前传递过去的，那么它将无法中断 select 调用，也就是说本来由信号中断的，但是它错过了（因为发生了竞态条件）。当然，专家们也想了其他的处理手段，但是成本太大了。为此，select 的增强版本 pselect 诞生了。</p>
+<h2 id="1-3-sigmask"><a href="#1-3-sigmask" class="headerlink" title="1.3 sigmask"></a>1.3 sigmask</h2><p>sigmask 参数指定了一个应该在 pselect 调用期间阻塞的信号集合，它会在调用期间覆盖当前的信号掩码，当函数返回之后在恢复之前的信号掩码。当我们做以下调用时：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ready = pselect(nfds, &amp;readfds, &amp;writefds, &amp;exceptfds, timeout, &amp;sigmask);</span><br></pre></td></tr></table></figure>
+<p>这就相当于内核原子性的执行以下系统调用：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">sigset_t</span> sigsaved;</span><br><span class="line"></span><br><span class="line">sigprocmask(SIG_SETMASK, &amp;sigmask, &amp;sigsaved);</span><br><span class="line">ready = select(nfds, &amp;readfds, &amp;writefds, &amp;exceptfds, timeout);</span><br><span class="line">sigprocmask(SIG_SETMASK, &amp;sigsaved, <span class="literal">NULL</span>);</span><br></pre></td></tr></table></figure>
+<p>我们举个例子进行说明：<br><strong>目标</strong>：我们想当 SIGINTR 信号（假如为：1）发生的时候中断 pselect 函数调用，那么流程是这样的：</p>
+<blockquote>
+<ol>
+<li>假如当前的信号掩码为：0，说明不阻塞任何信号传递。</li>
+<li>我们设置信号掩码 sigmask 为 1 （即：SIGINTR 信号），以阻塞该信号传递。</li>
+<li>sigprocmask(SIG_SETMASK, &amp;sigmask, &amp;sigsaved) 函数调用之后，sigsaved 保存的是 0，SIGINTR 信号被阻塞。</li>
+<li>ready = select(nfds, &amp;readfds, &amp;writefds, &amp;exceptfds, timeout) 函数开始调用，期间 SIGINTR 信号是一直阻塞状态，避免 select 函数执行期间被传递，造成 select 错过该信号。</li>
+<li>当 select 函数返回后，sigprocmask(SIG_SETMASK, &amp;sigsaved, NULL) 函数调用将之前的信号掩码恢复（sigsaved 为 0），SIGINTR 阻塞状态被取消，它可以正常传递了。</li>
+<li>如果 SIGINTR 在发生，select 函数就可以捕获到了。</li>
+</ol>
+</blockquote>
+<h1 id="1-4-返回值"><a href="#1-4-返回值" class="headerlink" title="1.4 返回值"></a>1.4 返回值</h1><ul>
+<li><strong>0</strong><br>函数执行超时，即 timeout 参数。</li>
+<li><strong>-1</strong><br>函数执行出错。</li>
+<li><strong>n</strong><br>就绪的描述符数量。<h1 id="1-5-注意"><a href="#1-5-注意" class="headerlink" title="1.5 注意"></a>1.5 注意</h1></li>
+<li><strong>相比 select 函数，pselect 是不会修改 timeout 参数的</strong></li>
 </ul>
 <hr>
 <h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
+<li><a target="_blank" rel="noopener" href="https://item.jd.com/12715718.html">Unix 网络编程 卷一</a></li>
 <li><a target="_blank" rel="noopener" href="https://item.jd.com/12720738.html">Unix 环境高级编程 卷三</a></li>
+<li><a target="_blank" rel="noopener" href="https://lwn.net/Articles/176911/">The new pselect() system call</a></li>
 </ul>
 
     
@@ -266,7 +290,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2020/12/16/c_unix/%E4%BF%A1%E5%8F%B7(%E4%B8%80)sigaction%E5%87%BD%E6%95%B0/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2020/12/17/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E4%BA%8C)pselect%E5%87%BD%E6%95%B0/">展开全文 >></a>
     </p>
     
 
@@ -300,7 +324,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/33/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/32/">32</a><a class="page-number" href="/articles/page/33/">33</a><span class="page-number current">34</span><a class="page-number" href="/articles/page/35/">35</a><a class="extend next" rel="next" href="/articles/page/35/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/33/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/32/">32</a><a class="page-number" href="/articles/page/33/">33</a><span class="page-number current">34</span><a class="page-number" href="/articles/page/35/">35</a><a class="page-number" href="/articles/page/36/">36</a><a class="extend next" rel="next" href="/articles/page/35/">下一页</a>
     </nav>
   
 
@@ -469,6 +493,10 @@
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">Git</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">redis</a>
               </li>
             
             <div class="clearfix"></div>
