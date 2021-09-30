@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-c_reprint/C转载系列(四)变量与内存(下篇)" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-cloud_native/K8s集群搭建系列(四)你好Istio" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2021/05/15/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E5%9B%9B)%E5%8F%98%E9%87%8F%E4%B8%8E%E5%86%85%E5%AD%98(%E4%B8%8B%E7%AF%87)/" target="_blank">C 转载系列（四）变量与内存（下篇）</a>
+	  <a class="article-title" href="/articles/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio/" target="_blank">K8s 集群搭建系列（四） 你好 Istio</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2021/05/15/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E5%9B%9B)%E5%8F%98%E9%87%8F%E4%B8%8E%E5%86%85%E5%AD%98(%E4%B8%8B%E7%AF%87)/" class="archive-article-date">
-        <time datetime="2021-05-15T03:24:01.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-05-15</time>
+<a href="/articles/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio/" class="archive-article-date">
+        <time datetime="2021-08-07T17:08:22.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-08-08</time>
 </a>
 
   
@@ -216,286 +216,98 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p><a href="https://tubetrue01.github.io/articles/2021/05/15/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E4%B8%89)%E5%8F%98%E9%87%8F%E4%B8%8E%E5%86%85%E5%AD%98(%E4%B8%8A%E7%AF%87)">【上一篇】</a>文章中介绍到 C/C++ 中一些基本类型变量在内存中的位置，本来想把字符串也在上一篇中介绍的，但测试发现字符串的情况比基本类型变量复杂的多，所以单独写一篇专门来介绍字符串。<br>这里说的字符串复杂是因为字符串实际就是 char 数组，且经常要和指针打交道，甚至不同编译器还有不同的表现，不是一句两句能说清楚的。本文旨在介绍一些常见情况下字符串实际在内存中的位置（段、栈和堆），读取字符串的过程，和一些需要注意的问题；本文编译器使用 clang 和 gcc 两种（默认使用 clang ），用以介绍不同编译器的不同点。</p>
+<p>自上一篇文章<a href="https://tubetrue01.github.io/articles/2020/12/22/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%89)K8s%E5%90%AF%E5%8A%A8">【K8s 集群搭建系列（三）K8s 启动】</a> 到现在已经过去很长时间了，而本篇文章在很早之前就该发布，但是每次写了开头都放弃了。因为我觉得作为普通使用者，其实没必要去折腾，能用就可以了。但是还是想把之前的折腾经历分享出来，算是作个记录吧。Istio 安装很简单，但是本地使用的话，由于没有 EXTERNAL-IP，所以需要通过 NodePort 等方式暴露，我觉得不太好。如果能通过域名的方式访问，那就比较完美了。但是本地安装可不可以做到呢？我们回想一下 K8s 使用 ingress-nginx 不就是这样嘛，如果用 ingress-nginx 将流量引入到 Istio gateway 那么应该就可以了，那至于行不行呢，我们实践一下！</p>
 </blockquote>
-<h1 id="开发环境"><a href="#开发环境" class="headerlink" title="开发环境"></a>开发环境</h1><ul>
-<li>OS X El Captian (10.11.6)</li>
-<li>Apple LLVM 7.3.0 (clang-703.0.31)</li>
-<li>gcc 6.1.0</li>
+<h1 id="版本"><a href="#版本" class="headerlink" title="版本"></a>版本</h1><ul>
+<li>K8s 版本：v1.19.0</li>
+<li>Istio 版本：1.8.1</li>
+<li>ingress-nginx 版本：3.19.0</li>
+<li>域名 my.k8s.com 指向了 K8s Master 节点宿主机 ip，这里需要配置一下 hosts</li>
 </ul>
-<h1 id="字符串在内存中的位置"><a href="#字符串在内存中的位置" class="headerlink" title="字符串在内存中的位置"></a>字符串在内存中的位置</h1><p>字符串的初始化一般有两种方法：</p>
+<h1 id="准备测试服务"><a href="#准备测试服务" class="headerlink" title="准备测试服务"></a>准备测试服务</h1><p>在开始之前，我们先安装个 web 服务供测试，为了简单起见，我们就装个 nginx 吧！</p>
+<h2 id="创建命名空间"><a href="#创建命名空间" class="headerlink" title="创建命名空间"></a>创建命名空间</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl create ns test  </span><br></pre></td></tr></table></figure>
+
+<h2 id="安装-yaml"><a href="#安装-yaml" class="headerlink" title="安装 yaml"></a>安装 yaml</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f -&lt;&lt;EOF </span><br><span class="line">apiVersion: apps/v1</span><br><span class="line">kind: Deployment</span><br><span class="line">metadata:</span><br><span class="line">  name: nginx</span><br><span class="line">  namespace: test</span><br><span class="line">  labels:</span><br><span class="line">    app: nginx</span><br><span class="line">    version: v1</span><br><span class="line">spec:</span><br><span class="line">  replicas: 1</span><br><span class="line">  selector:</span><br><span class="line">    matchLabels:</span><br><span class="line">      app: nginx</span><br><span class="line">      version: v1</span><br><span class="line">  template:</span><br><span class="line">    metadata:</span><br><span class="line">      labels:</span><br><span class="line">        app: nginx</span><br><span class="line">    spec:</span><br><span class="line">      containers:</span><br><span class="line">      - name: nginx</span><br><span class="line">        image: nginx:1.19.2</span><br><span class="line">        ports: </span><br><span class="line">        - containerPort: 80</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Service</span><br><span class="line">metadata:</span><br><span class="line">  name: nginx</span><br><span class="line">  namespace: test</span><br><span class="line">  labels:</span><br><span class="line">    app: nginx</span><br><span class="line">spec:</span><br><span class="line">  type: ClusterIP</span><br><span class="line">  selector:</span><br><span class="line">    app: nginx</span><br><span class="line">  ports:</span><br><span class="line">  - name: http</span><br><span class="line">    port: 80</span><br><span class="line">    targetPort: 80</span><br><span class="line"></span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>安装好 nginx 对应的 pod 跟 service 之后，我们接下来需要安装 nginx-ingress 将 nginx 暴露出来。</p>
+<h1 id="安装-ingress-nginx"><a href="#安装-ingress-nginx" class="headerlink" title="安装 ingress-nginx"></a>安装 ingress-nginx</h1><h2 id="配置文件修改"><a href="#配置文件修改" class="headerlink" title="配置文件修改"></a>配置文件修改</h2><p>下载 ingress-nginx 并解压之后，我们需要修改一下它的配置文件，即：value.yaml。主要涉及的内容如下：</p>
 <ul>
-<li>数组：<code>char str[] = &quot;Hello&quot;;</code></li>
-<li>指针：<code>char *str = &quot;World&quot;;</code></li>
+<li><p>主机网络模式开启，这样就能够通过主机 ip 访问它</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hostNetwork: true</span><br></pre></td></tr></table></figure></li>
+<li><p>我们需要将它安装到主节点，所以需要看下主节点的污点</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl describe node master</span><br></pre></td></tr></table></figure>
+<p>拿到它的污点：</p>
+  <img src="/articles/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio/01.png" class="" width="600"></li>
+<li><p>修改 value.yaml 文件中关于 ingress-nginx 的容忍度</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">tolerations:</span> </span><br><span class="line"> <span class="bullet">-</span> <span class="attr">key:</span> <span class="string">&quot;node-role.kubernetes.io/master&quot;</span>   </span><br><span class="line">   <span class="attr">operator:</span> <span class="string">&quot;Exists&quot;</span></span><br><span class="line">   <span class="attr">effect:</span> <span class="string">&quot;NoSchedule&quot;</span></span><br></pre></td></tr></table></figure></li>
+<li><p>即使配置了容忍度也不能保证百分百调度到主节点，只是说有机会调度到主节点。接下来需要配置节点选择器，让它往主节点调度</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">nodeSelector:</span> &#123;</span><br><span class="line">    <span class="attr">kubernetes.io/hostname:</span> <span class="string">master</span></span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>必要的参数已经配好，接下来我们就可以安装了！</p>
+<h2 id="安装-controller"><a href="#安装-controller" class="headerlink" title="安装 controller"></a>安装 controller</h2><p>我这里通过 helm 进行安装，安装到 web 服务对应的命名空间下（只是为了测试我们的 web 服务是否可用）</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">helm install -n test ingress-nginx ingress-nginx-3.19.0</span><br></pre></td></tr></table></figure></li>
 </ul>
-<p>这里考虑全局变量、静态局部变量和局部变量三种情况；对于全局变量和静态局部变量，还考虑已初始化和未初始化的情况。</p>
-<p>代码：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">char</span> global_unin_t1[] = &#123;&#125;;</span><br><span class="line"><span class="keyword">char</span> *global_unin_t2;</span><br><span class="line"><span class="keyword">char</span> global_t1[] = <span class="string">&quot;Hello&quot;</span>;</span><br><span class="line"><span class="keyword">char</span> *global_t2 = <span class="string">&quot;World&quot;</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">const</span> <span class="keyword">char</span> *argv[])</span> </span>&#123;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> local_stat_unin_t1[] = &#123;&#125;;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> *local_stat_unin_t2;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> local_stat_t1[] = <span class="string">&quot;Think&quot;</span>;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> *local_stat_t2 = <span class="string">&quot;Free&quot;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">char</span> local_t1[] = <span class="string">&quot;Here&quot;</span>;</span><br><span class="line">  <span class="keyword">char</span> *local_t2 = <span class="string">&quot;Comes&quot;</span>;</span><br><span class="line"></span><br><span class="line">  sleep(<span class="number">-1</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>先看看几个典型的段信息：</p>
-<table>
-<thead>
-<tr>
-<th align="center">sectname</th>
-<th align="center">segname</th>
-<th align="center">addr</th>
-<th align="center">size</th>
-<th align="center">type</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center">__cstring</td>
-<td align="center">__TEXT</td>
-<td align="center">0x0000000100000f9e</td>
-<td align="center">0x0000000000000016</td>
-<td align="center">S_CSTRING_LITERALS</td>
-</tr>
-<tr>
-<td align="center">__data</td>
-<td align="center">__DATA</td>
-<td align="center">0x0000000100001018</td>
-<td align="center">0x0000000000000020</td>
-<td align="center">S_REGULAR</td>
-</tr>
-<tr>
-<td align="center">__common</td>
-<td align="center">__DATA</td>
-<td align="center">0x0000000100001038</td>
-<td align="center">0x0000000000000010</td>
-<td align="center">S_ZEROFILL</td>
-</tr>
-<tr>
-<td align="center">__bss</td>
-<td align="center">__DATA</td>
-<td align="center">0x0000000100001048</td>
-<td align="center">0x0000000000000010</td>
-<td align="center">S_ZEROFILL</td>
-</tr>
-</tbody></table>
-<p>再看看段内数据：</p>
-<h3 id="cstring"><a href="#cstring" class="headerlink" title="__cstring:"></a>__cstring:</h3><table>
-<thead>
-<tr>
-<th align="center">addr start</th>
-<th align="center">size</th>
-<th align="center">data (0x)</th>
-<th align="center">data (ASCII)</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center">0x100000fae</td>
-<td align="center">6</td>
-<td align="center">43 6F 6D 65 73 00</td>
-<td align="center">Comes</td>
-</tr>
-<tr>
-<td align="center">0x100000fa4</td>
-<td align="center">5</td>
-<td align="center">46 72 65 65 00</td>
-<td align="center">Free</td>
-</tr>
-<tr>
-<td align="center">0x100000fa9</td>
-<td align="center">5</td>
-<td align="center">48 65 72 65 00</td>
-<td align="center">Here</td>
-</tr>
-<tr>
-<td align="center">0x100000f9e</td>
-<td align="center">6</td>
-<td align="center">57 6F 72 6C 64 00</td>
-<td align="center">World</td>
-</tr>
-</tbody></table>
-<p>gcc 编译 __cstring 段中仅有 “World”、”Free” 和 “Comes”，没有 “Here”。</p>
-<h3 id="data"><a href="#data" class="headerlink" title="__data:"></a>__data:</h3><table>
-<thead>
-<tr>
-<th align="center">addr start</th>
-<th align="center">size</th>
-<th align="center">data (0x)</th>
-<th align="center">data (ASCII)</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center">0x100001018</td>
-<td align="center">6</td>
-<td align="center">48 65 6C 6C 6F 00</td>
-<td align="center">Hello</td>
-</tr>
-<tr>
-<td align="center">0x100001020</td>
-<td align="center">8</td>
-<td align="center">9E 0F 00 00 01 00 00 00</td>
-<td align="center">-</td>
-</tr>
-<tr>
-<td align="center">0x100001028</td>
-<td align="center">6</td>
-<td align="center">54 68 69 6E 6B 00</td>
-<td align="center">Think</td>
-</tr>
-<tr>
-<td align="center">0x100001030</td>
-<td align="center">8</td>
-<td align="center">A4 0F 00 00 01 00 00 00</td>
-<td align="center">-</td>
-</tr>
-</tbody></table>
-<h3 id="全局变量"><a href="#全局变量" class="headerlink" title="全局变量"></a>全局变量</h3><table>
-<thead>
-<tr>
-<th align="center">变量名</th>
-<th align="center">内存地址</th>
-<th align="center">所属段</th>
-<th align="center">值（十六进制）</th>
-<th align="center">值（ASCII/0x）</th>
-<th align="center">类型</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center">global_unin_t1</td>
-<td align="center">0x100001038</td>
-<td align="center">__common</td>
-<td align="center">00</td>
-<td align="center"></td>
-<td align="center">char []</td>
-</tr>
-<tr>
-<td align="center">global_t1</td>
-<td align="center">0x100001018</td>
-<td align="center">__data</td>
-<td align="center">48 65 6C 6C 6F 00</td>
-<td align="center">Hello</td>
-<td align="center">char [6]</td>
-</tr>
-<tr>
-<td align="center">global_t2</td>
-<td align="center">0x100001020</td>
-<td align="center">__data</td>
-<td align="center">9E 0F 00 00 01 00 00 00</td>
-<td align="center">0x100000f9e</td>
-<td align="center">char *</td>
-</tr>
-<tr>
-<td align="center">global_unin_t2</td>
-<td align="center">0x100001040</td>
-<td align="center">__common</td>
-<td align="center">00 00 00 00 00 00 00 00</td>
-<td align="center">NULL</td>
-<td align="center">char *</td>
-</tr>
-</tbody></table>
-<p>未初始化的全局变量放在 __common 段中，已初始化的放在 __data 段中。采用数组方式初始化的 global_t1 将本数组内的所有值都放在 __data 段中；而采用指针方式初始化的 global_t2 则仅将指针放在 __data 段中，其指向 __cstring 段中的 “World”。</p>
-<h3 id="静态变量"><a href="#静态变量" class="headerlink" title="静态变量"></a>静态变量</h3><table>
-<thead>
-<tr>
-<th align="center">变量名</th>
-<th align="center">内存地址</th>
-<th align="center">所属段</th>
-<th align="center">值（十六进制）</th>
-<th align="center">值（ASCII/0x）</th>
-<th align="center">类型</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center">local_stat_unin_t1</td>
-<td align="center">0x100001048</td>
-<td align="center">__bss</td>
-<td align="center">00</td>
-<td align="center"></td>
-<td align="center">char []</td>
-</tr>
-<tr>
-<td align="center">local_stat_unin_t2</td>
-<td align="center">0x100001050</td>
-<td align="center">__bss</td>
-<td align="center">00 00 00 00 00 00 00 00</td>
-<td align="center">NULL</td>
-<td align="center">char *</td>
-</tr>
-<tr>
-<td align="center">local_stat_t1</td>
-<td align="center">0x100001028</td>
-<td align="center">__data</td>
-<td align="center">54 68 69 6E 6B 00</td>
-<td align="center">Think</td>
-<td align="center">char [6]</td>
-</tr>
-<tr>
-<td align="center">local_stat_t2</td>
-<td align="center">0x100001030</td>
-<td align="center">__data</td>
-<td align="center">A4 0F 00 00 01 00 00 00</td>
-<td align="center">0x100000fa4</td>
-<td align="center">char *</td>
-</tr>
-</tbody></table>
-<p>未初始化的静态局部变量在 __bss 段中，已初始化的放在 __data 段中。采用数组方式初始化的 local_stat_t1 将本数组内的所有值都放在 __data 段中；而采用指针方式初始化的  local_stat_t2 则仅将指针放在 __data 段中，其指向 __cstring 段中的 “Free”。</p>
-<h1 id="局部变量"><a href="#局部变量" class="headerlink" title="局部变量"></a>局部变量</h1><p>分析局部变量我们直接看反汇编代码，将 clang 和 gcc 分开分析。</p>
-<h3 id="clang"><a href="#clang" class="headerlink" title="clang"></a>clang</h3><p><code>char local_t1[] = &quot;Here&quot;;</code></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">0x100000f52 &lt;+34&gt;: movl   0x51(%rip), %edi          ; &quot;Here&quot;</span><br><span class="line">0x100000f58 &lt;+40&gt;: movl   %edi, -0x15(%rbp)</span><br><span class="line">0x100000f5b &lt;+43&gt;: movb   0x4c(%rip), %dl           ; &quot;&quot;</span><br><span class="line">0x100000f61 &lt;+49&gt;: movb   %dl, -0x11(%rbp)</span><br></pre></td></tr></table></figure>
-<p>这里 rip 为指令指针寄存器，rbp 为帧指针（Frame Pointer）寄存器；mov 用来传送数据，movl 操作 32 位，movb 操作 8 位。</p>
-<p>rip 为下一指令地址即 0x100000f58，所以 0x51(%rip) 表示的就是 0x100000fa9，即 __cstring 段中的 “Here”。注意到 “Here” 实际共 5  byte，不能用 movx 指令一次移动完，所以分两次移动，一次 4 byte，一次 1  byte，这样将 “Here” 放到 -0x11(%rbp) 开始的栈中。即 local_t1 将本数组内的所有值都放栈中。</p>
-<p><code>char *local_t2 = &quot;Comes&quot;;</code></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">0x100000f3d &lt;+13&gt;: leaq   0x6a(%rip), %rcx          ; &quot;Comes&quot;</span><br><span class="line">0x100000f64 &lt;+52&gt;: movq   %rcx, -0x20(%rbp)</span><br></pre></td></tr></table></figure>
-<p>这里 rip 为指令指针寄存器，rbp 为帧指针（Frame Pointer）寄存器；lea 将地址指针写入到寄存器，leaq 操作 64 位。</p>
-<p>0x6a(%rip) 表示的是 0x100000fae，即 __cstring 段中的 “Comes”，最终这个地址被放到 -0x20(%rbp) 开始的栈中。即 local_t2 将指向 “Comes” 的指针放在栈中。</p>
-<h3 id="gcc"><a href="#gcc" class="headerlink" title="gcc"></a>gcc</h3><p><code>char local_t1[] = &quot;Here&quot;;</code></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">0000000100000f57           movl       $0x65726548, -0x10(%rbp) ## imm = 0x65726548</span><br><span class="line">0000000100000f5e           movb       $0x0, -0xc(%rbp)</span><br></pre></td></tr></table></figure>
+<h2 id="配置-ingress-nginx-访问规则"><a href="#配置-ingress-nginx-访问规则" class="headerlink" title="配置 ingress-nginx 访问规则"></a>配置 ingress-nginx 访问规则</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f -&lt;&lt;EOF </span><br><span class="line">apiVersion: networking.k8s.io/v1</span><br><span class="line">kind: Ingress</span><br><span class="line">metadata:</span><br><span class="line">  name: nginx-ingress</span><br><span class="line">  annotations:</span><br><span class="line">    kubernetes.io/ingress.class: &quot;nginx&quot;</span><br><span class="line">  namespace: test   </span><br><span class="line">spec:</span><br><span class="line">  rules:</span><br><span class="line">    - host: &quot;my.k8s.com&quot;</span><br><span class="line">      http:</span><br><span class="line">        paths:</span><br><span class="line">          - path: /</span><br><span class="line">            pathType: Prefix</span><br><span class="line">            backend:</span><br><span class="line">              service:</span><br><span class="line">                name: nginx</span><br><span class="line">                port: </span><br><span class="line">                  number: 80</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
 
-<p>这里直接将 “Here “的二进制值 48 65 72 65 00 硬编码到汇编中，将其压入栈中。和 clang 一样，local_t1将本数组内的所有值都放栈中。</p>
-<p><code>char *local_t2 = &quot;Comes&quot;;</code></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">0000000100000f62           leaq       0x3b(%rip), %rax        ## literal pool for: &quot;Comes&quot;</span><br><span class="line">0000000100000f69           movq       %rax, -0x8(%rbp)</span><br></pre></td></tr></table></figure>
+<h2 id="查看是否畅通"><a href="#查看是否畅通" class="headerlink" title="查看是否畅通"></a>查看是否畅通</h2><img src="/articles/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio/02.png" class="" width="1000">
 
-<p>这里和 clang 一样，不作过多解释。local_t2 将指向 “Comes” 的指针放在栈中。</p>
-<p>先说结论：采用数组方式初始化的 local_t1 将本数组内的所有值都放在栈中；而采用指针方式初始化的 local_t2 则仅将指针放在栈段中，其指向 __cstring 段中的 “Comes”。再谈谈 clang 和 gcc 的区别，主要就是在对以指针方式初始化的字符串上：clang 编译时将字符串放在 __cstring 段中，运行时从 __cstring 段复制到栈中；gcc 则在编译时直接将字符串放在代码段中，运行时直接压栈。两者的处理方式各有优缺点：clang 避免了将字符串常量放到代码段中，若代码中还有相同的字符串则可以合并为一个字符串，但运行时有复制的步骤，存在效率问题；gcc 直接将字符串放在代码段中，没有如上 clang 的好处，但运行时直接将值写入栈中，相对效率更高。</p>
-<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h3><blockquote>
-<p>可以看出，与基本类型变量不同的是，字符串变量用到了 __cstring 段用来保存字符串常量；但如果仔细分析，其实字符串同基本类型变量也没有太大差别，都遵循基本的规则。在对以数组方式初始化的局部变量的处理上，gcc 更常见，即将字符串以普通数组的方式编译；但 clang 则采用了一种“融合”的方法，将字符串所特有的 __cstring 段也利用了起来。<br>注意：这里没有介绍字符串在堆中的情况，因为在堆中的情况很简单：malloc() 申请堆空间，返回空间指针作为字符串头，按照常规方式读写或使用 string 库操作。</p>
+
+<p>至此，说明我们的测试项目跑起来了。只不过是通过 ingress-nginx 访问的方式，接下来，我们要通过 Istio 用同样的域名方式访问。好，现在就可以卸载 ingress-nginx 了，只不过稍后会再装回来。</p>
+<h2 id="卸载-ingress-nginx"><a href="#卸载-ingress-nginx" class="headerlink" title="卸载 ingress-nginx"></a>卸载 ingress-nginx</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">helm uninstall ingress-nginx -n test</span><br></pre></td></tr></table></figure>
+<h2 id="删除-ingress-资源"><a href="#删除-ingress-资源" class="headerlink" title="删除 ingress 资源"></a>删除 ingress 资源</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl delete ing -n test nginx-ingress  </span><br></pre></td></tr></table></figure>
+
+<h1 id="安装-Istio"><a href="#安装-Istio" class="headerlink" title="安装 Istio"></a>安装 Istio</h1><p>直接去 <a target="_blank" rel="noopener" href="https://github.com/istio/istio">【GitHub】</a> 上下载压缩包，然后解压配置 istioctl 命令的环境变量即可。</p>
+<p>安装默认的配置就可以了</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">istioctl install --set profile=default -y</span><br></pre></td></tr></table></figure>
+<p>安装成功之后，我们看下它的 pod：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">kubectl get po -n istio-system   </span><br><span class="line">---</span><br><span class="line">NAME                                    READY   STATUS    RESTARTS   AGE</span><br><span class="line">istio-ingressgateway-64589668d7-tmvld   1/1     Running   0          99s</span><br><span class="line">istiod-5d744fdd4f-969js                 1/1     Running   0          106s</span><br></pre></td></tr></table></figure>
+<p>看到了熟悉的 istio-ingressgateway-64589668d7-tmvld ，之所以熟悉是因为它也是个 ingress。那么这样就好办了。</p>
+<h2 id="安装-ingress-nginx-1"><a href="#安装-ingress-nginx-1" class="headerlink" title="安装 ingress-nginx"></a>安装 ingress-nginx</h2><p>我们再一次安装 ingress-nginx，只不过我们把它放到 istio-system 命名空间中。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">helm install -n istio-system ingress-nginx ingress-nginx-3.19.0</span><br></pre></td></tr></table></figure>
+
+<h2 id="配置-ingress-规则"><a href="#配置-ingress-规则" class="headerlink" title="配置 ingress 规则"></a>配置 ingress 规则</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f -&lt;&lt;EOF </span><br><span class="line">apiVersion: networking.k8s.io/v1</span><br><span class="line">kind: Ingress</span><br><span class="line">metadata:</span><br><span class="line">  name: nginx-ingress</span><br><span class="line">  annotations:</span><br><span class="line">    kubernetes.io/ingress.class: &quot;nginx&quot;</span><br><span class="line">  namespace: istio-system</span><br><span class="line">spec:</span><br><span class="line">  defaultBackend:</span><br><span class="line">    service:</span><br><span class="line">      name: istio-ingressgateway</span><br><span class="line">      port:</span><br><span class="line">        number: 80    </span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>如上 ingress 配置，我们只添加了一个 defaultBackend，也就是说，所有的流量全部引进来，并把该流量指给网关 istio-ingressgateway。同时还要注意，该 ingress 的命名空间同 gateway。</p>
 </blockquote>
-<h1 id="不同位置读取效率"><a href="#不同位置读取效率" class="headerlink" title="不同位置读取效率"></a>不同位置读取效率</h1><p>这里仅考虑局部变量，分析两种初始化方式带来的读取效率差异。因为gcc和clang处理方法基本一样，所以这里只拿 clang 来举例。</p>
-<p>代码：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">const</span> <span class="keyword">char</span> *argv[])</span> </span>&#123;</span><br><span class="line">  <span class="keyword">char</span> str1[] = <span class="string">&quot;Hello&quot;</span>;</span><br><span class="line">  <span class="keyword">char</span> *str2 = <span class="string">&quot;World&quot;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">char</span> str1_0 = str1[<span class="number">0</span>];</span><br><span class="line">  <span class="keyword">char</span> str1_1 = str1[<span class="number">1</span>];</span><br><span class="line"></span><br><span class="line">  <span class="keyword">char</span> str2_0 = str2[<span class="number">0</span>];</span><br><span class="line">  <span class="keyword">char</span> str2_1 = str2[<span class="number">1</span>];</span><br><span class="line"></span><br><span class="line">  sleep(<span class="number">-1</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="数组方式"><a href="#数组方式" class="headerlink" title="数组方式"></a>数组方式</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">char</span> str1_0 = str1[<span class="number">0</span>];</span><br><span class="line"><span class="keyword">char</span> str1_1 = str1[<span class="number">1</span>];</span><br></pre></td></tr></table></figure>
-<p>对应的汇编：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">0x100000f4a &lt;+58&gt;:  movb   -0x16(%rbp), %r8b</span><br><span class="line">0x100000f4e &lt;+62&gt;:  movb   %r8b, -0x21(%rbp)</span><br><span class="line">0x100000f52 &lt;+66&gt;:  movb   -0x15(%rbp), %r8b</span><br><span class="line">0x100000f56 &lt;+70&gt;:  movb   %r8b, -0x22(%rbp)</span><br></pre></td></tr></table></figure>
-<p>这段汇编代码很容易(注意字符串数组就在栈里)：</p>
-<ol>
-<li>取栈中对应位置的数据，交给一个寄存器；</li>
-<li>由寄存器将数据交给栈。</li>
-</ol>
-<p>为什么要一个寄存器绕一下？因为栈在内存中，不能直接内存到内存，需要寄存器作为中间人。</p>
-<h3 id="指针方式"><a href="#指针方式" class="headerlink" title="指针方式"></a>指针方式</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">char</span> str2_0 = str2[<span class="number">0</span>];</span><br><span class="line"><span class="keyword">char</span> str2_1 = str2[<span class="number">1</span>];</span><br></pre></td></tr></table></figure>
-
-<p>对应的汇编：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">0x100000f5a &lt;+74&gt;:  movq   -0x20(%rbp), %rcx</span><br><span class="line">0x100000f5e &lt;+78&gt;:  movb   (%rcx), %r8b</span><br><span class="line">0x100000f61 &lt;+81&gt;:  movb   %r8b, -0x23(%rbp)</span><br><span class="line">0x100000f65 &lt;+85&gt;:  movq   -0x20(%rbp), %rcx</span><br><span class="line">0x100000f69 &lt;+89&gt;:  movb   0x1(%rcx), %r8b</span><br><span class="line">0x100000f6d &lt;+93&gt;:  movb   %r8b, -0x24(%rbp)</span><br></pre></td></tr></table></figure>
-
-<p>这段汇编代码多个一个步骤（注意字符串在__cstring段中）：</p>
-<ol>
-<li>从栈中取指向字符串的指针，交给一个寄存器；</li>
-<li>取指针所指地址对应位置数据，交给一个寄存器；</li>
-<li>由寄存器将数据交给栈。</li>
-</ol>
-<p>为什么这里多绕一步？因为涉及到指针所指地址转换为地址的问题。</p>
-<h3 id="小结-1"><a href="#小结-1" class="headerlink" title="小结"></a>小结</h3><blockquote>
-<p>对比两种方式可以发现，读取字符串时，数组方式只需要用到一个寄存器，而指针方式需要用到两个寄存器（需要先把指针读到寄存器），读取以数组方式初始化的字符串要比以指针方式初始化的字符串效率高。但以指针方式初始化的字符串在加载时就已经在内存中，而以数组方式初始化的字符串还要进行压栈的操作。</p>
+<h2 id="配置-gateway"><a href="#配置-gateway" class="headerlink" title="配置 gateway"></a>配置 gateway</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f -&lt;&lt;EOF </span><br><span class="line">apiVersion: networking.istio.io/v1alpha3</span><br><span class="line">kind: Gateway</span><br><span class="line">metadata:</span><br><span class="line">  name: k8s-gateway</span><br><span class="line">  namespace: istio-system</span><br><span class="line">spec:</span><br><span class="line">  servers:</span><br><span class="line">  - hosts:</span><br><span class="line">    - &#x27;*&#x27;</span><br><span class="line">    port:</span><br><span class="line">      number: 80</span><br><span class="line">      name: http</span><br><span class="line">      protocol: HTTP</span><br><span class="line">   </span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>让网关接管所有流量，即：域名 * 的。</p>
 </blockquote>
-<h1 id="写字符串时的危险"><a href="#写字符串时的危险" class="headerlink" title="写字符串时的危险"></a>写字符串时的危险</h1><p>这里介绍字符串在栈中时，可能对程序造成的破坏。实际介绍的就是 C 中危险的指针操作，<strong>不仅限于字符串，只要涉及到指针操作都可能造成下面说到的破坏。</strong></p>
-<h3 id="例一"><a href="#例一" class="headerlink" title="例一"></a>例一</h3><p>在栈中时，指向字符串的指针不仅能够修改字符串本身，还能不经意间修改其他变量的值。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">const</span> <span class="keyword">char</span> *argv[])</span> </span>&#123;</span><br><span class="line">  <span class="keyword">int</span> a = <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">char</span> str[] = <span class="string">&quot;World&quot;</span>;</span><br><span class="line">  <span class="keyword">int</span> b = <span class="number">2</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">char</span> *str_ptr = &amp;str[<span class="number">0</span>];</span><br><span class="line">  *(str_ptr + <span class="number">6</span>) = <span class="string">&#x27;W&#x27;</span>;</span><br><span class="line">  *(str_ptr - <span class="number">3</span>) = <span class="string">&#x27;o&#x27;</span>; <span class="comment">// align</span></span><br><span class="line"></span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;a=%d, b=%d, str=\&quot;%s\&quot;\n&quot;</span>, a, b, str);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>输出为：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">a=87, b=1862270978, str=&quot;World&quot;</span><br></pre></td></tr></table></figure>
-<p>简单解释下，因为 a 先入栈，”World” 随后入栈，b 最后入栈，此时指针 str_ptr 指向 ‘W’。注意栈的增长方向是像内存地址更小的方向，str_ptr + 6 已经超出字符串范围，到达了 b 的内存区域，这时在修改b的值；str_ptr - 3 修改的是 a 的最低一个 byte，所以 a 的值变为 ‘o’，即 87，至于为什么不是 str_ptr - 1，是因为涉及到内存对齐的问题。</p>
-<h3 id="例二"><a href="#例二" class="headerlink" title="例二"></a>例二</h3><p>C 中函数调用时的返回地址、保存的寄存器的值等也是在栈中，指针操作还能威胁到整个程序的顺利运行。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">write_str</span><span class="params">(<span class="keyword">char</span> *str)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">2</span>; i &lt; <span class="number">40</span>; i++) &#123;</span><br><span class="line">    *(str + i) = <span class="string">&#x27;d&#x27;</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">const</span> <span class="keyword">char</span> *argv[])</span> </span>&#123;</span><br><span class="line">  <span class="keyword">char</span> str[] = <span class="string">&quot;World&quot;</span>;</span><br><span class="line">  <span class="keyword">char</span> *str_ptr = &amp;str[<span class="number">0</span>];</span><br><span class="line"></span><br><span class="line">  write_str(str);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>程序执行，在 return 0 时会提示程序出错 Thread 1: EXC_BAD_ACCESS (code=EXC_i386_GPLFT)。</p>
-<p>这里是因为操作字符串指针持续向栈底方向写数据，破坏了程序的活动记录（Activate Record），造成程序出错。</p>
-<h3 id="小结-2"><a href="#小结-2" class="headerlink" title="小结"></a>小结</h3><blockquote>
-<p>指针操作一定要慎重！</p>
+<h2 id="配置-virtual-service"><a href="#配置-virtual-service" class="headerlink" title="配置 virtual service"></a>配置 virtual service</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f -&lt;&lt;EOF </span><br><span class="line">apiVersion: networking.istio.io/v1alpha3</span><br><span class="line">kind: VirtualService</span><br><span class="line">metadata:</span><br><span class="line">  name: nginx</span><br><span class="line">  namespace: test</span><br><span class="line">spec:</span><br><span class="line">  gateways:</span><br><span class="line">  - k8s-gateway.istio-system.svc.cluster.local</span><br><span class="line">  - mesh</span><br><span class="line">  hosts:</span><br><span class="line">  - my.k8s.com</span><br><span class="line">  http:</span><br><span class="line">  - fault:</span><br><span class="line">      abort:</span><br><span class="line">        httpStatus: 400</span><br><span class="line">        percentage:</span><br><span class="line">          value: 50</span><br><span class="line">    match:</span><br><span class="line">    - uri:</span><br><span class="line">        prefix: /nginx</span><br><span class="line">    rewrite:</span><br><span class="line">       uri: /</span><br><span class="line">    route:</span><br><span class="line">    - destination:</span><br><span class="line">        host: nginx</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>我们通过 <a target="_blank" rel="noopener" href="http://my.k8s.com/nginx">http://my.k8s.com/nginx</a> 来访问我们的 nginx web 服务。但是由于 nginx 的访问路径是 “/“  而不是 “/nginx”，所以我们需要对 url 进行重写。注意，我们这里添加了一个 50% 概率的 400 错误响应，以便验证我们的流量管控是否生效。</p>
 </blockquote>
-<hr>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
-<li><a target="_blank" rel="noopener" href="https://www.polarxiong.com/archives/C%E4%B8%AD%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%9C%A8%E5%86%85%E5%AD%98%E4%B8%AD%E7%9A%84%E4%BD%8D%E7%BD%AE%E5%8F%8A%E8%AF%BB%E5%86%99%E7%AD%89%E5%88%86%E6%9E%90.html">【原文链接】</a></li>
-</ul>
+<h2 id="配置-destination-rule"><a href="#配置-destination-rule" class="headerlink" title="配置 destination rule"></a>配置 destination rule</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f -&lt;&lt;EOF </span><br><span class="line">apiVersion: networking.istio.io/v1alpha3</span><br><span class="line">kind: DestinationRule</span><br><span class="line">metadata:</span><br><span class="line">  name: nginx</span><br><span class="line">  namespace: test</span><br><span class="line">spec:</span><br><span class="line">  host: nginx.test.svc.cluster.local</span><br><span class="line"><span class="meta">  #</span><span class="bash"> Disable the tls <span class="keyword">for</span> all ports</span></span><br><span class="line">  trafficPolicy:</span><br><span class="line">    tls:</span><br><span class="line">        mode: DISABLE</span><br><span class="line">  subsets:</span><br><span class="line">  - labels:</span><br><span class="line">      version: v1</span><br><span class="line">    name: v1</span><br><span class="line">    trafficPolicy:</span><br><span class="line">      loadBalancer:</span><br><span class="line">        simple: ROUND_ROBIN</span><br><span class="line">      # You can config the tls for each rules</span><br><span class="line">      tls:</span><br><span class="line">        mode: DISABLE</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>这里我们需要关闭 tls 功能。</p>
+</blockquote>
+<h2 id="查看-istio-system-下的-service"><a href="#查看-istio-system-下的-service" class="headerlink" title="查看 istio-system 下的 service"></a>查看 istio-system 下的 service</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">kubectl get svc -n istio-system  </span><br><span class="line"> ---</span><br><span class="line">NAME                                 TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)                                                                      AGE</span><br><span class="line">ingress-nginx-controller             LoadBalancer   10.106.58.208   &lt;pending&gt;     80:31241/TCP,443:31603/TCP                                                   10m</span><br><span class="line">ingress-nginx-controller-admission   ClusterIP      10.96.93.161    &lt;none&gt;        443/TCP                                                                      10m</span><br><span class="line">istio-ingressgateway                 LoadBalancer   10.98.218.30    &lt;pending&gt;     15021:31234/TCP,80:31748/TCP,443:31819/TCP,15012:31734/TCP,15443:30830/TCP   17m</span><br><span class="line">istiod                               ClusterIP      10.101.252.30   &lt;none&gt;        15010/TCP,15012/TCP,443/TCP,15014/TCP                                        17m</span><br></pre></td></tr></table></figure>
+
+<p>我们发现 istio-ingressgateway 的 TYPE 是 LoadBalancer 类型，显然这不是我们想要的，删掉：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl delete svc -n istio-system istio-ingressgateway</span><br></pre></td></tr></table></figure>
+
+<h2 id="配置-gateway-service"><a href="#配置-gateway-service" class="headerlink" title="配置 gateway service"></a>配置 gateway service</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f -&lt;&lt;EOF </span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Service</span><br><span class="line">metadata:</span><br><span class="line">  name: istio-ingressgateway</span><br><span class="line">  namespace: istio-system</span><br><span class="line">  labels:</span><br><span class="line">    app: istio-ingressgateway</span><br><span class="line">    istio: ingressgateway</span><br><span class="line">    release: istio</span><br><span class="line">spec:</span><br><span class="line">  type: ClusterIP</span><br><span class="line">  selector:</span><br><span class="line">    app: istio-ingressgateway</span><br><span class="line">    istio: ingressgateway</span><br><span class="line">  ports:</span><br><span class="line">  - name: status-port</span><br><span class="line">    port: 15021</span><br><span class="line">  - name: http</span><br><span class="line">    port: 80</span><br><span class="line">    targetPort: 8080</span><br><span class="line">  - name: https</span><br><span class="line">    port: 443</span><br><span class="line">    targetPort: 8443</span><br><span class="line">  - name: tcp</span><br><span class="line">    port: 31400</span><br><span class="line">  - name: tls</span><br><span class="line">    port: 15443</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>这里我们重新配置了一下 gateway 的 service，修改的地方有三点：<br>一、将 IP 类型该为 ClusterIP<br>二、将 80 端口映射到 8080<br>三、关闭无用的端口映射</p>
+</blockquote>
+<h2 id="为命名空间开启自动注入"><a href="#为命名空间开启自动注入" class="headerlink" title="为命名空间开启自动注入"></a>为命名空间开启自动注入</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl label namespace test istio-injection=enabled</span><br></pre></td></tr></table></figure>
+<h2 id="删除我们先前创建的-pod"><a href="#删除我们先前创建的-pod" class="headerlink" title="删除我们先前创建的 pod"></a>删除我们先前创建的 pod</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl delete po -n test nginx-55df9cfb4b-xjvcv   </span><br></pre></td></tr></table></figure>
+
+<h2 id="查看注入是否成功"><a href="#查看注入是否成功" class="headerlink" title="查看注入是否成功"></a>查看注入是否成功</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">kubectl get po -n test -w</span><br><span class="line">---</span><br><span class="line">NAME                     READY   STATUS     RESTARTS   AGE</span><br><span class="line">nginx-55df9cfb4b-wwddn   0/2     Init:0/1   0          25s</span><br></pre></td></tr></table></figure>
+
+<h2 id="验证"><a href="#验证" class="headerlink" title="验证"></a>验证</h2><p>成功页面</p>
+<img src="/articles/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio/03.png" class="" width="1000">
+
+
+<p>400 页面</p>
+<img src="/articles/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio/04.png" class="" width="1000">
+
+
+<p>至此，完成。后续添加服务，只需要配置好对应的 deployment、service、virtual service、destination rule 即可。我们就可以通过域名的方式访问我们的服务了。</p>
+<h1 id="卸载-Istio"><a href="#卸载-Istio" class="headerlink" title="卸载 Istio"></a>卸载 Istio</h1><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">istioctl manifest generate --set profile=default | kubectl delete --ignore-not-found=true -f -</span><br></pre></td></tr></table></figure>
 
     
 
@@ -512,11 +324,7 @@
 		<ul class="article-tag-list">
 			 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">C</a>
-        		</li>
-      		 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color3">Reprint</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">K8s</a>
         		</li>
       		
 		</ul>
@@ -526,7 +334,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2021/05/15/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E5%9B%9B)%E5%8F%98%E9%87%8F%E4%B8%8E%E5%86%85%E5%AD%98(%E4%B8%8B%E7%AF%87)/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio/">展开全文 >></a>
     </p>
     
 
@@ -560,7 +368,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/12/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/11/">11</a><a class="page-number" href="/articles/page/12/">12</a><span class="page-number current">13</span><a class="page-number" href="/articles/page/14/">14</a><a class="page-number" href="/articles/page/15/">15</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/32/">32</a><a class="extend next" rel="next" href="/articles/page/14/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/12/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/11/">11</a><a class="page-number" href="/articles/page/12/">12</a><span class="page-number current">13</span><a class="page-number" href="/articles/page/14/">14</a><a class="page-number" href="/articles/page/15/">15</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/33/">33</a><a class="extend next" rel="next" href="/articles/page/14/">下一页</a>
     </nav>
   
 
@@ -725,6 +533,10 @@
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">TCP</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">Git</a>
               </li>
             
             <div class="clearfix"></div>
