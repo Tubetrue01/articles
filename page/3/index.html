@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-c_cmake/cmake之set" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-git/Git常用命令" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2021/09/11/c_cmake/cmake%E4%B9%8Bset/" target="_blank">CMake 之 set</a>
+	  <a class="article-title" href="/articles/2021/09/28/git/Git%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/" target="_blank">Git 系列（一） 常用命令（动图讲解）</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2021/09/11/c_cmake/cmake%E4%B9%8Bset/" class="archive-article-date">
-        <time datetime="2021-09-11T05:51:17.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-09-11</time>
+<a href="/articles/2021/09/28/git/Git%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/" class="archive-article-date">
+        <time datetime="2021-09-28T05:27:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-09-28</time>
 </a>
 
   
@@ -216,69 +216,118 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>CMake 版本取自于 3.21.2。</p>
+<p>本文主要以动图的方式讲解 Git 中比较常用的命令，以加深对这些命令的理解。</p>
 </blockquote>
-<h1 id="set"><a href="#set" class="headerlink" title="set"></a>set</h1><p>set 用来将给定的值保存到常规变量、缓存条目、环境变量中。命令的签名中，占位符 <code>&lt;value&gt;...</code> 用于指定 0 个或者多个参数。如果多个参数被指定，那么它们将会以 <code>;</code> 连接起来作为实际的参数。如果没有任何参数被指定，那么该变量就会被注销（类似于 <code>unset</code> 命令）。</p>
-<h2 id="Set-Normal-Variable"><a href="#Set-Normal-Variable" class="headerlink" title="Set Normal Variable"></a>Set Normal Variable</h2><figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span>(&lt;variable&gt; &lt;value&gt;... [PARENT_SCOPE])</span><br></pre></td></tr></table></figure>
-<p>在当前函数或者目录范围内设置指定值到变量中。<br>如果使用了 <code>PARENT_SCOPE</code> 选项，意味着该变量的作用域会传递到上一层（即上一层目录或者当前函数的调用者），变量的先前状态在当前作用域中保持不变（换句话说如果变量先前未定义，那么现在也仍然未定义，反之亦然）。</p>
-<p><strong>📚Tips</strong></p>
-<blockquote>
-<p>每一个新的目录或者函数都会创建一个新的作用域，普通变量的作用域，如果不指定 PARENT_SCOPE 选项，只能从外层往内层传递。</p>
-</blockquote>
-<h3 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h3><ol>
-<li><p><strong>函数内部定义变量</strong></p>
- <figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.21</span>.<span class="number">2</span>)</span><br><span class="line"><span class="keyword">project</span>(SET_TEST)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">function</span>(test_set_fn value)</span><br><span class="line">    <span class="keyword">set</span>(VAL_IN_FN <span class="variable">$&#123;value&#125;</span> PARENT_SCOPE)</span><br><span class="line">    <span class="keyword">set</span>(VAL_IN_FN_DEFAULT_SCOPE <span class="variable">$&#123;value&#125;</span>)</span><br><span class="line">    <span class="keyword">message</span>(STATUS <span class="string">&quot;the val in fn is : $&#123;VAL_IN_FN&#125;&quot;</span>)</span><br><span class="line">    <span class="keyword">message</span>(STATUS <span class="string">&quot;the val with default scope in fn is : $&#123;VAL_IN_FN_DEFAULT_SCOPE&#125;&quot;</span>)</span><br><span class="line"><span class="keyword">endfunction</span>(test_set_fn)</span><br><span class="line"></span><br><span class="line">test_set_fn(<span class="string">&quot;hello&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">message</span>(STATUS <span class="string">&quot;the val out of the fn is :  $&#123;VAL_IN_FN&#125;&quot;</span>)</span><br><span class="line"><span class="keyword">message</span>(STATUS <span class="string">&quot;the val with default scope out of fn is : $&#123;VAL_IN_FN_DEFAULT_SCOPE&#125;&quot;</span>)</span><br><span class="line"></span><br><span class="line">---output:</span><br><span class="line"></span><br><span class="line">-- the val in fn is :</span><br><span class="line">-- the val with default scope in fn is : hello</span><br><span class="line">-- the val out of the fn is : hello</span><br><span class="line">-- the val with default scope out of fn is :</span><br></pre></td></tr></table></figure>
-<p>我们在函数 test_set_fn 中定义两个变量：具有 <code>PARENT_SCOPE</code> 作用域的 VAL_IN_FN 以及默认作用域的 VAL_IN_FN_DEFAULT_SCOPE。我们在函数内部输出两个变量的值，在函数外部输出两个变量。</p>
-<p>通过结果我们发现，当指定 <code>PARENT_SCOPE</code> 时，函数内部无法显示该值，而函数调用所在的文件可以访问。对于具有默认作用域的变量，却相反。</p>
-<p>当然，如果不调用函数的话，那两个变量都没有。</p>
-</li>
-<li><p><strong>在函数内部调用函数</strong></p>
-<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.21</span>.<span class="number">2</span>)</span><br><span class="line"><span class="keyword">project</span>(SET_TEST)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">function</span>(test_set_fn value)</span><br><span class="line">    <span class="keyword">set</span>(VAL_IN_FN <span class="variable">$&#123;value&#125;</span> PARENT_SCOPE)</span><br><span class="line">    <span class="keyword">set</span>(VAL_IN_FN_DEFAULT_SCOPE <span class="variable">$&#123;value&#125;</span>)</span><br><span class="line">    <span class="keyword">message</span>(STATUS <span class="string">&quot;the val in fn is : $&#123;VAL_IN_FN&#125;&quot;</span>)</span><br><span class="line">    <span class="keyword">message</span>(STATUS <span class="string">&quot;the val with default scope in fn is : $&#123;VAL_IN_FN_DEFAULT_SCOPE&#125;&quot;</span>)</span><br><span class="line"><span class="keyword">endfunction</span>(test_set_fn)</span><br><span class="line"></span><br><span class="line"><span class="keyword">function</span>(print)</span><br><span class="line">    test_set_fn(<span class="string">&quot;hello&quot;</span>)</span><br><span class="line">    <span class="keyword">message</span>(STATUS <span class="string">&quot;-----------------------&quot;</span>)</span><br><span class="line">    <span class="keyword">message</span>(STATUS <span class="string">&quot;print : the val out of the fn is : $&#123;VAL_IN_FN&#125;&quot;</span>)</span><br><span class="line">    <span class="keyword">message</span>(STATUS <span class="string">&quot;print :the val with default scope out of fn is : $&#123;VAL_IN_FN_DEFAULT_SCOPE&#125;&quot;</span>)</span><br><span class="line"><span class="keyword">endfunction</span>(print)</span><br><span class="line"></span><br><span class="line">print()</span><br><span class="line"></span><br><span class="line"><span class="keyword">message</span>(STATUS <span class="string">&quot;-----------------------&quot;</span>)</span><br><span class="line"><span class="keyword">message</span>(STATUS <span class="string">&quot;the val out of the fn is : $&#123;VAL_IN_FN&#125;&quot;</span>)</span><br><span class="line"><span class="keyword">message</span>(STATUS <span class="string">&quot;the val with default scope out of fn is : $&#123;VAL_IN_FN_DEFAULT_SCOPE&#125;&quot;</span>)</span><br><span class="line"></span><br><span class="line">---output:</span><br><span class="line"></span><br><span class="line">-- the val in fn is : </span><br><span class="line">-- the val with default scope in fn is : hello</span><br><span class="line">-- -----------------------</span><br><span class="line">-- print : the val out of the fn is : hello</span><br><span class="line">-- print :the val with default scope out of fn is : </span><br><span class="line">-- -----------------------</span><br><span class="line">-- the val out of the fn is : </span><br><span class="line">-- the val with default scope out of fn is : </span><br></pre></td></tr></table></figure>
+<h1 id="Merging"><a href="#Merging" class="headerlink" title="Merging"></a>Merging</h1><p>我们通常用不同的分支开发不同的新功能。当对应的功能准备发布时，通过 <code>git merge</code> 命令将该分支内容合并到生产。然而该命令有两种不同的模式：<code>fast-forward</code> 以及 <code>no-fast-forward</code>，接下来，我们看下两者的不同！</p>
+<h2 id="Fast-forward-–ff"><a href="#Fast-forward-–ff" class="headerlink" title="Fast-forward (–ff)"></a>Fast-forward (–ff)</h2><p>如果 master 分支没有任何新的提交（即：落后于当前分支），那么将当前分支合并到 master 时，会采用 <code>fast-forward</code> 方式进行合并。该方式合并时并不会产生新的 commit，而是把当前分支的 commit 合并到 master 中。</p>
+<hr>
+<img src="/articles/2021/09/28/git/Git%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/01.gif" class="" width="600">
 
-<p>本次，我们定义另外一个函数 <code>print</code> 并在该函数中调用 <code>test_set_fn</code>，同时我们也在该函数中输出两个变量。通过对结果分析，我们发现 <code>test_set_fn</code> 函数内部与之前保持一致，只有默认作用域的可以访问。而在当前文件中两个变量都获取不到，但是在 <code>print</code> 函数内部却可以访问到具有 <code>PARENT_SCOPE</code> 作用域的变量。</p>
-<p>也就是说，当变量在函数中声明为 <code>PARENT_SCOPE</code> 时，只会传递给该函数的调用者，如果调用者是一个函数，那么会传递给该函数，如果该调用者是目录，则会传递给当前目录。</p>
-</li>
-<li><p><strong>路径中的变量传递</strong></p>
-<p>父级 CMakeLists.txt</p>
-<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.21</span>.<span class="number">2</span>)</span><br><span class="line"><span class="keyword">project</span>(SET_TEST)</span><br><span class="line"> </span><br><span class="line"><span class="keyword">add_subdirectory</span>(src)</span><br><span class="line"> </span><br><span class="line"><span class="keyword">message</span>(STATUS <span class="string">&quot;the val in directory is : $&#123;VAL_IN_DIRECTORY&#125;&quot;</span>)</span><br><span class="line"><span class="keyword">message</span>(STATUS <span class="string">&quot;the val with default scope is : $&#123;VAL_IN_DIRECTORY_DEFAULT_SCOPE&#125;&quot;</span>)</span><br></pre></td></tr></table></figure>
-<p>子级 CMakeLists.txt</p>
-<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">message</span>(STATUS <span class="string">&quot;sub: the val in directory is : $&#123;VAL_IN_DIRECTORY&#125;&quot;</span>)</span><br><span class="line"><span class="keyword">message</span>(STATUS <span class="string">&quot;sub : the val with default scope is : $&#123;VAL_IN_DIRECTORY_DEFAULT_SCOPE&#125;&quot;</span>)</span><br></pre></td></tr></table></figure>
-<p>输出：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-- sub: the val in directory is : </span><br><span class="line">-- sub : the val with default scope is : hello</span><br><span class="line">-- the val in directory is : hello</span><br><span class="line">-- the val with default scope is : </span><br></pre></td></tr></table></figure>
+<hr>
+<h2 id="No-fast-forward-–no-ff"><a href="#No-fast-forward-–no-ff" class="headerlink" title="No-fast-forward (–no-ff)"></a>No-fast-forward (–no-ff)</h2><p>如果 master 上在我们检出开发分支后有了新的 commit（即：master 领先于当前分支），那么 git 将会使用 <code>no-fast-forward</code> 进行合并。此时会有一个新的 commit 被创建，该 commit 同时指向了 master 以及当前分支（也就是将两个分支的内容合并到了当前 commit 中）。</p>
+<hr>
+<img src="/articles/2021/09/28/git/Git%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/02.gif" class="" width="600">
 
-<p>变量的获取必须要在 <code>add_subdirectory</code> 之后获取。在父级目录中可以获取 <code>PARENT_SCOPE</code> 的变量而获取不到默认作用域的变量，在子目中中则相反。</p>
-<h2 id="Set-Cache-Entry"><a href="#Set-Cache-Entry" class="headerlink" title="Set Cache Entry"></a>Set Cache Entry</h2><figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span>(&lt;variable&gt; &lt;value&gt;... CACHE &lt;type&gt; &lt;docstring&gt; [FORCE])</span><br></pre></td></tr></table></figure>
-<p>设置缓存条目 <code>&lt;variable&gt;</code> 为 <code>&lt;value&gt;</code>，除非使用选项     <code>FORCE</code>，否则默认情况下缓存条目的值不会被覆盖。<br><code>&lt;type&gt;</code> 必须指定为以下几种类型：</p>
-</li>
-</ol>
-<ul>
-<li><strong>BOOL</strong><br>布尔值 ON/OFF，CMake 的 GUI 界面对此类缓存条目会提供一个复选框。</li>
-<li><strong>FILEPATH</strong><br>文件路径，CMake 的 GUI 界面对此类缓存条目会提供一个文件选择框。</li>
-<li><strong>PATH</strong><br>目录路径，CMake 的 GUI 界面对此类缓存条目会提供一个目录选择框。</li>
-<li><strong>STRING</strong><br>文本行，CMake 的 GUI 界面对此类缓存条目会提供一个文本框（对应 STRING ）或下拉选择框（对应 STRINGS）。</li>
-<li><strong>INTERNAL</strong><br>文本行，但是只用于内部，不对外呈现。主要用于运行过程中存储变量，因此使用该 <code>type</code> 意味着使用 <code>FORCE</code>。</li>
-</ul>
-<p><code>&lt;docstring&gt;</code> 必须指定为一行文本，用于提供向 CMake 的 GUI 界面展示选项的快速摘要。<br>如果在调用之前缓存条目不存在或给定了 FORCE 选项，则缓存条目将设置为给定值。</p>
-<p><strong>注意事项</strong>：</p>
-<ul>
-<li>如果变量先前未定义或者使用了 FORCE 选项，则缓存条目会直接被赋值。</li>
-<li>可以在使用 CMake 构建的使用通过 -D 选项来给缓存条目赋值，这样 CMakeLists.txt 内的 set 命令只会为缓存条目添加类型。</li>
-<li>如果变量类型是目录或者文件路径，通过 -D 选项传入的若只是相对路径，那么 set 会给这个相对路径前添加当前的工作目录以变成绝对路径（如果已经是绝对路径则不会处理）。</li>
-</ul>
-<p><strong>📚Tips</strong></p>
+<hr>
+<h2 id="Merge-Conflicts"><a href="#Merge-Conflicts" class="headerlink" title="Merge Conflicts"></a>Merge Conflicts</h2><p>如果不同的分支在相同的文件、相同的行上进行修改或者一个分支删除，一个分支修改同一个文件等操作时发生合并，就会产生冲突。比如在以下例子中，我们在两个分支（master、dev）分别编辑 README.md 文件：</p>
+<hr>
+<img src="/articles/2021/09/28/git/Git%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/03.png" class="" width="600">
+
+<hr>
+<p>当把 dev 合并到 master 时，就会提示合并冲突，因为同时修改了 README.md 文件的第一行。此时，git 就会展示冲突的地方，我们可以手动的选择要保留的完成合并，然后再进行 add 以及 commit，提交我们合并之后的信息。</p>
+<hr>
+<img src="/articles/2021/09/28/git/Git%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/04.gif" class="" width="600">
+
+<hr>
+<h1 id="Rebasing"><a href="#Rebasing" class="headerlink" title="Rebasing"></a>Rebasing</h1><p><code>git merge</code> 可以将一个分支的内容合并到另一个分支，除此之外还有另外一个命令 <code>git rebase</code> 也可以做到。不同的是 <code>git rebase</code> 会将当前分支的提交信息追加到目标分支之后（不像 <code>git merge</code> 会产生一个新的 commit 信息）。</p>
+<hr>
+<img src="/articles/2021/09/28/git/Git%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/05.gif" class="" width="600">
+
+<hr>
+<p>与 <code>git merge</code> 相比，当遇到冲突的时候，git 并不会检查哪些文件需要保留，哪些不需要保留。要 rebase 的分支（这里的 master）总是保留最新的更改，这会有什么问题呢？就是如果 dev 上有冲突产生，那么总会保留 master 而丢弃 dev 上的更新（所以在 rebase 之前，切记保持分支代码的更新，避免冲突出现）。该命令的好处就是可以让 git 的提交历史更线性。</p>
+<p><strong>📚 Tips</strong></p>
 <blockquote>
-<p>如果有相同名字的常规变量存在，那么是不能直接获取缓存条目的。如果把策略 CMP0126 设置为 OLD，那么当前作用域内绑定的常规变量都会被删除。</p>
+<p>对于一些大型项目，rebase 并不是很推荐。本文里对 rebase 的说明过于浅显，也就造成有些陷阱的存在，但是作为命令讲解已经足够了。所以，我会单独开一篇文章详细讨论一下 rebase！</p>
 </blockquote>
-<h2 id="Set-Environment-Variable"><a href="#Set-Environment-Variable" class="headerlink" title="Set Environment Variable"></a>Set Environment Variable</h2><figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span>(ENV&#123;&lt;variable&gt;&#125; [&lt;value&gt;])</span><br></pre></td></tr></table></figure>
-<p>设置环境变量，之后调用 <code>$ENV&#123;&lt;variable&gt;&#125;</code> 将返回新值。<br><strong>注意事项</strong><br>环境变量设置的几个注意事项：</p>
+<h2 id="Interactive-Rebase"><a href="#Interactive-Rebase" class="headerlink" title="Interactive Rebase"></a>Interactive Rebase</h2><p>交互式的 rebase 可以让我们在 rebase 之前修改 commit 信息。以下有六种操作：</p>
 <ul>
-<li>该命令设置的环境变量只在当前的 CMake 进程生效，既不会影响调用者的环境变量，也不会影响系统环境变量。</li>
-<li>如果 <code>&lt;value&gt;</code> 为空或者 <code>ENV&#123;&lt;variable&gt;&#125;</code> 后没有参数，则该命令会清除掉当前环境变量的值。</li>
-<li><code>&lt;value&gt;</code> 之后额外的参数会被忽略。</li>
+<li><p>reword<br>修改 commit 信息</p>
+</li>
+<li><p>edit<br>修正本次 commit</p>
+</li>
+<li><p>squash<br>将本次提交合并到上一次提交中</p>
+</li>
+<li><p>fixup<br>将本次提交合并到上一次提交中，丢弃 commit 信息</p>
+</li>
+<li><p>exec<br>在我们想要 rebase 的每次 commit 上执行一个命令</p>
+</li>
+<li><p>drop<br>丢弃本次提交</p>
+</li>
 </ul>
+<p>以上命令可以使我们完全掌握我们的提交记录。</p>
+<hr>
+<img src="/articles/2021/09/28/git/Git%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/06.gif" class="" width="600">
+
+<hr>
+<p><code>git rebase -i HEAD~3</code> 命令的意思是：以交互式（interactive）打开最近的 3 次提交记录。通过 <code>vim</code> 修改 commit 的前缀，这里是将提交记录 ec5bef2 的前缀改为 drop（即：删除当前提交）。随后的两个提交记录便会产生新的 hash 值。</p>
+<hr>
+<img src="/articles/2021/09/28/git/Git%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/07.gif" class="" width="600">
+
+<hr>
+<p>以上命令则是将 e45cb9e 合并到 ec5bef2 中.</p>
+<h1 id="Resetting"><a href="#Resetting" class="headerlink" title="Resetting"></a>Resetting</h1><p>如果我们想要丢弃已经提交的信息，那么 <code>git reset</code> 就派上用场了。<code>git reset</code> 用于将 head 指针指向我们期望的提交记录。reset 又分为 <code>soft reset</code> 跟 <code>hard reset</code>。</p>
+<h2 id="soft-reset"><a href="#soft-reset" class="headerlink" title="soft reset"></a>soft reset</h2><p>软重置将 head 指向我们期望的 commit 记录，此 commit 之后提交的信息并不会被删除。<br>如下图，我们并不想保留添加了一个 style.css 文件的提交记录 9378i 以及添加了一个 index.js 文件的 035cc 记录，但是我们想保留这两个文件，那么我们就可以使用软重置。</p>
+<hr>
+<img src="/articles/2021/09/28/git/Git%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/08.gif" class="" width="600">
+
+<hr>
+<p>通过 <code>git status</code>，我们仍然可以访问之前提交的所有信息，这样的好处就是我们可以修改这些内容以便之后再次提交。</p>
+<h2 id="hard-reset"><a href="#hard-reset" class="headerlink" title="hard reset"></a>hard reset</h2><p>有时你可能并不想保留之前所做的修改，而是完完全全删除它们。那么请使用硬重置。</p>
+<hr>
+<img src="/articles/2021/09/28/git/Git%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/09.gif" class="" width="600">
+
+<hr>
+<p>如上图所示，9e78i 跟 035cc 两次提交的信息就完全被丢弃了。</p>
+<h1 id="Reverting"><a href="#Reverting" class="headerlink" title="Reverting"></a>Reverting</h1><p>撤销提交的另一种方式是执行 <code>git revert</code>。与 <code>git rest</code> 不同地方是，它会产生一个新的 commit，该 commit 中包含了我们要撤销的内容。<br>比如下图，我们在 ec5b3 提交中添加了一个 index.js 文件，随后我们要撤销该文件。</p>
+<hr>
+<img src="/articles/2021/09/28/git/Git%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/10.gif" class="" width="600">
+
+<hr>
+<p>从图中我们可以看到，产生了一个新的提交记录 9e78i，而该记录就是将 index.js 文件进行删除，以达到撤销 ec5b3 提交的目的。</p>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>这里有个地方需要特别注意，如果我们把之前 revert 过的记录再合并回来是比较困难的。因为此次被 revert 的内容以 commit 的方式保留在提交记录中。所以，如果只是暂时性的撤销，那么推荐 reset。revert 带来的好处就是保留了撤销内容的 commit 信息。</p>
+</blockquote>
+<h1 id="Cherry-picking"><a href="#Cherry-picking" class="headerlink" title="Cherry-picking"></a>Cherry-picking</h1><p>如果只是想把部分 commit 而不是整个分支合并到目标分支，我们可以使用 <code>cherry-pick</code>。<br>如下图，dev 分支的 76d12 提交中添加了一个 index.js 文件，以下操作只是把 76d12 合并到了 master 分支中。</p>
+<hr>
+<img src="/articles/2021/09/28/git/Git%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/11.gif" class="" width="600">
+
+<hr>
+<h1 id="Fetching"><a href="#Fetching" class="headerlink" title="Fetching"></a>Fetching</h1><p>如果远程分支已经被更新，我们只是想把它下载下来而不是合并到本地分支，可以使用 <code>git fetch</code> 命令。</p>
+<hr>
+<img src="/articles/2021/09/28/git/Git%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/12.gif" class="" width="600">
+
+<hr>
+<p>此时我们可以查看自上次 push 以来，该分支上所做的修改。同时我们注意到 head 指针的位置并没有发生变化，也就是当前下载下来的内容并没有合并到当前分支。如果想把更新的内容合并到当前分支，则需要执行 <code>git merge</code>。</p>
+<h1 id="Pulling"><a href="#Pulling" class="headerlink" title="Pulling"></a>Pulling</h1><p><code>git pull</code> 命令可能是我们最常用的命令，该命令可以理解为两个命令的组合：<code>git fetch</code>、<code>git merge</code>。也就是将远程的更新合并到当前分支中，同时我们注意到，下图的 head 指针已经发生了变化。</p>
+<hr>
+<img src="/articles/2021/09/28/git/Git%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/13.gif" class="" width="600">
+
+<hr>
+<h1 id="Reflog"><a href="#Reflog" class="headerlink" title="Reflog"></a>Reflog</h1><p><code>git reflog</code> 用于显示当前分支所做的所有操作，以便于我们进行回滚。</p>
+<hr>
+<img src="/articles/2021/09/28/git/Git%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/14.gif" class="" width="600">
+
+<hr>
+<p>通过 <code>git reflog</code> 显示当前分支最近的操作，假如我们想回滚到 HEAD@{1} 所对应的提交。我们可以执行 <code>git reset HEAD@&#123;1&#125;</code>。然后在通过 <code>git reflog</code> 查看，刚刚我们执行的 reset 操作已经记录下来了。</p>
+<hr>
+<img src="/articles/2021/09/28/git/Git%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/15.gif" class="" width="600">
+
+<hr>
+<p>以上只是对常用的命令进行了简单介绍，通过动图的方式让大家理解每个命令的区别以及背后的原理。后续的文章会对相关的命令进行深层的探讨，以防止大家在使用中遇到各种各样的问题。</p>
 <hr>
 <h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
-<li><a target="_blank" rel="noopener" href="https://cmake.org/cmake/help/latest/command/set.html">【官方文档】</a></li>
+<li><a target="_blank" rel="noopener" href="https://dev.to/lydiahallie/cs-visualized-useful-git-commands-37p1">【🌳🚀 CS Visualized: Useful Git Commands】</a></li>
 </ul>
 
     
@@ -296,7 +345,7 @@
 		<ul class="article-tag-list">
 			 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">CMake</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">Git</a>
         		</li>
       		
 		</ul>
@@ -306,7 +355,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2021/09/11/c_cmake/cmake%E4%B9%8Bset/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2021/09/28/git/Git%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/">展开全文 >></a>
     </p>
     
 
@@ -340,7 +389,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/2/">上一页</a><a class="page-number" href="/articles/">1</a><a class="page-number" href="/articles/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/articles/page/4/">4</a><a class="page-number" href="/articles/page/5/">5</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/38/">38</a><a class="extend next" rel="next" href="/articles/page/4/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/2/">上一页</a><a class="page-number" href="/articles/">1</a><a class="page-number" href="/articles/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/articles/page/4/">4</a><a class="page-number" href="/articles/page/5/">5</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/39/">39</a><a class="extend next" rel="next" href="/articles/page/4/">下一页</a>
     </nav>
   
 

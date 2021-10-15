@@ -16,7 +16,7 @@
   
   <meta property="og:type" content="website">
 <meta property="og:title" content="Tubetrue01">
-<meta property="og:url" content="https://tubetrue01.github.io/page/15/">
+<meta property="og:url" content="https://tubetrue01.github.io/page/39/">
 <meta property="og:site_name" content="Tubetrue01">
 <meta property="og:locale" content="en_US">
 <meta property="article:author" content="Tubetrue01">
@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-cloud_native/K8s集群搭建系列(四)你好Istio" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-c_unix/IO多路复用(一)select函数" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio/" target="_blank">K8s 集群搭建系列（四） 你好 Istio</a>
+	  <a class="article-title" href="/articles/2020/12/15/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E4%B8%80)select%E5%87%BD%E6%95%B0/" target="_blank">IO 多路复用（一） select 函数</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio/" class="archive-article-date">
-        <time datetime="2021-08-07T17:08:22.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-08-08</time>
+<a href="/articles/2020/12/15/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E4%B8%80)select%E5%87%BD%E6%95%B0/" class="archive-article-date">
+        <time datetime="2020-12-15T06:59:58.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-12-15</time>
 </a>
 
   
@@ -216,98 +216,89 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>自上一篇文章<a href="https://tubetrue01.github.io/articles/2020/12/22/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%89)K8s%E5%90%AF%E5%8A%A8">【K8s 集群搭建系列（三）K8s 启动】</a> 到现在已经过去很长时间了，而本篇文章在很早之前就该发布，但是每次写了开头都放弃了。因为我觉得作为普通使用者，其实没必要去折腾，能用就可以了。但是还是想把之前的折腾经历分享出来，算是作个记录吧。Istio 安装很简单，但是本地使用的话，由于没有 EXTERNAL-IP，所以需要通过 NodePort 等方式暴露，我觉得不太好。如果能通过域名的方式访问，那就比较完美了。但是本地安装可不可以做到呢？我们回想一下 K8s 使用 ingress-nginx 不就是这样嘛，如果用 ingress-nginx 将流量引入到 Istio gateway 那么应该就可以了，那至于行不行呢，我们实践一下！</p>
+<p>在介绍 IO 多路复用的时候，始终都会围绕 select、pselect、poll、epoll 这几个函数展开。为了对它们进行详细的说明，这里会分为几篇文章（避免篇幅过大）。</p>
 </blockquote>
-<h1 id="版本"><a href="#版本" class="headerlink" title="版本"></a>版本</h1><ul>
-<li>K8s 版本：v1.19.0</li>
-<li>Istio 版本：1.8.1</li>
-<li>ingress-nginx 版本：3.19.0</li>
-<li>域名 my.k8s.com 指向了 K8s Master 节点宿主机 ip，这里需要配置一下 hosts</li>
-</ul>
-<h1 id="准备测试服务"><a href="#准备测试服务" class="headerlink" title="准备测试服务"></a>准备测试服务</h1><p>在开始之前，我们先安装个 web 服务供测试，为了简单起见，我们就装个 nginx 吧！</p>
-<h2 id="创建命名空间"><a href="#创建命名空间" class="headerlink" title="创建命名空间"></a>创建命名空间</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl create ns test  </span><br></pre></td></tr></table></figure>
+<h1 id="1-0-select-函数"><a href="#1-0-select-函数" class="headerlink" title="1.0 select 函数"></a>1.0 select 函数</h1><blockquote>
+<p>select 是用于 I/O 多路复用的一个系统调用函数。在 C 程序中，该系统调用在 sys/select.h 或 unistd.h 中声明。它允许进程指示内核等待多个事件中的任何一个发生，当任何事件发生或者超时后它将被唤醒。</p>
+</blockquote>
+<h2 id="1-1-函数声明"><a href="#1-1-函数声明" class="headerlink" title="1.1 函数声明"></a>1.1 函数声明</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">select</span><span class="params">( <span class="keyword">int</span> nfds, </span></span></span><br><span class="line"><span class="params"><span class="function">            fd_set *<span class="keyword">restrict</span> readfds, </span></span></span><br><span class="line"><span class="params"><span class="function">            fd_set *<span class="keyword">restrict</span> writefds, </span></span></span><br><span class="line"><span class="params"><span class="function">            fd_set *<span class="keyword">restrict</span> errorfds, </span></span></span><br><span class="line"><span class="params"><span class="function">            struct timeval *<span class="keyword">restrict</span> timeout</span></span></span><br><span class="line"><span class="params"><span class="function">           )</span></span>;</span><br></pre></td></tr></table></figure>
+<h3 id="1-1-1-参数"><a href="#1-1-1-参数" class="headerlink" title="1.1.1 参数"></a>1.1.1 参数</h3><h4 id="timeout"><a href="#timeout" class="headerlink" title="timeout"></a>timeout</h4><p>我们先从最简单的参数入手 timeout， 该参数是一个 timeval 类型的结构体，该结构体声明如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">timeval</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="keyword">long</span> tv_sec;   <span class="comment">/* seconds */</span></span><br><span class="line">    <span class="keyword">long</span> tv_usec;  <span class="comment">/* microseconds */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<h2 id="安装-yaml"><a href="#安装-yaml" class="headerlink" title="安装 yaml"></a>安装 yaml</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f -&lt;&lt;EOF </span><br><span class="line">apiVersion: apps/v1</span><br><span class="line">kind: Deployment</span><br><span class="line">metadata:</span><br><span class="line">  name: nginx</span><br><span class="line">  namespace: test</span><br><span class="line">  labels:</span><br><span class="line">    app: nginx</span><br><span class="line">    version: v1</span><br><span class="line">spec:</span><br><span class="line">  replicas: 1</span><br><span class="line">  selector:</span><br><span class="line">    matchLabels:</span><br><span class="line">      app: nginx</span><br><span class="line">      version: v1</span><br><span class="line">  template:</span><br><span class="line">    metadata:</span><br><span class="line">      labels:</span><br><span class="line">        app: nginx</span><br><span class="line">    spec:</span><br><span class="line">      containers:</span><br><span class="line">      - name: nginx</span><br><span class="line">        image: nginx:1.19.2</span><br><span class="line">        ports: </span><br><span class="line">        - containerPort: 80</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Service</span><br><span class="line">metadata:</span><br><span class="line">  name: nginx</span><br><span class="line">  namespace: test</span><br><span class="line">  labels:</span><br><span class="line">    app: nginx</span><br><span class="line">spec:</span><br><span class="line">  type: ClusterIP</span><br><span class="line">  selector:</span><br><span class="line">    app: nginx</span><br><span class="line">  ports:</span><br><span class="line">  - name: http</span><br><span class="line">    port: 80</span><br><span class="line">    targetPort: 80</span><br><span class="line"></span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
-<p>安装好 nginx 对应的 pod 跟 service 之后，我们接下来需要安装 nginx-ingress 将 nginx 暴露出来。</p>
-<h1 id="安装-ingress-nginx"><a href="#安装-ingress-nginx" class="headerlink" title="安装 ingress-nginx"></a>安装 ingress-nginx</h1><h2 id="配置文件修改"><a href="#配置文件修改" class="headerlink" title="配置文件修改"></a>配置文件修改</h2><p>下载 ingress-nginx 并解压之后，我们需要修改一下它的配置文件，即：value.yaml。主要涉及的内容如下：</p>
+<p>该参数用来指定 select 函数等待描述符就绪的最大时间，该值有三种选项：</p>
 <ul>
-<li><p>主机网络模式开启，这样就能够通过主机 ip 访问它</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hostNetwork: true</span><br></pre></td></tr></table></figure></li>
-<li><p>我们需要将它安装到主节点，所以需要看下主节点的污点</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl describe node master</span><br></pre></td></tr></table></figure>
-<p>拿到它的污点：</p>
-  <img src="/articles/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio/01.png" class="" width="600"></li>
-<li><p>修改 value.yaml 文件中关于 ingress-nginx 的容忍度</p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">tolerations:</span> </span><br><span class="line"> <span class="bullet">-</span> <span class="attr">key:</span> <span class="string">&quot;node-role.kubernetes.io/master&quot;</span>   </span><br><span class="line">   <span class="attr">operator:</span> <span class="string">&quot;Exists&quot;</span></span><br><span class="line">   <span class="attr">effect:</span> <span class="string">&quot;NoSchedule&quot;</span></span><br></pre></td></tr></table></figure></li>
-<li><p>即使配置了容忍度也不能保证百分百调度到主节点，只是说有机会调度到主节点。接下来需要配置节点选择器，让它往主节点调度</p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">nodeSelector:</span> &#123;</span><br><span class="line">    <span class="attr">kubernetes.io/hostname:</span> <span class="string">master</span></span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
-<p>必要的参数已经配好，接下来我们就可以安装了！</p>
-<h2 id="安装-controller"><a href="#安装-controller" class="headerlink" title="安装 controller"></a>安装 controller</h2><p>我这里通过 helm 进行安装，安装到 web 服务对应的命名空间下（只是为了测试我们的 web 服务是否可用）</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">helm install -n test ingress-nginx ingress-nginx-3.19.0</span><br></pre></td></tr></table></figure></li>
+<li><strong>永远等待</strong><br>当设置成 NULL 的时候，该函数会一直等待关联的任一描述符就绪。</li>
+<li><strong>等待指定时间</strong><br>当设置成具体值的时候，该函数会等待指定时间，直到超时或者描述符就绪。</li>
+<li><strong>立即返回</strong><br>当该值设置成 0 的时候，函数会立即返回，通过轮询的方式，无阻塞地获取多个文件描述符状态。</li>
 </ul>
-<h2 id="配置-ingress-nginx-访问规则"><a href="#配置-ingress-nginx-访问规则" class="headerlink" title="配置 ingress-nginx 访问规则"></a>配置 ingress-nginx 访问规则</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f -&lt;&lt;EOF </span><br><span class="line">apiVersion: networking.k8s.io/v1</span><br><span class="line">kind: Ingress</span><br><span class="line">metadata:</span><br><span class="line">  name: nginx-ingress</span><br><span class="line">  annotations:</span><br><span class="line">    kubernetes.io/ingress.class: &quot;nginx&quot;</span><br><span class="line">  namespace: test   </span><br><span class="line">spec:</span><br><span class="line">  rules:</span><br><span class="line">    - host: &quot;my.k8s.com&quot;</span><br><span class="line">      http:</span><br><span class="line">        paths:</span><br><span class="line">          - path: /</span><br><span class="line">            pathType: Prefix</span><br><span class="line">            backend:</span><br><span class="line">              service:</span><br><span class="line">                name: nginx</span><br><span class="line">                port: </span><br><span class="line">                  number: 80</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
-
-<h2 id="查看是否畅通"><a href="#查看是否畅通" class="headerlink" title="查看是否畅通"></a>查看是否畅通</h2><img src="/articles/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio/02.png" class="" width="1000">
-
-
-<p>至此，说明我们的测试项目跑起来了。只不过是通过 ingress-nginx 访问的方式，接下来，我们要通过 Istio 用同样的域名方式访问。好，现在就可以卸载 ingress-nginx 了，只不过稍后会再装回来。</p>
-<h2 id="卸载-ingress-nginx"><a href="#卸载-ingress-nginx" class="headerlink" title="卸载 ingress-nginx"></a>卸载 ingress-nginx</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">helm uninstall ingress-nginx -n test</span><br></pre></td></tr></table></figure>
-<h2 id="删除-ingress-资源"><a href="#删除-ingress-资源" class="headerlink" title="删除 ingress 资源"></a>删除 ingress 资源</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl delete ing -n test nginx-ingress  </span><br></pre></td></tr></table></figure>
-
-<h1 id="安装-Istio"><a href="#安装-Istio" class="headerlink" title="安装 Istio"></a>安装 Istio</h1><p>直接去 <a target="_blank" rel="noopener" href="https://github.com/istio/istio">【GitHub】</a> 上下载压缩包，然后解压配置 istioctl 命令的环境变量即可。</p>
-<p>安装默认的配置就可以了</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">istioctl install --set profile=default -y</span><br></pre></td></tr></table></figure>
-<p>安装成功之后，我们看下它的 pod：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">kubectl get po -n istio-system   </span><br><span class="line">---</span><br><span class="line">NAME                                    READY   STATUS    RESTARTS   AGE</span><br><span class="line">istio-ingressgateway-64589668d7-tmvld   1/1     Running   0          99s</span><br><span class="line">istiod-5d744fdd4f-969js                 1/1     Running   0          106s</span><br></pre></td></tr></table></figure>
-<p>看到了熟悉的 istio-ingressgateway-64589668d7-tmvld ，之所以熟悉是因为它也是个 ingress。那么这样就好办了。</p>
-<h2 id="安装-ingress-nginx-1"><a href="#安装-ingress-nginx-1" class="headerlink" title="安装 ingress-nginx"></a>安装 ingress-nginx</h2><p>我们再一次安装 ingress-nginx，只不过我们把它放到 istio-system 命名空间中。</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">helm install -n istio-system ingress-nginx ingress-nginx-3.19.0</span><br></pre></td></tr></table></figure>
-
-<h2 id="配置-ingress-规则"><a href="#配置-ingress-规则" class="headerlink" title="配置 ingress 规则"></a>配置 ingress 规则</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f -&lt;&lt;EOF </span><br><span class="line">apiVersion: networking.k8s.io/v1</span><br><span class="line">kind: Ingress</span><br><span class="line">metadata:</span><br><span class="line">  name: nginx-ingress</span><br><span class="line">  annotations:</span><br><span class="line">    kubernetes.io/ingress.class: &quot;nginx&quot;</span><br><span class="line">  namespace: istio-system</span><br><span class="line">spec:</span><br><span class="line">  defaultBackend:</span><br><span class="line">    service:</span><br><span class="line">      name: istio-ingressgateway</span><br><span class="line">      port:</span><br><span class="line">        number: 80    </span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
-<p><strong>📚 Tips</strong></p>
+<h4 id="nfds"><a href="#nfds" class="headerlink" title="nfds"></a>nfds</h4><p>乍一看这个参数，以为是文件描述符的数量呢，毕竟有个 n，结果惨遭打脸。查了一些资料，大体意思是当前注册的描述符最大值加 1。比如有 {1、3、5 } 三个描述符被注册，那么 nfds 的值是： 5 + 1 = 6；为什么这么设计呢？</p>
+<p><strong>分析</strong>（如果不对，大家可以帮我指出，谢谢）：</p>
 <blockquote>
-<p>如上 ingress 配置，我们只添加了一个 defaultBackend，也就是说，所有的流量全部引进来，并把该流量指给网关 istio-ingressgateway。同时还要注意，该 ingress 的命名空间同 gateway。</p>
+<ol>
+<li>描述符以位存储（下面会介绍）。</li>
+<li>位数又以 0 开始（类似数组从 0 开始）</li>
+<li>位数：7—-6—-5—-4—-3—-2—-1—-0<br> 开关：0—-0—-1—-0—-1—-0—-1—-0</li>
+<li>需要遍历的描述符的索引为 5，也就是数组第 6 个元素</li>
+</ol>
 </blockquote>
-<h2 id="配置-gateway"><a href="#配置-gateway" class="headerlink" title="配置 gateway"></a>配置 gateway</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f -&lt;&lt;EOF </span><br><span class="line">apiVersion: networking.istio.io/v1alpha3</span><br><span class="line">kind: Gateway</span><br><span class="line">metadata:</span><br><span class="line">  name: k8s-gateway</span><br><span class="line">  namespace: istio-system</span><br><span class="line">spec:</span><br><span class="line">  servers:</span><br><span class="line">  - hosts:</span><br><span class="line">    - &#x27;*&#x27;</span><br><span class="line">    port:</span><br><span class="line">      number: 80</span><br><span class="line">      name: http</span><br><span class="line">      protocol: HTTP</span><br><span class="line">   </span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
-<p><strong>📚 Tips</strong></p>
+<p><strong>总结</strong></p>
 <blockquote>
-<p>让网关接管所有流量，即：域名 * 的。</p>
+<p>其实 nfds 还是描述符的数量，只不过需要最大的描述符加 1，为什么加 1，其实是因为索引为 0 的缘故。数组遍历是需要知道数组元素的数量的。</p>
 </blockquote>
-<h2 id="配置-virtual-service"><a href="#配置-virtual-service" class="headerlink" title="配置 virtual service"></a>配置 virtual service</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f -&lt;&lt;EOF </span><br><span class="line">apiVersion: networking.istio.io/v1alpha3</span><br><span class="line">kind: VirtualService</span><br><span class="line">metadata:</span><br><span class="line">  name: nginx</span><br><span class="line">  namespace: test</span><br><span class="line">spec:</span><br><span class="line">  gateways:</span><br><span class="line">  - k8s-gateway.istio-system.svc.cluster.local</span><br><span class="line">  - mesh</span><br><span class="line">  hosts:</span><br><span class="line">  - my.k8s.com</span><br><span class="line">  http:</span><br><span class="line">  - fault:</span><br><span class="line">      abort:</span><br><span class="line">        httpStatus: 400</span><br><span class="line">        percentage:</span><br><span class="line">          value: 50</span><br><span class="line">    match:</span><br><span class="line">    - uri:</span><br><span class="line">        prefix: /nginx</span><br><span class="line">    rewrite:</span><br><span class="line">       uri: /</span><br><span class="line">    route:</span><br><span class="line">    - destination:</span><br><span class="line">        host: nginx</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
-<p><strong>📚 Tips</strong></p>
+<p>在介绍接下来的参数之前，首先需要介绍另一个很重要的概念，即 fd_set。它也是一个结构体，声明如下（取自 macOS）：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __DARWIN_FD_SETSIZE     1024</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __DARWIN_NBBY           8     <span class="comment">/* bits in a byte */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __DARWIN_NFDBITS        (sizeof(__int32_t) * __DARWIN_NBBY) <span class="comment">/* bits per mask */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __DARWIN_howmany(x, y)  ((((x) % (y)) == 0) ? ((x) / (y)) : (((x) / (y)) + 1)) <span class="comment">/* # y&#x27;s == x bits? */</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="keyword">int</span> <span class="keyword">__int32_t</span>;</span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">fd_set</span> &#123;</span></span><br><span class="line">	<span class="keyword">__int32_t</span>      </span><br><span class="line">    fds_bits [__DARWIN_howmany(__DARWIN_FD_SETSIZE, __DARWIN_NFDBITS)];</span><br><span class="line">&#125; fd_set;</span><br></pre></td></tr></table></figure>
+<p>简化之后：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">fd_set</span> &#123;</span></span><br><span class="line">  <span class="keyword">int</span> fds_bits[<span class="number">32</span>];</span><br><span class="line">&#125; fd_set;</span><br></pre></td></tr></table></figure>
+<p>经过简化之后，fd_set 可以理解为一个数组，这个数组中存放的是文件描述符（Unix 下任何设备、管道、FIFO 等都是文件形式，全部包括在内），而对于 fd_set，系统提供了一系列的宏进行操作，不急，稍后会对这些宏进行介绍。我们继续回到 fd_set 中来，查看它的声明，发现这个结构体只有一个字段 fds_bits，它是一个由 32 个 int 类型的数组。那它具体怎么存放呢？为了弄清这个问题，还是看看它的源码吧。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __DARWIN_FD_SET(n, p) do &#123;  \</span></span><br><span class="line"><span class="meta">int __fd = (n);                     \</span></span><br><span class="line"><span class="meta">   ((p) -&gt; fds_bits[(unsigned long)__fd /__DARWIN_NFDBITS] |= ((__int32_t)(((unsigned long)1)&lt;&lt;((unsigned long)__fd % __DARWIN_NFDBITS))));   \</span></span><br><span class="line"><span class="meta">&#125; while(0)</span></span><br></pre></td></tr></table></figure>
+<p>老样子，我们对它进行简化：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> FD_SET(n, fd_set)  do &#123;                     </span></span><br><span class="line">    <span class="keyword">int</span> fd = n;                                     </span><br><span class="line">    fd_set -&gt; fds_bits[fd / <span class="number">32</span>] |= <span class="number">1</span> &lt;&lt; (fd % <span class="number">32</span>);               </span><br><span class="line">  &#125; <span class="keyword">while</span>(<span class="number">0</span>)</span><br></pre></td></tr></table></figure>
+<p><strong>分析：</strong></p>
 <blockquote>
-<p>我们通过 <a target="_blank" rel="noopener" href="http://my.k8s.com/nginx">http://my.k8s.com/nginx</a> 来访问我们的 nginx web 服务。但是由于 nginx 的访问路径是 “/“  而不是 “/nginx”，所以我们需要对 url 进行重写。注意，我们这里添加了一个 50% 概率的 400 错误响应，以便验证我们的流量管控是否生效。</p>
+<ol>
+<li>n 是我们想要监听的描述符，fd_set 就是那个结构体。</li>
+<li>fd_set -&gt; fds_bits[fd/32]，这个怎么理解呢？首先 fds_bits 是一个由 32 个 int 数值组成的数组，其中每个 int 占 4 个字节。fd/32 则确定 fd 这个描述符在 32 个 int 中的第几个 int 上。</li>
+<li>fd%32 确定的是 fd 在 int 的第多少位。那么就将该位置置成 1。</li>
+</ol>
 </blockquote>
-<h2 id="配置-destination-rule"><a href="#配置-destination-rule" class="headerlink" title="配置 destination rule"></a>配置 destination rule</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f -&lt;&lt;EOF </span><br><span class="line">apiVersion: networking.istio.io/v1alpha3</span><br><span class="line">kind: DestinationRule</span><br><span class="line">metadata:</span><br><span class="line">  name: nginx</span><br><span class="line">  namespace: test</span><br><span class="line">spec:</span><br><span class="line">  host: nginx.test.svc.cluster.local</span><br><span class="line"><span class="meta">  #</span><span class="bash"> Disable the tls <span class="keyword">for</span> all ports</span></span><br><span class="line">  trafficPolicy:</span><br><span class="line">    tls:</span><br><span class="line">        mode: DISABLE</span><br><span class="line">  subsets:</span><br><span class="line">  - labels:</span><br><span class="line">      version: v1</span><br><span class="line">    name: v1</span><br><span class="line">    trafficPolicy:</span><br><span class="line">      loadBalancer:</span><br><span class="line">        simple: ROUND_ROBIN</span><br><span class="line">      # You can config the tls for each rules</span><br><span class="line">      tls:</span><br><span class="line">        mode: DISABLE</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
-<p><strong>📚 Tips</strong></p>
+<p><strong>总结</strong></p>
 <blockquote>
-<p>这里我们需要关闭 tls 功能。</p>
+<p>fd_set 这个结构体在我的系统 macOS 上可以存储最多 32 * 32 = 1024 个描述符。每一个 bit 位代表一个描述符，位的编号代表具体的描述符数值。</p>
 </blockquote>
-<h2 id="查看-istio-system-下的-service"><a href="#查看-istio-system-下的-service" class="headerlink" title="查看 istio-system 下的 service"></a>查看 istio-system 下的 service</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">kubectl get svc -n istio-system  </span><br><span class="line"> ---</span><br><span class="line">NAME                                 TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)                                                                      AGE</span><br><span class="line">ingress-nginx-controller             LoadBalancer   10.106.58.208   &lt;pending&gt;     80:31241/TCP,443:31603/TCP                                                   10m</span><br><span class="line">ingress-nginx-controller-admission   ClusterIP      10.96.93.161    &lt;none&gt;        443/TCP                                                                      10m</span><br><span class="line">istio-ingressgateway                 LoadBalancer   10.98.218.30    &lt;pending&gt;     15021:31234/TCP,80:31748/TCP,443:31819/TCP,15012:31734/TCP,15443:30830/TCP   17m</span><br><span class="line">istiod                               ClusterIP      10.101.252.30   &lt;none&gt;        15010/TCP,15012/TCP,443/TCP,15014/TCP                                        17m</span><br></pre></td></tr></table></figure>
-
-<p>我们发现 istio-ingressgateway 的 TYPE 是 LoadBalancer 类型，显然这不是我们想要的，删掉：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl delete svc -n istio-system istio-ingressgateway</span><br></pre></td></tr></table></figure>
-
-<h2 id="配置-gateway-service"><a href="#配置-gateway-service" class="headerlink" title="配置 gateway service"></a>配置 gateway service</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f -&lt;&lt;EOF </span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Service</span><br><span class="line">metadata:</span><br><span class="line">  name: istio-ingressgateway</span><br><span class="line">  namespace: istio-system</span><br><span class="line">  labels:</span><br><span class="line">    app: istio-ingressgateway</span><br><span class="line">    istio: ingressgateway</span><br><span class="line">    release: istio</span><br><span class="line">spec:</span><br><span class="line">  type: ClusterIP</span><br><span class="line">  selector:</span><br><span class="line">    app: istio-ingressgateway</span><br><span class="line">    istio: ingressgateway</span><br><span class="line">  ports:</span><br><span class="line">  - name: status-port</span><br><span class="line">    port: 15021</span><br><span class="line">  - name: http</span><br><span class="line">    port: 80</span><br><span class="line">    targetPort: 8080</span><br><span class="line">  - name: https</span><br><span class="line">    port: 443</span><br><span class="line">    targetPort: 8443</span><br><span class="line">  - name: tcp</span><br><span class="line">    port: 31400</span><br><span class="line">  - name: tls</span><br><span class="line">    port: 15443</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
-<p><strong>📚 Tips</strong></p>
-<blockquote>
-<p>这里我们重新配置了一下 gateway 的 service，修改的地方有三点：<br>一、将 IP 类型该为 ClusterIP<br>二、将 80 端口映射到 8080<br>三、关闭无用的端口映射</p>
-</blockquote>
-<h2 id="为命名空间开启自动注入"><a href="#为命名空间开启自动注入" class="headerlink" title="为命名空间开启自动注入"></a>为命名空间开启自动注入</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl label namespace test istio-injection=enabled</span><br></pre></td></tr></table></figure>
-<h2 id="删除我们先前创建的-pod"><a href="#删除我们先前创建的-pod" class="headerlink" title="删除我们先前创建的 pod"></a>删除我们先前创建的 pod</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl delete po -n test nginx-55df9cfb4b-xjvcv   </span><br></pre></td></tr></table></figure>
-
-<h2 id="查看注入是否成功"><a href="#查看注入是否成功" class="headerlink" title="查看注入是否成功"></a>查看注入是否成功</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">kubectl get po -n test -w</span><br><span class="line">---</span><br><span class="line">NAME                     READY   STATUS     RESTARTS   AGE</span><br><span class="line">nginx-55df9cfb4b-wwddn   0/2     Init:0/1   0          25s</span><br></pre></td></tr></table></figure>
-
-<h2 id="验证"><a href="#验证" class="headerlink" title="验证"></a>验证</h2><p>成功页面</p>
-<img src="/articles/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio/03.png" class="" width="1000">
-
-
-<p>400 页面</p>
-<img src="/articles/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio/04.png" class="" width="1000">
-
-
-<p>至此，完成。后续添加服务，只需要配置好对应的 deployment、service、virtual service、destination rule 即可。我们就可以通过域名的方式访问我们的服务了。</p>
-<h1 id="卸载-Istio"><a href="#卸载-Istio" class="headerlink" title="卸载 Istio"></a>卸载 Istio</h1><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">istioctl manifest generate --set profile=default | kubectl delete --ignore-not-found=true -f -</span><br></pre></td></tr></table></figure>
+<h4 id="readfds"><a href="#readfds" class="headerlink" title="readfds"></a>readfds</h4><p>你需要告诉内核，你想要关注对这个描述符的目标行为是什么。比如说：当这个描述符可以读取数据的时候，告诉调用者。那么这个参数就是用来告诉内核，我只关心读操作。那么问题来了，什么时候会出发读就绪呢？</p>
+<h4 id="触发条件"><a href="#触发条件" class="headerlink" title="触发条件"></a>触发条件</h4><ul>
+<li><strong>有数据可读</strong><br>该套接字接收缓冲区中的字节数大于等于套接字接收缓冲区低潮标记大小。对这样的套接字读操作将不阻塞并返回一个大于 0 的值（也就是返回准备好读入的数据）。我们可以使用 SO_RCVLOWAT 套接字选项设置该套接字的低潮标记。对于 TCP 和 UDP 套接字而言，其缺省值为 1。</li>
+<li><strong>关闭连接的读一半</strong><br>该连接的读这一半关闭（也就是接收了 FIN 的 TCP 连接）。对这样的套接字的读操作将不阻塞并返回 0（也就是返回 EOF）。</li>
+<li><strong>给监听套接字准备好新连接</strong><br>该套接字是一个监听套接字且已完成的连接数不为 0。对这样的套接字的 accept 通常不会阻塞。</li>
+<li><strong>待错误处理</strong><br>其上有一个套接字错误待处理，对这样的套接字的读操作将不阻塞并且返回 -1，同时把 errno 设置成确切的错误条件。这些待处理的无措也可以通过制定 SO_ERROR 套接口选项调用 getsockopt 获取并清除。<h4 id="writefds"><a href="#writefds" class="headerlink" title="writefds"></a>writefds</h4>描述符的写操作就绪。<h4 id="触发条件-1"><a href="#触发条件-1" class="headerlink" title="触发条件"></a>触发条件</h4></li>
+<li><strong>有可用于写的空间</strong><br>该套接字发送缓冲区中可用空间字节数大于等于套接字发送缓冲区低潮标记大小，并且或者（i）该套接字已连接，或者（ii）该套接字不需要连接（比如 UDP 套接字）。这意味着我们把这样的套接字设置成非阻塞，写操作将不阻塞并返回一个正值（例如由传输层接受的字节数）。我们可以使用 SO_SNDLOWAT 套接字选项来设置该套接字的低潮标记。对于 TCP 和 UDP 套接字而言，其缺省值通常为 2048。</li>
+<li><strong>关闭连接的写一半</strong><br>该连接的写这一半关闭。对这样的套接字的写操作将产生 SIGPIPE 信号。</li>
+<li><strong>该套接字早先使用非阻塞式 connect 已建立连接，并且连接已经异步建立，或者 connect 已经以失败告终。</strong></li>
+<li><strong>待处理错误</strong><br>其上有一个套接字错误待处理。对这样的套接字的写操作将不阻塞并且返回 -1，同时把 errno 设置成确切的错误条件。这些待处理的无措也可以通过制定 SO_ERROR 套接口选项调用 getsockopt 获取并清除。</li>
+</ul>
+<h4 id="errorfds"><a href="#errorfds" class="headerlink" title="errorfds"></a>errorfds</h4><p>如果一个套接字存在带外数据或者仍处于带外标记，那么它有异常条件待处理。<br><strong>接收和发送低潮标记的目的在于</strong>：允许应用进程控制在 select 返回可读或可写条件之前，有多少数据可读或者有多少空间可用于写。比如，如果我们知道除非至少存在 64 个字节的数据，否则我们的应用进程没有任何有效的工作可以做，那么我们可以把低潮标记设置为 64，以防少于 64 个字节的数据准备好读时，select 就唤醒我们。<br>任何 UDP 套接字只要其发送低潮标记小于等于发送缓冲区大小（缺省应该总是这种关系）就总是可写的，这是因为 UDP 套接字不需要连接。</p>
+<h4 id="1-1-2-返回值"><a href="#1-1-2-返回值" class="headerlink" title="1.1.2 返回值"></a>1.1.2 返回值</h4><p>该函数有三种返回值，分别是：</p>
+<ul>
+<li><strong>0</strong><br>当函数等待超时的时候返回。</li>
+<li><strong>-1</strong><br>当函数发生错误的时候返回。</li>
+<li><strong>n</strong><br>n 为已经就绪的描述符的数量。<h2 id="1-2-宏"><a href="#1-2-宏" class="headerlink" title="1.2 宏"></a>1.2 宏</h2>为了便于操作 fd_set，系统提供相应的宏。</li>
+<li><strong>FD_ZERO(&amp;fd_set)</strong><br>使用 fd_set 之前，必须对它进行初始化，该宏的作用就是将 fd_set 所有位清零。</li>
+<li><strong>FD_SET(n, &amp;fd_set)</strong><br>将 n 对应的描述符添加到描述符集 fd_set 中。换句话说，注册你感兴趣的描述符到内核。</li>
+<li><strong>FD_CLR(n, &amp;fd_set)</strong><br>将 n 对应的描述符从描述符集中移除。</li>
+<li><strong>FD_ISSET(n, &amp;fd_set)</strong><br>判断指定的描述符 n 有没有就绪。<h2 id="1-3-注意"><a href="#1-3-注意" class="headerlink" title="1.3 注意"></a>1.3 注意</h2></li>
+<li><strong>第一个参数 nfds 是最大文件描述符 +1</strong></li>
+<li><strong>函数返回后，相关的未就绪描述符需要重新设置</strong></li>
+<li><strong>函数返回后，超时时间也需要重新设置</strong></li>
+<li><strong>函数可以检测远程连接断开</strong><br>如：读描述符 socket 断开时，这个 socket 变为一直可读，但是读到的是文件结尾 EOF。以此用来判断远程连接是否断开。</li>
+<li><strong>函数阻塞时，会被信号中断</strong></li>
+<li><strong><a href="https://tubetrue01.github.io/articles/2021/08/09/c_mini/C-%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97%EF%BC%88%E5%85%AD%EF%BC%89select-%E4%B8%8E-stdio-%E6%B7%B7%E7%94%A8%E6%89%80%E5%B8%A6%E6%9D%A5%E7%9A%84%E9%97%AE%E9%A2%98/">select 与 stdio 混合使用带来的有关缓冲区问题</a></strong></li>
+</ul>
+<hr>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
+<li><a target="_blank" rel="noopener" href="https://item.jd.com/12715718.html">Unix 网络编程 卷一</a></li>
+<li><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/Select_(Unix)">维基百科 select (Unix)</a></li>
+<li><a target="_blank" rel="noopener" href="https://niyanchun.com/select-functionn.html">select（pselect）函数</a></li>
+</ul>
 
     
 
@@ -324,7 +315,11 @@
 		<ul class="article-tag-list">
 			 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">K8s</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">C</a>
+        		</li>
+      		 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color5">Unix</a>
         		</li>
       		
 		</ul>
@@ -334,7 +329,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2020/12/15/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E4%B8%80)select%E5%87%BD%E6%95%B0/">展开全文 >></a>
     </p>
     
 
@@ -368,7 +363,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/14/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/13/">13</a><a class="page-number" href="/articles/page/14/">14</a><span class="page-number current">15</span><a class="page-number" href="/articles/page/16/">16</a><a class="page-number" href="/articles/page/17/">17</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/39/">39</a><a class="extend next" rel="next" href="/articles/page/16/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/38/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/37/">37</a><a class="page-number" href="/articles/page/38/">38</a><span class="page-number current">39</span>
     </nav>
   
 

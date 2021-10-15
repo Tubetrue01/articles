@@ -6,19 +6,19 @@
   <meta name="renderer" content="webkit">
   <meta http-equiv="X-UA-Compatible" content="IE=edge" >
   <link rel="dns-prefetch" href="https://tubetrue01.github.io">
-  <title>Socket（三）SO_REUSEADDR 与 SO_REUSEPORT 有什么不同？ | Tubetrue01</title><meta name="robots" content="noindex">
+  <title>Socket（三）SO_REUSEADDR 与 SO_REUSEPORT 有什么不同？ | Tubetrue01</title>
   <meta name="generator" content="hexo-theme-yilia-plus">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   
-  <meta name="description" content="引言 在我们详细讨论这两个参数之前，我觉得有必要谈一谈不同的操作系统是如何处理它们的。首先需要知道的是，socket 实现的鼻祖是 BSD。那时很多系统都复制了 BSD 的 socket 实现，并在之后逐渐进化。当然，BSD 也在发展，只不过那时复制 BSD 实现的系统，也将对应的 socket 缺陷复制了下来。所以理解 BSD 实现也是理解其他系统实现的关键。  基础在我们讲解这两参数之前，我们">
+  <meta name="description" content="引言 SO_REUSEADDR 与 SO_REUSEPORT 这两个 socket 选项有时总是让人分不清，在查看相关资料时正好看到一篇不错的文章，所以干脆直接搬过来吧。  基础 socket 的鼻祖是 BSD，因为那时很多系统都直接复制了 BSD 的实现，并在之后逐渐发展，只不过复制的同时也将对应的 socket 缺陷复制了下来。所以理解 BSD 实现也是理解其他系统实现的关键。  在我们讲解这">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Socket（三）SO_REUSEADDR 与 SO_REUSEPORT 有什么不同？">
-<meta property="og:url" content="https://tubetrue01.github.io/2021/10/01/c_unix/Socket(%E4%B8%89)SO_REUSEADDR%E4%B8%8ESO_REUSEPORT%E6%9C%89%E4%BB%80%E4%B9%88%E4%B8%8D%E5%90%8C/">
+<meta property="og:url" content="https://tubetrue01.github.io/2021/10/15/c_unix/Socket(%E4%B8%89)SO_REUSEADDR%E4%B8%8ESO_REUSEPORT%E6%9C%89%E4%BB%80%E4%B9%88%E4%B8%8D%E5%90%8C/">
 <meta property="og:site_name" content="Tubetrue01">
-<meta property="og:description" content="引言 在我们详细讨论这两个参数之前，我觉得有必要谈一谈不同的操作系统是如何处理它们的。首先需要知道的是，socket 实现的鼻祖是 BSD。那时很多系统都复制了 BSD 的 socket 实现，并在之后逐渐进化。当然，BSD 也在发展，只不过那时复制 BSD 实现的系统，也将对应的 socket 缺陷复制了下来。所以理解 BSD 实现也是理解其他系统实现的关键。  基础在我们讲解这两参数之前，我们">
+<meta property="og:description" content="引言 SO_REUSEADDR 与 SO_REUSEPORT 这两个 socket 选项有时总是让人分不清，在查看相关资料时正好看到一篇不错的文章，所以干脆直接搬过来吧。  基础 socket 的鼻祖是 BSD，因为那时很多系统都直接复制了 BSD 的实现，并在之后逐渐发展，只不过复制的同时也将对应的 socket 缺陷复制了下来。所以理解 BSD 实现也是理解其他系统实现的关键。  在我们讲解这">
 <meta property="og:locale" content="en_US">
-<meta property="article:published_time" content="2021-09-30T16:00:00.000Z">
-<meta property="article:modified_time" content="2021-10-13T10:38:50.729Z">
+<meta property="article:published_time" content="2021-10-15T04:58:00.000Z">
+<meta property="article:modified_time" content="2021-10-15T05:19:23.725Z">
 <meta property="article:author" content="Tubetrue01">
 <meta property="article:tag" content="C">
 <meta property="article:tag" content="Unix">
@@ -204,8 +204,8 @@
               <i class="icon-smile icon"></i> 阅读数：<span id="busuanzi_value_page_pv"></span>次
         </span>
 
-<a href="/articles/2021/10/01/c_unix/Socket(%E4%B8%89)SO_REUSEADDR%E4%B8%8ESO_REUSEPORT%E6%9C%89%E4%BB%80%E4%B9%88%E4%B8%8D%E5%90%8C/" class="archive-article-date">
-        <time datetime="2021-09-30T16:00:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-10-01</time>
+<a href="/articles/2021/10/15/c_unix/Socket(%E4%B8%89)SO_REUSEADDR%E4%B8%8ESO_REUSEPORT%E6%9C%89%E4%BB%80%E4%B9%88%E4%B8%8D%E5%90%8C/" class="archive-article-date">
+        <time datetime="2021-10-15T04:58:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-10-15</time>
 </a>
 
   
@@ -218,7 +218,7 @@
       <!-- 百度字体平台:http://fontstore.baidu.com/static/editor/index.html -->
       <i class="icon-statistics"></i>
       <span class="post-meta-item-text"> 字数统计:</span>
-      <span class="post-count">1.8k字</span>
+      <span class="post-count">3.6k字</span>
     </span>
   </span>
 
@@ -227,7 +227,7 @@
     <span class="post-meta-item-icon">
       <i class="icon-book icon"></i>
       <span class="post-meta-item-text"> 阅读时长≈</span>
-      <span class="post-count">6分</span>
+      <span class="post-count">13分</span>
     </span>
   </span>
 </div>
@@ -239,9 +239,12 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>在我们详细讨论这两个参数之前，我觉得有必要谈一谈不同的操作系统是如何处理它们的。首先需要知道的是，socket 实现的鼻祖是 BSD。那时很多系统都复制了 BSD 的 socket 实现，并在之后逐渐进化。当然，BSD 也在发展，只不过那时复制 BSD 实现的系统，也将对应的 socket 缺陷复制了下来。所以理解 BSD 实现也是理解其他系统实现的关键。</p>
+<p>SO_REUSEADDR 与 SO_REUSEPORT 这两个 socket 选项有时总是让人分不清，在查看相关资料时正好看到一篇不错的文章，所以干脆直接搬过来吧。</p>
 </blockquote>
-<h1 id="基础"><a href="#基础" class="headerlink" title="基础"></a>基础</h1><p>在我们讲解这两参数之前，我们需要补充一点基础知识：连接五元组：<code>&#123;&lt;protocol&gt;, &lt;src addr&gt;, &lt;src port&gt;, &lt;dest addr&gt;, &lt;dest port&gt;&#125;</code> 该五个值的组合唯一标识一个连接。也就是说不会存在两个连接，它们五个属性完全一样。</p>
+<h1 id="基础"><a href="#基础" class="headerlink" title="基础"></a>基础</h1><blockquote>
+<p>socket 的鼻祖是 BSD，因为那时很多系统都直接复制了 BSD 的实现，并在之后逐渐发展，只不过复制的同时也将对应的 socket 缺陷复制了下来。所以理解 BSD 实现也是理解其他系统实现的关键。</p>
+</blockquote>
+<p>在我们讲解这两参数之前，我们需要补充一点基础知识：连接五元组：<code>&#123;&lt;protocol&gt;, &lt;src addr&gt;, &lt;src port&gt;, &lt;dest addr&gt;, &lt;dest port&gt;&#125;</code> 该五个值的组合唯一标识一个连接。也就是说不会存在两个连接，它们五个属性完全一样。</p>
 <p>socket 所使用的协议是通过 <code>socket()</code> 函数创建 socket 时设置的，源地址、源端口是在调用 <code>bind()</code> 函数时设置，目的地址、目的端口则是 <code>connect()</code> 时设置。由于 UDP 是无连接的协议，所以你可以在不创建连接的情况下使用它（当然它也同样支持连接模式）。在无连接模式下，UDP socket 在首次发送数据时，会被系统自动绑定，否则它是无法接收任何数据的。同样的道理，未绑定的 TCP 在连接之前，会被系统自动绑定。</p>
 <p>可以使用 <code>bind()</code> 函数显示绑定地址及端口。当端口指定为 0 时，意味着让系统随机选择一个可用的端口进行绑定。类似，我们也可以指定通配符地址，如：IPv4 的 <code>0.0.0.0</code> 或者 IPv6 的 <code>::</code>。与端口不同的是，它会将本地所有接口都作为源地址。根据目的地址以及路由表信息，系统会选择一个适当的接口地址作为该 socket 的源地址。</p>
 <p>默认情况下，相同地址以及端口的两个 socket 是不能绑定成功的。只要源端口不同，那么它就是源地址无关的了。如果两个连接的地址不同，即使它们的端口相同，同样可以绑定成功；但是记住，如果一个端口比如：21，绑定到了 <code>0.0.0.0</code>，那么它也就意味着绑定到了本地所有接口的 21 端口上。其他的服务想绑定 21 端口，那是不可能的了。</p>
@@ -310,11 +313,36 @@
 <p>无论是否还有数据在传输，内核在关闭 socket 时所等待的时间被称为 Linger Time。Linger Time 在大多系统上都是全局配置的，并且它的默认值很长（大多系统默认为 2 分钟）。当然，你可以通过 <code>SO_LINGER</code> 选项修改对应的 socket 选项，以调整这个时间。关闭 Linger Time 并不推荐，因为 TCP 对于 socket 的关闭是一个复杂的过程，涉及到了包的发送、回复、丢失包的重传，而以上的过程受 Linger Time 的限制。如果禁止 Linger Time，socket 并不只是丢失数据，它也会以强制关闭取代常规的 socket 关闭方式。另外，即使你使用 <code>SO_LINGER</code> 选项禁用 Linger Time，当你的程序没有显示的关闭 socket 而退出时，BSD（或许包括其他系统）仍然会保留这个 Linger Time 从而忽略你的配置，比如你的程序调用 <code>exit()</code> 或者收到相关信号而退出。所以你无法确保所有的场景都会按照你的预期进行。</p>
 <p>那么系统是如何处理处于 <code>TIME_OUT</code> 状态下的套接字呢？如果 <code>SO_REUSEADDR</code> 选项没有设置，那么该套接字对应的源地址以及源端口就仍然处于绑定状态，任何其他的新 socket 想要绑定到相同的地址、端口的都会失败，除非先前的 socket 已经完全关闭，这可能会花费 Linger Time 的时间。所以不要期待你可以在关闭 socket 时，迅速重新绑定。但是，如果为你将要绑定的 socket 设置 <code>SO_REUSEADDR</code> 选项，那么对于相同地址、端口处于 <code>TIME_OUT</code> 的 socket 就会被忽略，你的 socket 就能立即绑定成功了。</p>
 <p>最后还有一点需要我们知道，就是对于 <code>SO_REUSEADDR</code> 选项只有在调用 <code>bind()</code> 函数时才是必须的，因为只有此时才会检查是否绑定成功，其他场景都不需要。</p>
+<h2 id="SO-REUSEPORT"><a href="#SO-REUSEPORT" class="headerlink" title="SO_REUSEPORT"></a>SO_REUSEPORT</h2><p><code>SO_REUSEPORT</code> 才是大家所期待的 <code>SO_REUSEADDR</code>，因为 <code>SO_REUSEPORT</code> 允许任意数量的套接字绑定到相同的地址、接口上。但是如果第一个套接字绑定时没有指定该选项，那么之后的绑定到相同信息的套接字都不会成功，无论它是否指定 <code>SO_REUSEPORT</code>，除非先前的套接字被释放。与 <code>SO_REUSEADDR</code> 不同的是，程序不仅检查当前的套接字是否有 <code>SO_REUSEPORT</code> 选项，也会检查即将绑定具有相同地址、端口的套接字的 <code>SO_REUSEPORT</code> 选项是否被设置。</p>
+<p>另外，如果一个未设置 <code>SO_REUSEPORT</code> 选项的套接字绑定到一个具有  <code>SO_REUSEPORT</code> 同时处于 <code>TIME_OUT</code> 状态的套接字时也会失败。所以为了绑定成功，两者需要在绑定时同时指定 <code>SO_REUSEPORT</code> 选项。当然，在绑定时同时指定 <code>SO_REUSEPORT</code> 以及 <code>SO_REUSEADDR</code> 也是可以的。</p>
+<p>由于大部分系统是在该选项加入到 BSD 之前 “forked” 的，所以你很少在其他系统中找到该选项的实现。而在这之前想要把完全相同信息的套接字绑定成功是不可能的。</p>
+<h2 id="Connect-返回-EADDRINUSE-错误"><a href="#Connect-返回-EADDRINUSE-错误" class="headerlink" title="Connect() 返回 EADDRINUSE 错误?"></a>Connect() 返回 EADDRINUSE 错误?</h2><p>很多人在 <code>bind()</code> 时遇到 <code>EADDRINUSE</code> 错误，但是当你使用地址重用，调用 <code>connect()</code> 时也可能会遇到该错误。这就让人费解了，远程地址毕竟是添加到 socket 中用来连接的，怎么会被使用呢？</p>
+<p>还记得文章开头时介绍的，一个连接由五元组唯一标识。当两个完全一样的 socket 出现时，系统是无法区分两者的。说到这里，我想你已经明白了。当启用地址重用时，你可以绑定相同地址、端口、协议的 socket。此时五元组中的三个元素已经相同了，而你在连接到相同的远程地址、端口。那么两个 socket 的五元组就完全相同了，这显然是不允许的（至少对于 TCP 来说是这样，而 UDP 并不是一个真实的连接）。</p>
+<p>所以，如果你绑定了两个相同源地址、端口的 socket ，当你其中一个 socket 调用 <code>connect()</code> 发生 <code>EADDRINUSE</code> 错误时，这就意味着已有一个相同的 socket 连接已经建立了。</p>
+<h2 id="多播地址"><a href="#多播地址" class="headerlink" title="多播地址"></a>多播地址</h2><p><code>SO_REUSEADDR</code> 对于多播场景下，行为有所不同，因为它允许多个套接字绑定到相同的多播地址以及端口。换句话说，它的行为就跟 <code>SO_REUSEPORT</code> 对于单播地址一样。事实上，程序对于 <code>SO_REUSEADDR</code> 以及 <code>SO_REUSEPORT</code> 在多播场景下都是一样的。</p>
+<h1 id="FreeBSD-OpenBSD-NetBSD"><a href="#FreeBSD-OpenBSD-NetBSD" class="headerlink" title="FreeBSD/OpenBSD/NetBSD"></a>FreeBSD/OpenBSD/NetBSD</h1><p>以上系统都来源于较晚的 BSD 分支，也就造成它们与 BSD 具有相同的选项，相同的行为。</p>
+<h1 id="macOS-MacOS-X-iOS-watchOS-tvOS"><a href="#macOS-MacOS-X-iOS-watchOS-tvOS" class="headerlink" title="macOS (MacOS X) / iOS / watchOS / tvOS"></a>macOS (MacOS X) / iOS / watchOS / tvOS</h1><p>以上系统表现行为与 BSD 一致，不在做过多介绍。</p>
+<h1 id="Linux"><a href="#Linux" class="headerlink" title="Linux"></a>Linux</h1><h2 id="Linux-lt-3-9"><a href="#Linux-lt-3-9" class="headerlink" title="Linux &lt; 3.9"></a>Linux &lt; 3.9</h2><p>在 3.9 之前，Linux 只有 <code>SO_REUSEADDR</code> 选项，其行为与 BSD 大致相同，除了以下重要的两点：</p>
+<ul>
+<li>只要一个端口被一个监听的 TCP 套接字绑定上，预绑定到该端口的其他套接字中的 <code>SO_REUSEADDR</code> 选项就会被忽略，也就是绑定失败。只有 BSD 中，在未指定 <code>SO_REUSEADDR</code> 时，绑定第二个套接字到同一个端口才成为可能。比如说：你绑定了一个通配符地址，你就不能再绑定相同端口的套接字，反之也是一样。但是，如果在 BSD 平台，当你指定了 <code>SO_REUSEADDR</code>，就能绑定成功。所以，在 3.9 下你只能绑定非通配符的不同地址到相同端口上。这一点，Linux 比 BSD 要更严格。</li>
+<li>第二点不同体现在客户端 socket 上，该参数的行为跟 BSD 中的 <code>SO_REUSEPORT</code> 完全一样，前提是，在绑定之前，它们都设置了 <code>SO_REUSEADDR</code>。之所以这样是因为，在 3.9 之前并没有 <code>SO_REUSEPORT</code>，而将不同协议的多个套接字绑定到完全一样的 UDP 套接字地址的功能又很重要，所以修改了 <code>SO_REUSEADDR</code> 的行为以弥补这个空白。这点上，Linux 又比 BSD 宽松。</li>
+</ul>
+<h2 id="Linux-gt-3-9"><a href="#Linux-gt-3-9" class="headerlink" title="Linux &gt;= 3.9"></a>Linux &gt;= 3.9</h2><p>3.9 之后的版本增加了 <code>SO_REUSEPORT</code> 选项，与 BSD 中的完全一致。只要套接字在绑定之前指定了该参数，那么地址与端口完全一样的套接字就能绑定成功。但是仍有两点与其他系统不同：</p>
+<ul>
+<li>为了防止端口挟持，这里有一个特殊的限制：只有相同用户 ID 下的进程才能共享彼此相同的地址、端口的组合。一个用户想“窃取”另外一个用户的端口是不可能的。这其实也是对缺少 <code>SO_EXCLBIND</code> 或 <code>SO_EXCLUSIVEADDRUSE</code> 选项的一种补偿。</li>
+<li>另外，该内核也为具有 <code>SO_REUSEPORT</code> 的套接字实现了一些其他系统不曾有的功能：对于 UDP 套接字，它可以尝试均发数据报；对于 TCP 的监听套接字，它可以将传入的请求平均分配给那些具有相同地址、端口的套接字。这样一来，程序就可以在多个子进程中利用 <code>SO_REUSEPORT</code> 开启多个相同的套接字以实现“免费“的负载均衡。</li>
+</ul>
+<h1 id="Android"><a href="#Android" class="headerlink" title="Android"></a>Android</h1><p>虽然整个 Android 系统与 Linux 发行版本有稍许不同，但是其核心也只是 Linux 的轻量修改版本，所以它的行为应该跟 Linux 一致。</p>
+<h1 id="Windows"><a href="#Windows" class="headerlink" title="Windows"></a>Windows</h1><p>Windows 只有 <code>SO_REUSEADDR</code> 而不存在 <code>SO_REUSEPORT</code>。具有 <code>SO_REUSEADDR</code> 的套接字与 BSD 中具有 <code>SO_REUSEPORT</code> 以及 <code>SO_REUSEPORT</code> 两者的行为一致，只不过有一点例外：</p>
+<p>Windows 2003 之前，当套接字设置了 <code>SO_REUSEADDR</code> 之后，它总是可以绑定到与已绑定套接字完全一样的地址、端口上，即使那个套接字并没有设置 <code>SO_REUSEADDR</code>。这也就造成一个应用可以“窃取”另一个应用已连接的端口。显然易见，这里存在一个重大的安全隐患。</p>
+<p>该行为的第一次更新是在 Windows 2003 中，并被微软成为”增强的套接字安全“，通过 <a target="_blank" rel="noopener" href="https://docs.microsoft.com/en-us/windows/win32/winsock/using-so-reuseaddr-and-so-exclusiveaddruse?redirectedfrom=MSDN">just visit this page</a> 获取详细信息。文中包括三张表：第一张展示了经典行为（作为兼容模式使用）；第二张展示了在 Windows 2003 以及之后的版本中，同一用户调用 <code>bind()</code> 的行为；第三张表展示不同用户调用 <code>bind()</code> 的行为。</p>
+<h1 id="Solaris"><a href="#Solaris" class="headerlink" title="Solaris"></a>Solaris</h1><p>Solaris 只有 <code>SO_REUSEADDR</code> 而没有 <code>SO_REUSEPORT</code>，也就是说无法做到将两个完全相同地址、端口的套接字绑定到一起。至于 <code>SO_REUSEADDR</code> 行为则跟 BSD 中的基本一致，毕竟 Solaris 是 SunOS 的继任者，而 SunOS 又起源于 BSD。</p>
+<p>与 Windows 类似的是，Solaris 有一个 <code>SO_EXCLBIND</code> 选项用于 socket 独占绑定。如果在 socket 绑定之前设置了该选项，那么即使另外一个 socket 设置了 <code>SO_REUSEADDR</code>，当发生地址冲突的时候，该 socket 选项也不起任何作用。例如：socketA 绑定了通配符地址，socketB 开启了 <code>SO_REUSEADDR</code> 就能成功绑定到与 socketA 相同端口但是非通配地址上。但是如果 socketA 开启了 <code>SO_EXCLBIN</code> 之后，socketB 就别再想绑定成功了。</p>
 <hr>
 <h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
 <li><a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/14388706/how-do-so-reuseaddr-and-so-reuseport-differ">【How do SO_REUSEADDR and SO_REUSEPORT differ?】</a></li>
 </ul>
-<!-- flag of hidden posts -->
+
     
 
     
@@ -328,7 +356,7 @@
         </li>
         <li>
           <strong>本文链接：</strong>
-          <a href="https://tubetrue01.github.io/articles/2021/10/01/c_unix/Socket(三)SO_REUSEADDR与SO_REUSEPORT有什么不同/" title="Socket（三）SO_REUSEADDR 与 SO_REUSEPORT 有什么不同？" target="_blank">https://tubetrue01.github.io/articles/2021/10/01/c_unix/Socket(三)SO_REUSEADDR与SO_REUSEPORT有什么不同/</a>
+          <a href="https://tubetrue01.github.io/articles/2021/10/15/c_unix/Socket(三)SO_REUSEADDR与SO_REUSEPORT有什么不同/" title="Socket（三）SO_REUSEADDR 与 SO_REUSEPORT 有什么不同？" target="_blank">https://tubetrue01.github.io/articles/2021/10/15/c_unix/Socket(三)SO_REUSEADDR与SO_REUSEPORT有什么不同/</a>
         </li>
         
         <li>
@@ -410,7 +438,7 @@
     <a class="close js-modal-close" href="javascript:;"><i class="icon icon-close"></i></a>
     <p>扫一扫，分享到微信</p>
     <div class="wx-qrcode">
-     <!-- <img src="//pan.baidu.com/share/qrcode?url=https://tubetrue01.github.io/2021/10/01/c_unix/Socket(%E4%B8%89)SO_REUSEADDR%E4%B8%8ESO_REUSEPORT%E6%9C%89%E4%BB%80%E4%B9%88%E4%B8%8D%E5%90%8C/" alt="微信分享二维码"> -->
+     <!-- <img src="//pan.baidu.com/share/qrcode?url=https://tubetrue01.github.io/2021/10/15/c_unix/Socket(%E4%B8%89)SO_REUSEADDR%E4%B8%8ESO_REUSEPORT%E6%9C%89%E4%BB%80%E4%B9%88%E4%B8%8D%E5%90%8C/" alt="微信分享二维码"> -->
     </div>
 </div>
 
@@ -422,6 +450,16 @@
   </div>
 </article>
 
+
+<nav id="article-nav">
+  
+  
+    <a href="/articles/2021/10/13/java_spring/SpringBoot%E7%B3%BB%E5%88%97(%E4%B8%80)%E4%BB%8E%E5%90%AF%E5%8A%A8%E5%BC%80%E5%A7%8B/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">SpringBoot 系列（一）从启动开始</div>
+      <i class="icon-circle-right"></i>
+    </a>
+  
+</nav>
 
 
 <aside class="wrap-side-operation">
@@ -444,7 +482,7 @@
                 </span>
                 <span class="tooltip-content">
                     <div class="toc-article">
-                    <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%BC%95%E8%A8%80"><span class="toc-number">1.</span> <span class="toc-text">引言</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%9F%BA%E7%A1%80"><span class="toc-number">2.</span> <span class="toc-text">基础</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#BSD"><span class="toc-number">3.</span> <span class="toc-text">BSD</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#SO-REUSEADDR"><span class="toc-number">3.1.</span> <span class="toc-text">SO_REUSEADDR</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">4.</span> <span class="toc-text">参考</span></a></li></ol>
+                    <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%BC%95%E8%A8%80"><span class="toc-number">1.</span> <span class="toc-text">引言</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%9F%BA%E7%A1%80"><span class="toc-number">2.</span> <span class="toc-text">基础</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#BSD"><span class="toc-number">3.</span> <span class="toc-text">BSD</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#SO-REUSEADDR"><span class="toc-number">3.1.</span> <span class="toc-text">SO_REUSEADDR</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#SO-REUSEPORT"><span class="toc-number">3.2.</span> <span class="toc-text">SO_REUSEPORT</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Connect-%E8%BF%94%E5%9B%9E-EADDRINUSE-%E9%94%99%E8%AF%AF"><span class="toc-number">3.3.</span> <span class="toc-text">Connect() 返回 EADDRINUSE 错误?</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A4%9A%E6%92%AD%E5%9C%B0%E5%9D%80"><span class="toc-number">3.4.</span> <span class="toc-text">多播地址</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#FreeBSD-OpenBSD-NetBSD"><span class="toc-number">4.</span> <span class="toc-text">FreeBSD&#x2F;OpenBSD&#x2F;NetBSD</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#macOS-MacOS-X-iOS-watchOS-tvOS"><span class="toc-number">5.</span> <span class="toc-text">macOS (MacOS X) &#x2F; iOS &#x2F; watchOS &#x2F; tvOS</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Linux"><span class="toc-number">6.</span> <span class="toc-text">Linux</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Linux-lt-3-9"><span class="toc-number">6.1.</span> <span class="toc-text">Linux &lt; 3.9</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Linux-gt-3-9"><span class="toc-number">6.2.</span> <span class="toc-text">Linux &gt;&#x3D; 3.9</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Android"><span class="toc-number">7.</span> <span class="toc-text">Android</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Windows"><span class="toc-number">8.</span> <span class="toc-text">Windows</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Solaris"><span class="toc-number">9.</span> <span class="toc-text">Solaris</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">10.</span> <span class="toc-text">参考</span></a></li></ol>
                     </div>
                 </span>
             </div>
@@ -479,7 +517,7 @@ if(true){
   	repo: 'articles',
   	owner: 'Tubetrue01',
   	admin: ['Tubetrue01'],
-  	id: 'Fri Oct 01 2021 00:00:00 GMT+0800',
+  	id: 'Fri Oct 15 2021 12:58:00 GMT+0800',
   	distractionFreeMode: 'true'
 })
 gitalk.render('gitalk-container') 
