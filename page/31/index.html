@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-cloud_native/K8s集群搭建系列(二)Docker安装" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-cloud_native/K8s集群搭建系列(三)K8s启动" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%BA%8C)Docker%E5%AE%89%E8%A3%85/" target="_blank">K8s 集群搭建系列（二） Docker 安装</a>
+	  <a class="article-title" href="/articles/2020/12/22/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%89)K8s%E5%90%AF%E5%8A%A8/" target="_blank">K8s 集群搭建系列（三）K8s 启动</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%BA%8C)Docker%E5%AE%89%E8%A3%85/" class="archive-article-date">
-        <time datetime="2020-12-21T05:44:47.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-12-21</time>
+<a href="/articles/2020/12/22/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%89)K8s%E5%90%AF%E5%8A%A8/" class="archive-article-date">
+        <time datetime="2020-12-22T02:06:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-12-22</time>
 </a>
 
   
@@ -216,17 +216,36 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>承接上一章<a href="https://tubetrue01.github.io/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87">【K8s 集群搭建系列（一） Centos 7 准备】</a>，我们进行下一步，安装 Docker。好了，让我们开始吧！</p>
+<p>安装 <a href="https://tubetrue01.github.io/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%BA%8C)Docker%E5%AE%89%E8%A3%85/">【Docker】</a> 之后，我们马上就开始进入 K8s 的搭建工作，这里采用的搭建方式是 kubeadm，省略的无所谓的步骤，让搭建尽可能简单。好了，让我们开始吧。</p>
 </blockquote>
-<h1 id="Docker-安装"><a href="#Docker-安装" class="headerlink" title="Docker 安装"></a>Docker 安装</h1><ul>
-<li><strong>必要工具安装</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# yum install -y yum-utils</span><br></pre></td></tr></table></figure></li>
-<li><strong>添加 Docker 源</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo</span><br></pre></td></tr></table></figure></li>
-<li><strong>安装 Docker</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# yum makecache fast</span><br><span class="line">[root@localhost ~]# yum install -y docker-ce-19.03.12</span><br></pre></td></tr></table></figure></li>
-<li><strong>开机自启</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# systemctl enable docker </span><br><span class="line">[root@localhost ~]# systemctl start docker</span><br></pre></td></tr></table></figure></li>
-<li><strong>配置镜像源</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# vim /etc/docker/daemon.json</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 添加以下内容</span></span><br><span class="line">&#123;</span><br><span class="line">  &quot;registry-mirrors&quot;: [</span><br><span class="line">    &quot;https://registry.docker-cn.com&quot;</span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 重启 Docker</span></span><br><span class="line">[root@localhost ~]# systemctl daemon-reload</span><br><span class="line">[root@localhost ~]# systemctl restart docker</span><br></pre></td></tr></table></figure></li>
+<h1 id="K8s-搭建"><a href="#K8s-搭建" class="headerlink" title="K8s 搭建"></a>K8s 搭建</h1><ul>
+<li><strong>关闭 selinux 以及防火墙</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# setenforce 0</span><br><span class="line">[root@localhost ~]# sed -i &quot;s/^SELINUX=enforcing/SELINUX=disabled/g&quot; /etc/sysconfig/selinux </span><br><span class="line">[root@localhost ~]# systemctl disable firewalld &amp;&amp; systemctl stop firewalld</span><br></pre></td></tr></table></figure></li>
+<li><strong>K8s 安装</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 添加源</span></span><br><span class="line">cat &lt;&lt;EOF &gt; kubernetes.repo</span><br><span class="line">[kubernetes]</span><br><span class="line">name=Kubernetes</span><br><span class="line">baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64</span><br><span class="line">enabled=1</span><br><span class="line">gpgcheck=1</span><br><span class="line">repo_gpgcheck=1</span><br><span class="line">gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg</span><br><span class="line">EOF</span><br><span class="line"><span class="meta">#</span><span class="bash"> 注意 kubelet、kubectl、kubeadm 的版本</span></span><br><span class="line">[root@localhost ~]# mv kubernetes.repo /etc/yum.repos.d/</span><br><span class="line">[root@localhost ~]# yum install -y kubelet-1.19.0 kubectl-1.19.0 kubeadm-1.19.0</span><br></pre></td></tr></table></figure></li>
+<li><strong>开启自启 kubelet</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~] systemctl enable kubelet</span><br></pre></td></tr></table></figure></li>
+<li><strong>Docker 驱动修改</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# vim /etc/docker/daemon.json</span><br><span class="line"><span class="meta">#</span><span class="bash"> 添加以下内容到文件</span></span><br><span class="line">&quot;exec-opts&quot;: [&quot;native.cgroupdriver=systemd&quot;]</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 最终你看到的文件内容为</span></span><br><span class="line">&#123;</span><br><span class="line">  &quot;registry-mirrors&quot;: [</span><br><span class="line">    &quot;https://registry.docker-cn.com&quot;</span><br><span class="line">  ],</span><br><span class="line">  &quot;exec-opts&quot;: [&quot;native.cgroupdriver=systemd&quot;]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+<li><strong>关闭 swap</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# swapoff -a &amp;&amp; sed -i &#x27;/ swap / s/^/#/&#x27; /etc/fstab</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p><strong>到目前为止，通用的配置我们已经准备好了，剩下的步骤要分为两部分进行，一个是控制平面的搭建，一个是从工作节点的搭建。由于我们目前只有一台虚拟机，如果要从头开始搭建工作节点，那么就太麻烦了。我们关机利用 VMware 克隆出（完整克隆）另一台机器来。还有一点需要注意的是，因为是完整克隆，所以 ip 地址也一并克隆了下来，所以我们一定要记得修改工作节点的 ip 地址。</strong></p>
+<h1 id="控制平面"><a href="#控制平面" class="headerlink" title="控制平面"></a>控制平面</h1><ul>
+<li><strong>命名主机名</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# hostnamectl --static set-hostname master</span><br></pre></td></tr></table></figure></li>
+<li><strong>iptables 配置</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# echo &quot;1&quot; &gt; /proc/sys/net/bridge/bridge-nf-call-iptables</span><br></pre></td></tr></table></figure></li>
+<li><strong>控制平面初始化</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~] kubeadm init \</span><br><span class="line">--image-repository registry.cn-hangzhou.aliyuncs.com/google_containers \</span><br><span class="line">--apiserver-advertise-address 0.0.0.0 \</span><br><span class="line">--apiserver-bind-port 6443 \</span><br><span class="line">--cert-dir /etc/kubernetes/pki \</span><br><span class="line">--pod-network-cidr 10.244.0.0/16 \</span><br><span class="line">--kubernetes-version 1.19.0 \</span><br><span class="line">--service-dns-domain cluster.local \</span><br><span class="line">--upload-certs \</span><br><span class="line">--v=8 </span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 记录最后一行的 token 信息</span></span><br><span class="line">kubeadm join 192.168.133.128:6443 --token 2kql8o.jfotaacxgf2k5u1s \</span><br><span class="line">    --discovery-token-ca-cert-hash sha256:31770c7d57bbf9089d82a79e84e97bd5c1999b2a98c3543d8dc235025a36c9fa </span><br></pre></td></tr></table></figure></li>
+<li><strong>开启 kubelet</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~] systemctl start kubelet</span><br><span class="line">[root@master ~] systemctl status kubelet</span><br></pre></td></tr></table></figure></li>
+<li><strong>导出 kubectl 配置</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~] export KUBECONFIG=/etc/kubernetes/admin.conf</span><br></pre></td></tr></table></figure></li>
+<li><strong>安装网络组件</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~] kubectl apply -f &quot;https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d &#x27;\n&#x27;)&quot;</span><br></pre></td></tr></table></figure></li>
+<li><strong>监控节点信息</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~]# kubectl get node -w</span><br><span class="line">NAME     STATUS   ROLES    AGE     VERSION</span><br><span class="line">master   Ready    master   4m44s   v1.19.0</span><br></pre></td></tr></table></figure>
+至此，控制平面完成，我们开始准备工作节点。<h1 id="工作节点"><a href="#工作节点" class="headerlink" title="工作节点"></a>工作节点</h1></li>
+<li><strong>命名主机名</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# hostnamectl --static set-hostname node-1</span><br></pre></td></tr></table></figure></li>
+<li><strong>iptables 配置</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# echo &quot;1&quot; &gt; /proc/sys/net/bridge/bridge-nf-call-iptables</span><br></pre></td></tr></table></figure></li>
+<li><strong>加入集群</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 执行以下命令</span></span><br><span class="line">[root@localhost ~] kubeadm join 192.168.133.128:6443 --token 2kql8o.jfotaacxgf2k5u1s \</span><br><span class="line">    --discovery-token-ca-cert-hash sha256:31770c7d57bbf9089d82a79e84e97bd5c1999b2a98c3543d8dc235025a36c9fa </span><br></pre></td></tr></table></figure></li>
 </ul>
 <hr>
-<h1 id="尾声"><a href="#尾声" class="headerlink" title="尾声"></a>尾声</h1><p>Docker 已经安装完毕了，我们可以迅速进入下一章<a href="https://tubetrue01.github.io/articles/2020/12/22/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%89)K8s%E5%90%AF%E5%8A%A8">【K8s 搭建】</a>。</p>
+<p><strong>集群到此已经搭建完成了，我们可以在控制平面查看节点信息</strong></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~]# kubectl get node -w</span><br><span class="line">NAME     STATUS   ROLES    AGE       VERSION</span><br><span class="line">master   Ready    master   10m       v1.19.0</span><br><span class="line">node-1   NotReady   &lt;none&gt;   0s      v1.19.0</span><br><span class="line">master   Ready    master   12m       v1.19.0</span><br><span class="line">node-1   Ready    &lt;none&gt;   103s      v1.19.0</span><br></pre></td></tr></table></figure>
+<p>细心的话，你会发现 node-1 对应的 ROLES 为 <none>，我们可以为它分配个角色</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~]# kubectl label node node-1 node-role.kubernetes.io/node=</span><br><span class="line">node/node-1 labeled</span><br><span class="line"><span class="meta">#</span><span class="bash"> 在观察，就正常了</span></span><br><span class="line">[root@master ~]# kubectl get node </span><br><span class="line">NAME     STATUS   ROLES    AGE     VERSION</span><br><span class="line">master   Ready    master   15m     v1.19.0</span><br><span class="line">node-1   Ready    node     5m11s   v1.19.0</span><br></pre></td></tr></table></figure>
+<hr>
+<h1 id="尾声"><a href="#尾声" class="headerlink" title="尾声"></a>尾声</h1><p>K8s 的搭建目前已经全部完毕了，如果对 Istio 感兴趣的话，可以关注 <a href="https://tubetrue01.github.io/articles/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio">【K8s 集群搭建系列（四）你好 Istio】</a>。</p>
 
     
 
@@ -253,7 +272,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%BA%8C)Docker%E5%AE%89%E8%A3%85/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2020/12/22/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%89)K8s%E5%90%AF%E5%8A%A8/">展开全文 >></a>
     </p>
     
 
@@ -287,7 +306,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/30/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/29/">29</a><a class="page-number" href="/articles/page/30/">30</a><span class="page-number current">31</span><a class="page-number" href="/articles/page/32/">32</a><a class="page-number" href="/articles/page/33/">33</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/39/">39</a><a class="extend next" rel="next" href="/articles/page/32/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/30/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/29/">29</a><a class="page-number" href="/articles/page/30/">30</a><span class="page-number current">31</span><a class="page-number" href="/articles/page/32/">32</a><a class="page-number" href="/articles/page/33/">33</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/40/">40</a><a class="extend next" rel="next" href="/articles/page/32/">下一页</a>
     </nav>
   
 
@@ -411,15 +430,15 @@
           <ul class="article-tag-list" q-show="showTags">
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">CMake</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">Docker</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">CMake</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -431,23 +450,11 @@
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color5">Unix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">Reprint</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color5">Java</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">K8s</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Spring</a>
+                <a href="javascript:void(0)" class="js-tag color5">Unix</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -455,15 +462,27 @@
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">Git</a>
+                <a href="javascript:void(0)" class="js-tag color4">K8s</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">redis</a>
+                <a href="javascript:void(0)" class="js-tag color5">Java</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">SpringBoot</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">Git</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Spring</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">redis</a>
               </li>
             
             <div class="clearfix"></div>
