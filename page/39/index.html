@@ -227,7 +227,26 @@
 </blockquote>
 </li>
 </ul>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/signal.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sigaction</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="keyword">void</span> (*sa_handler)(<span class="keyword">int</span>);		      <span class="comment">/* 信号处理函数地址 */</span></span><br><span class="line">  <span class="keyword">sigset_t</span> sa_mask;                           <span class="comment">/* 信号掩码集，当调用信号处理函数时，程序将阻塞 sa_mask 中的信号 */</span></span><br><span class="line">  <span class="keyword">int</span> sa_flag;                                <span class="comment">/* 位掩码，指定用于控制信号处理过程中的各种选项 */</span></span><br><span class="line">  <span class="keyword">void</span> (*sa_sigaction)(<span class="keyword">int</span>,<span class="keyword">siginfo_t</span>*,<span class="keyword">void</span>*); <span class="comment">/* 暂不用 */</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/signal.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sigaction</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="keyword">void</span> (*sa_handler)(<span class="keyword">int</span>);		      <span class="comment">/* 信号处理函数地址 */</span></span><br><span class="line">  <span class="keyword">sigset_t</span> sa_mask;                           <span class="comment">/* 信号掩码集，当调用信号处理函数时，程序将阻塞 sa_mask 中的信号 */</span></span><br><span class="line">  <span class="keyword">int</span> sa_flag;                                <span class="comment">/* 位掩码，指定用于控制信号处理过程中的各种选项 */</span></span><br><span class="line">  <span class="keyword">void</span> (*sa_sigaction)(<span class="keyword">int</span>,<span class="keyword">siginfo_t</span>*,<span class="keyword">void</span>*); <span class="comment">/* 信号处理函数，当 sa_flag 设置为 */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><p><strong>sa_handler</strong><br>信号处理函数的地址，也可以取值为 SIG_IGN（表示忽略该信号） 或 SIG_DFL（采用默认的处理行为）。</p>
+</li>
+<li><p><strong>sa_mask</strong><br>用来指定在信号处理函数执行期间需要被屏蔽的信号，特别是当某个信号被处理时，它自身会被自动放入进程的信号掩码，因此在信号处理函数执行期间这个信号不会再度发生。</p>
+</li>
+<li><p><strong>sa_flag</strong><br>用于指定信号处理的行为，它可以是以下值的“按位或”组合:</p>
+<ul>
+<li><strong>SA_RESTART</strong> 使被信号打断的系统调用自动重新发起。</li>
+<li><strong>SA_NODEFER</strong> 使对信号的屏蔽无效，即在信号处理函数执行期间仍能发出这个信号。</li>
+<li><strong>SA_ONSTACK</strong> 针对此信号调用处理器函数时，使用了由 sigaltstack() 安装的备选栈。</li>
+<li><strong>SA_NOCLDSTOP</strong> 使父进程在它的子进程暂停或继续运行时不会收到 SIGCHLD 信号。</li>
+<li><strong>SA_NOCLDWAIT</strong> 使父进程在它的子进程退出时不会收到 SIGCHLD 信号，这时子进程如果退出也不会成为僵尸进程。</li>
+<li><strong>SA_RESETHAND</strong> 信号处理之后重新设置为默认的处理方式。</li>
+<li><strong>SA_SIGINFO</strong> 使用 sa_sigaction 成员而不是 sa_handler 作为信号处理函数。</li>
+</ul>
+</li>
+<li><p><strong>sa_sigaction</strong><br>信号处理函数的地址，当 sa_flags 成员的值包含了 SA_SIGINFO 标志时，系统将使用 sa_sigaction 函数作为信号处理函数获得关于信号的更详细的信息，否则使用 sa_handler 作为信号处理函数。</p>
+</li>
+</ul>
 <h2 id="1-3-返回值"><a href="#1-3-返回值" class="headerlink" title="1.3 返回值"></a>1.3 返回值</h2><ul>
 <li><strong>0</strong><br>函数执行成功</li>
 <li><strong>-1</strong><br>函数执行失败</li>
@@ -313,7 +332,7 @@
   <div class="outer">
     <div id="footer-info">
     	<div class="footer-left">
-    		&copy; 2018-2021 <a target="_blank">Tubetrue01</a>
+    		&copy; 2018-2022 <a target="_blank">Tubetrue01</a>
     	</div>
     </div>
   </div>
