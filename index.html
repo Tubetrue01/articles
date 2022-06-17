@@ -220,7 +220,7 @@
 </blockquote>
 <h1 id="集群版本"><a href="#集群版本" class="headerlink" title="集群版本"></a>集群版本</h1><ul>
 <li>K8s 版本：v1.21.3</li>
-<li>Isto 版本：1.13.1</li>
+<li>Istio 版本：1.13.1</li>
 </ul>
 <h1 id="环境"><a href="#环境" class="headerlink" title="环境"></a>环境</h1><p>我们将测试、预发合并为单一 K8s 集群，生产环境单独一套集群。本文主要介绍如何处理测试、预发集群与基于虚拟机服务的流量调度策略。</p>
 <h2 id="版本与环境"><a href="#版本与环境" class="headerlink" title="版本与环境"></a>版本与环境</h2><p>如何处理好版本与环境？我们以 ticket 服务为例，预发环境由于只会有一个版本存在，我们将它的域名定为：<a target="_blank" rel="noopener" href="https://ticket.staging.demo.com.其中/">https://ticket.staging.demo.com。其中</a> staging 代表环境为预发环境。</p>
