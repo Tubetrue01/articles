@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-c_mini/C迷你系列(五)不透明指针" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-c_reprint/C转载系列(二)开发中的内存分配究竟是如何进行" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2021/02/10/c_mini/C%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%BA%94)%E4%B8%8D%E9%80%8F%E6%98%8E%E6%8C%87%E9%92%88/" target="_blank">C 迷你系列（五）不透明指针</a>
+	  <a class="article-title" href="/articles/2021/05/13/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E4%BA%8C)%E5%BC%80%E5%8F%91%E4%B8%AD%E7%9A%84%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D%E7%A9%B6%E7%AB%9F%E6%98%AF%E5%A6%82%E4%BD%95%E8%BF%9B%E8%A1%8C/" target="_blank">C 转载系列（二）C 语言程序开发中的内存分配究竟是如何进行的？为什么 calloc() 函数的效率比 malloc() + memset() 函数更高？</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2021/02/10/c_mini/C%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%BA%94)%E4%B8%8D%E9%80%8F%E6%98%8E%E6%8C%87%E9%92%88/" class="archive-article-date">
-        <time datetime="2021-02-10T00:14:30.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-02-10</time>
+<a href="/articles/2021/05/13/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E4%BA%8C)%E5%BC%80%E5%8F%91%E4%B8%AD%E7%9A%84%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D%E7%A9%B6%E7%AB%9F%E6%98%AF%E5%A6%82%E4%BD%95%E8%BF%9B%E8%A1%8C/" class="archive-article-date">
+        <time datetime="2021-05-13T13:57:27.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-05-13</time>
 </a>
 
   
@@ -215,24 +215,50 @@
   
   <div class="article-entry" itemprop="articleBody">
     
-    <h1 id="不透明指针"><a href="#不透明指针" class="headerlink" title="不透明指针"></a>不透明指针</h1><blockquote>
-<p>C 不支持面向对象编程，不过，借助不透明指针，我们也可以使用 C 封装数据以及支持某种程度的多态行为。我们可以隐藏数据结构的实现和支持函数，用户没有必要知道数据结构的实现细节，减少这些实现细节就可以降低应用程序的复杂度。此外，这样也不会引诱用户使用数据结构的内部细节，如果用户使用了，之后数据结构的实现发生变化后会导致问题。</p>
+    <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
+<p>在 C 语言程序开发中，提到动态内存分配时，基本上每个程序员都明白 calloc() 和 malloc() 库函数的区别——calloc() 函数不仅分配内存，还会将分配后的内存清零，而 malloc() 函数则对分配好的内存不做任何操作。</p>
 </blockquote>
-<p>说的直白一点就是，你不能通过该指针访问任何元素。</p>
-<h1 id="创建和使用不透明指针"><a href="#创建和使用不透明指针" class="headerlink" title="创建和使用不透明指针"></a>创建和使用不透明指针</h1><p>不透明指针用来在 C 中实现数据封装。一种方法是在头文件中声明不包含任何实现细节的结构体，然后在实现文件中定义与数据结构的特定实现配合使用的函数。数据结构的用户可以看到声明和函数原型，但是实现会被隐藏（在 .c/.obj 文件中）。只有使用数据结构所需的信息会对用户可见，如果太多的内部信息可见，用户可能会使用这些信息，从而产生依赖。一旦内部结构发生变化，用户的代码可能就会失效。我们创建一个简单的链表来演示不透明指针的用法。</p>
-<p>link.h</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> TEST_C_LINK_H</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> TEST_C_LINK_H</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="keyword">void</span> *Data;</span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> _<span class="title">linkedList</span> <span class="title">LinkedList</span>;</span></span><br><span class="line"></span><br><span class="line"><span class="function">LinkedList* <span class="title">getLinkedListInstance</span><span class="params">()</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">removeLinkedListInstance</span><span class="params">()</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">addNode</span><span class="params">(LinkedList*, Data)</span></span>;</span><br><span class="line"><span class="function">Data <span class="title">removeNode</span><span class="params">(LinkedList*)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">// TEST_C_LINK_H</span></span></span><br></pre></td></tr></table></figure>
-<p>Data 声明为 void 指针，这样允许实现处理任何类型的数据。LinkedList 的类型定义用了名为 _linkedList 的结构体，这个结构体的定义在实现文件中，对用户隐藏。我们提供来四种方法来使用链表。getLinkedListInstance() 函数获取 LinkedList 实例，一旦不再需要链表就应该调用 removeLinkedListInstance() 函数来释放内存。通过传递链表指针可以让函数处理一个或多个链表。</p>
-<p>要将数据添加到链表，需要用 addNode() 函数，我们给它传递链表和要添加到链表的数据指针。removeNode() 函数会返回链表头部的数据。我们把链表的实现在名为 link.c 的独立文件中。</p>
-<p>link.c</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;link.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> _<span class="title">node</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    Data *data;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> _<span class="title">node</span> *<span class="title">next</span>;</span></span><br><span class="line">&#125; Node;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">linkedList</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    Node *head;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function">LinkedList *<span class="title">getLinkedListInstance</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    LinkedList *<span class="built_in">list</span> = (LinkedList *) <span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(LinkedList));</span><br><span class="line">    <span class="built_in">list</span>-&gt;head = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">list</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">removeLinkedListInstance</span><span class="params">(LinkedList *<span class="built_in">list</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    Node *tmp = <span class="built_in">list</span>-&gt;head;</span><br><span class="line">    <span class="keyword">while</span> (tmp != <span class="literal">NULL</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">free</span>(tmp-&gt;data);</span><br><span class="line">        Node *current = tmp;</span><br><span class="line">        tmp = tmp-&gt;next;</span><br><span class="line">        <span class="built_in">free</span>(current);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">free</span>(<span class="built_in">list</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">addNode</span><span class="params">(LinkedList *<span class="built_in">list</span>, Data data)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    Node *node = (Node *) <span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(Node));</span><br><span class="line">    node-&gt;data = data;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">list</span>-&gt;head == <span class="literal">NULL</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">list</span>-&gt;head = node;</span><br><span class="line">        node-&gt;next = <span class="literal">NULL</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        node-&gt;next = <span class="built_in">list</span>-&gt;head;</span><br><span class="line">        <span class="built_in">list</span>-&gt;head = node;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function">Data <span class="title">removeNode</span><span class="params">(LinkedList *<span class="built_in">list</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">list</span>-&gt;head == <span class="literal">NULL</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        Node *tmp = <span class="built_in">list</span>-&gt;head;</span><br><span class="line">        Data *data;</span><br><span class="line">        <span class="built_in">list</span>-&gt;head = <span class="built_in">list</span>-&gt;head-&gt;next;</span><br><span class="line">        data = tmp-&gt;data;</span><br><span class="line">        <span class="built_in">free</span>(tmp);</span><br><span class="line">        <span class="keyword">return</span> data;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>一个简单的链表就实现好了，那么我们怎么使用呢？</p>
-<p>test.c</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;link.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">    <span class="keyword">char</span> *username;</span><br><span class="line">    <span class="keyword">int</span> age;</span><br><span class="line">&#125;Person;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">displayPerson</span><span class="params">(Person*)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">    LinkedList *<span class="built_in">list</span> = getLinkedListInstance();</span><br><span class="line"></span><br><span class="line">    Person *person = (Person *)<span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(Person));</span><br><span class="line">    person-&gt;username = <span class="string">&quot;jack&quot;</span>;</span><br><span class="line">    person-&gt;age = <span class="number">12</span>;</span><br><span class="line"></span><br><span class="line">    Person *person2 = (Person *)<span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(Person));</span><br><span class="line">    person2-&gt;username = <span class="string">&quot;jobs&quot;</span>;</span><br><span class="line">    person2-&gt;age = <span class="number">15</span>;</span><br><span class="line"></span><br><span class="line">    addNode(<span class="built_in">list</span>, person);</span><br><span class="line">    addNode(<span class="built_in">list</span>, person2);</span><br><span class="line"></span><br><span class="line">    person = removeNode(<span class="built_in">list</span>);</span><br><span class="line">    displayPerson(person);</span><br><span class="line"></span><br><span class="line">    person = removeNode(<span class="built_in">list</span>);</span><br><span class="line">    displayPerson(person);</span><br><span class="line"></span><br><span class="line">    removeLinkedListInstance(<span class="built_in">list</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">displayPerson</span><span class="params">(Person *person)</span></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;username is : %s, age is : %d\n&quot;</span>, person-&gt;username, person-&gt;age);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>LinkedList 就是一个不透明指针，LinkedList 中的成员对使用者隐藏，只提供必要的方法给使用者，隐藏了实现细节。这个就类似于面向对象中的封装。</p>
+<h1 id="calloc-函数的效率比-malloc-memset-函数更高？"><a href="#calloc-函数的效率比-malloc-memset-函数更高？" class="headerlink" title="calloc() 函数的效率比 malloc() + memset() 函数更高？"></a>calloc() 函数的效率比 malloc() + memset() 函数更高？</h1><p>很多 C 语言程序员常把 calloc() 函数看作是 malloc() + memset() 函数的组合。不过，今天我在一个很偶然的测试中发现 calloc() 函数和 malloc() + memset() 组合函数的效率差异还是很大的。请看：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> BLOCK_SIZE 1024*1024*256</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> i=<span class="number">0</span>;</span><br><span class="line">    <span class="keyword">char</span> *buf[<span class="number">10</span>];</span><br><span class="line">    <span class="keyword">while</span>(i&lt;<span class="number">10</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        buf[i] = (<span class="keyword">char</span>*)<span class="built_in">calloc</span>(<span class="number">1</span>,BLOCK_SIZE);</span><br><span class="line">        i++;</span><br><span class="line">    &#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>；</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这段 C 语言代码调用了 calloc() 函数分配了一段内存，并且重复 10 次，编译并执行之（time 命令可以查看 C 语言程序运行消耗的时间），得到如下结果：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> gcc t.c</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> time ./a.out</span>  </span><br><span class="line">---</span><br><span class="line">real 0m0.287s</span><br><span class="line">user 0m0.095s  </span><br><span class="line">sys  0m0.192s </span><br></pre></td></tr></table></figure>
+
+<p>现在将 calloc() 函数改为 malloc() + memset() 函数，修改后的 C 语言代码如下，请看：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> BLOCK_SIZE 1024*1024*256</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> i=<span class="number">0</span>;</span><br><span class="line">    <span class="keyword">char</span> *buf[<span class="number">10</span>];</span><br><span class="line">    <span class="keyword">while</span>(i&lt;<span class="number">10</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        buf[i] = (<span class="keyword">char</span>*)<span class="built_in">malloc</span>(BLOCK_SIZE);</span><br><span class="line">        <span class="built_in">memset</span>(buf[i],<span class="string">&#x27;\0&#x27;</span>,BLOCK_SIZE);</span><br><span class="line">        i++;</span><br><span class="line">    &#125;.</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>编译并执行这段 C 语言代码，同样使用 time 命令查看程序运行消耗时间，得到如下结果，请看：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> gcc t.c</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> time ./a.out</span>  </span><br><span class="line">---</span><br><span class="line">real 0m2.693   </span><br><span class="line">user 0m0.973s  </span><br><span class="line">sys  0m1.721s </span><br></pre></td></tr></table></figure>
+<p>应该清楚，这两段 C 语言代码的工作是一致的，都是分配一段长度为 BLOCK_SIZE 的内存并且清零，但是二者消耗的时间却相差非常大，这就有一个值得深思的问题：calloc() 函数做了相同的工作，但是效率却高得多，这是怎么回事呢？</p>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>弄清楚这一点，对于我们以后开发更高效率的 C 语言程序肯定有所帮助。</p>
+</blockquote>
+<h2 id="解析"><a href="#解析" class="headerlink" title="解析"></a>解析</h2><p>在展开讨论之前，应该明白的是以后如果希望申请一段内容为 0 的内存，则应该使用效率更高的 calloc() 函数，而不是 malloc() + memset() 函数的组合。</p>
+<p>因为 calloc() 函数在内部实现中，会自行判断分配后的内存是否需要清零，如果某段分配好的内存原本就是零，那么清零动作就免去了。而 malloc() + memset() 函数的组合则全额做了“分配 + 清零”的动作，效率自然是有所差异的。</p>
+<h2 id="一般来说，C-语言程序员应该明白四大点：程序，标准库，内核以及页表"><a href="#一般来说，C-语言程序员应该明白四大点：程序，标准库，内核以及页表" class="headerlink" title="一般来说，C 语言程序员应该明白四大点：程序，标准库，内核以及页表"></a>一般来说，C 语言程序员应该明白四大点：程序，标准库，内核以及页表</h2><p>像 malloc() 和 calloc() 这样的内存分配函数主要用于分配数百字 KB 以下的内存分配，这样的分配一般是直接从内存池（memory pool）中分配的。当内存池被用完后，或者某段 C 语言代码一次性请求分配的内存超过剩余内存池容量时，malloc() 和 calloc() 将直接向内核请求内存。</p>
+<p>内核管理每个进程的实际 RAM，并确保不同进程不会干扰彼此的内存，这就是所谓的操作系统“内存保护”机制。有了这样的机制，一个进程的崩溃不会导致其他进程跟着崩溃，系统的稳定性会得到保障。</p>
+<p>因此，在操作系统内核的管理下，当某段 C 语言代码需要使用一段内存时，它不能直接使用物理内存，而只能通过 mmap() 以及 sbrk() 等系统调用向内核申请，由内核修改页表为每个进程提供 RAM。</p>
+<p>页表将内存地址映射到实际的物理 RAM，在 32 位系统上，进程地址（0x00000000 到 0xffffffff）不是实际的内存地址，而是虚拟内存地址，处理器将这些地址分为 4KiB 个页，通过页表，可以将每个内存页对应到不同的物理 RAM 上。</p>
+<h2 id="一些-C-语言程序员认为，calloc-等内存分配函数是这样工作的"><a href="#一些-C-语言程序员认为，calloc-等内存分配函数是这样工作的" class="headerlink" title="一些 C 语言程序员认为，calloc() 等内存分配函数是这样工作的"></a>一些 C 语言程序员认为，calloc() 等内存分配函数是这样工作的</h2><p>C 语言程序调用 calloc() 申请 256KB 内存，于是标准库调用系统调用 mmap() 函数向内核申请，内核找到 256KB 未被使用的 RAM，并通过修改页表的方式将其提供给C语言程序，接着标准库调用 memset() 函数将申请到的内存清零，然后从 calloc() 函数将这段内存返回。</p>
+<p>之后，当这段 C 语言程序退出后，内核会回收分配给它的内存，以便给其他进程使用。</p>
+<h2 id="实际上"><a href="#实际上" class="headerlink" title="实际上"></a>实际上</h2><p>上述过程在理论上是可行的，但是实际上并不会这样。因为内存总是有限的，内核分配给我们的 C 语言程序使用的内存可能是之前其他进程使用过的，如果这段内存里有密码，密钥，等其他敏感信息呢？</p>
+<p>为了避免出现上述安全隐患，内核总是在将内存交给进程之前将其清理掉。当然了，我们也可以自己调用清零函数将使用过的内存清零，但是不管如何，mmap() 函数保证其返回的新内存是清零后的总是安全的选择。</p>
+<p>有一些 C 语言程序可能很早就向内核申请了一段内存，但是却不会立刻使用它，甚至可能根本不会使用它。因此在设计操作系统内核时，为了效率的最大化，可能内核在收到内存分配请求时，根本不修改页表，也不向我们的程序提供任何实际的 RAM。</p>
+<p>内核可能仅会将一些地址空间标记给我们的程序使用，但是却不做实际的分配工作。这样就避免了“分配了内存，却没被使用”带来的不必要的开销了。当然，一旦 C 语言程序需要读写这些地址空间，就会触发一个缺页异常，内核再将 RAN 真正的分配给这些地址，并恢复程序运行。</p>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>简而言之，内核为了避免不必要的开销，实际的内存分配只有在确保真的有 C 语言代码使用时（有写入动作时）才会进行。</p>
+</blockquote>
+<p>也有些 C 语言程序分配内存后，可能（不做任何修改）直接就去读这些内存，这时，内核甚至会让这些 C 语言程序申请的内存指向同一个 4KiB 页表，因为 mmap() 返回的零填充内存都一样。如果某个C语言程序尝试对申请到的内存执行写入操作，那么将触发另一种缺页异常，内核将为该 C 语言程序分配一个新的内存页使用，该内存页不与其他任何进程共享。</p>
+<h2 id="在-C-语言程序开发中，一次内存分配的实际过程是这样的"><a href="#在-C-语言程序开发中，一次内存分配的实际过程是这样的" class="headerlink" title="在 C 语言程序开发中，一次内存分配的实际过程是这样的"></a>在 C 语言程序开发中，一次内存分配的实际过程是这样的</h2><p>C 语言程序调用 calloc() 申请 256KB 内存，于是标准库调用系统调用 mmap() 函数向内核申请，内核找到 256KB 未被使用的地址空间，记下该地址空闲现在用于什么，然后返回。</p>
+<p>现在标准库知道 mmap() 返回的结果总是用零填充，所以它不需要写入内存，因此不会出现缺页异常，内核不必直接实际分配内存。</p>
+<p>最后 C 语言程序退出，内核不需要回收内存，因为内核根本就没有分配过内存。这样的效率显然很高。</p>
+<p>如果使用 memset() 将页面清零，那么 memset() 的写入动作将触发缺页异常，内核将不得不执行分配动作，并执行写入零动作。这是一项巨大的工作，这也解释了为什么 calloc() 比 malloc() + memset() 快的原因。</p>
+<p>现在知道原理了，我们就可以预言：如果最后使用了库函数分配的内存，那么 calloc() 函数可能仍然比 malloc() + memset() 快，但是二者之前的区别将不会再那么大。</p>
+<h2 id="应该明白"><a href="#应该明白" class="headerlink" title="应该明白"></a>应该明白</h2><p>并非所有的操作系统内核都具有分页虚拟内存，因此并非在所有平台上编译 C 语言代码都会得到相同的结果。calloc() 函数可能并不从内核申请内存，而是从共享内存池里申请，而共享内存池中可能存储了上一次被使用时残留的垃圾数据，calloc() 可以获取到这些内存，并且调用 memset() 将其清零。</p>
+<p>不同的操作系统管理内存很可能是不一样的，有些操作系统内核会在空闲时将内存归零，已备以后需要获得归零内存时使用，而有些则不会，例如 Linux 就不会提前将内存清零。</p>
 <hr>
 <h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
-<li>【深入理解 C 指针】</li>
+<li><a target="_blank" rel="noopener" href="https://blog.popkx.com/c%E8%AF%AD%E8%A8%80%E7%A8%8B%E5%BA%8F%E5%BC%80%E5%8F%91%E4%B8%AD%E7%9A%84%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D%E7%A9%B6%E7%AB%9F%E6%98%AF%E5%A6%82%E4%BD%95%E8%BF%9B%E8%A1%8C%E7%9A%84-%E4%B8%BA/">【原文链接】</a></li>
 </ul>
 
     
@@ -250,11 +276,11 @@
 		<ul class="article-tag-list">
 			 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color5">Mini</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">C</a>
         		</li>
       		 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">C</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color3">Reprint</a>
         		</li>
       		
 		</ul>
@@ -264,7 +290,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2021/02/10/c_mini/C%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%BA%94)%E4%B8%8D%E9%80%8F%E6%98%8E%E6%8C%87%E9%92%88/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2021/05/13/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E4%BA%8C)%E5%BC%80%E5%8F%91%E4%B8%AD%E7%9A%84%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D%E7%A9%B6%E7%AB%9F%E6%98%AF%E5%A6%82%E4%BD%95%E8%BF%9B%E8%A1%8C/">展开全文 >></a>
     </p>
     
 
@@ -298,7 +324,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/22/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/21/">21</a><a class="page-number" href="/articles/page/22/">22</a><span class="page-number current">23</span><a class="page-number" href="/articles/page/24/">24</a><a class="page-number" href="/articles/page/25/">25</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/42/">42</a><a class="extend next" rel="next" href="/articles/page/24/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/22/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/21/">21</a><a class="page-number" href="/articles/page/22/">22</a><span class="page-number current">23</span><a class="page-number" href="/articles/page/24/">24</a><a class="page-number" href="/articles/page/25/">25</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/43/">43</a><a class="extend next" rel="next" href="/articles/page/24/">下一页</a>
     </nav>
   
 
@@ -422,10 +448,6 @@
           <ul class="article-tag-list" q-show="showTags">
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">CMake</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
               </li>
              
@@ -434,19 +456,19 @@
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">CMake</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color5">Mini</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">C</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">Reprint</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color5">Unix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">C</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -466,19 +488,27 @@
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">Git</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">Spring</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">redis</a>
+                <a href="javascript:void(0)" class="js-tag color3">Reprint</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">Git</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">git</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">jvm</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">redis</a>
               </li>
             
             <div class="clearfix"></div>

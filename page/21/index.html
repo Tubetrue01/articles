@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-c_reprint/C转载系列(三)变量与内存(上篇)" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-c_reprint/C转载系列(四)变量与内存(下篇)" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2021/05/15/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E4%B8%89)%E5%8F%98%E9%87%8F%E4%B8%8E%E5%86%85%E5%AD%98(%E4%B8%8A%E7%AF%87)/" target="_blank">C 转载系列（三）变量与内存（上篇）</a>
+	  <a class="article-title" href="/articles/2021/05/15/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E5%9B%9B)%E5%8F%98%E9%87%8F%E4%B8%8E%E5%86%85%E5%AD%98(%E4%B8%8B%E7%AF%87)/" target="_blank">C 转载系列（四）变量与内存（下篇）</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2021/05/15/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E4%B8%89)%E5%8F%98%E9%87%8F%E4%B8%8E%E5%86%85%E5%AD%98(%E4%B8%8A%E7%AF%87)/" class="archive-article-date">
-        <time datetime="2021-05-15T01:39:39.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-05-15</time>
+<a href="/articles/2021/05/15/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E5%9B%9B)%E5%8F%98%E9%87%8F%E4%B8%8E%E5%86%85%E5%AD%98(%E4%B8%8B%E7%AF%87)/" class="archive-article-date">
+        <time datetime="2021-05-15T03:24:01.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-05-15</time>
 </a>
 
   
@@ -216,174 +216,285 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>本文以问题的形式，通过真实的编译调试分析 C/C++ 中各类变量在编译、装载和运行时的特点，着重介绍各类变量运行时在内存中的位置。目的是以另一种角度，更深入地理解变量由代码编译为可执行文件，然后装载执行的原理。</p>
+<p><a href="https://tubetrue01.github.io/articles/2021/05/15/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E4%B8%89)%E5%8F%98%E9%87%8F%E4%B8%8E%E5%86%85%E5%AD%98(%E4%B8%8A%E7%AF%87)">【上一篇】</a>文章中介绍到 C/C++ 中一些基本类型变量在内存中的位置，本来想把字符串也在上一篇中介绍的，但测试发现字符串的情况比基本类型变量复杂的多，所以单独写一篇专门来介绍字符串。<br>这里说的字符串复杂是因为字符串实际就是 char 数组，且经常要和指针打交道，甚至不同编译器还有不同的表现，不是一句两句能说清楚的。本文旨在介绍一些常见情况下字符串实际在内存中的位置（段、栈和堆），读取字符串的过程，和一些需要注意的问题；本文编译器使用 clang 和 gcc 两种（默认使用 clang ），用以介绍不同编译器的不同点。</p>
 </blockquote>
-<p><strong>⚠️ 注意</strong></p>
-<blockquote>
-<p>本文分析到可执行文件中 __bss 段、__data 段等层面，需要一定的计算机基础。</p>
-</blockquote>
-<h1 id="开发环境"><a href="#开发环境" class="headerlink" title="开发环境"></a>开发环境</h1><blockquote>
-<ul>
+<h1 id="开发环境"><a href="#开发环境" class="headerlink" title="开发环境"></a>开发环境</h1><ul>
 <li>OS X El Captian (10.11.6)</li>
-<li>Xcode 7.3.1</li>
 <li>Apple LLVM 7.3.0 (clang-703.0.31)</li>
+<li>gcc 6.1.0</li>
 </ul>
-</blockquote>
-<h1 id="1、-全局变量和静态变量分别在内存哪个区域？已初始化和未初始化有区别吗？"><a href="#1、-全局变量和静态变量分别在内存哪个区域？已初始化和未初始化有区别吗？" class="headerlink" title="1、 全局变量和静态变量分别在内存哪个区域？已初始化和未初始化有区别吗？"></a>1、 全局变量和静态变量分别在内存哪个区域？已初始化和未初始化有区别吗？</h1><h3 id="实验"><a href="#实验" class="headerlink" title="实验"></a>实验</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">int</span> global_init_a = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">char</span> global_init_b = <span class="string">&#x27;a&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">int</span> global_unin_a;</span><br><span class="line"><span class="keyword">char</span> global_unin_b;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">const</span> <span class="keyword">char</span> *argv[])</span> </span>&#123;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">int</span> local_stat_init_a = <span class="number">2</span>;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> local_stat_init_b = <span class="string">&#x27;b&#x27;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">int</span> local_stat_unin_a;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> local_stat_unin_b;</span><br><span class="line"></span><br><span class="line">  sleep(<span class="number">-1</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>这里测试 2 个变量：int 型的 a 和 char 型的 b；测试 3 种类型的变量：全局变量（global）、局部静态变量（local_stat）以及局部变量（local）；其中每类变量都有两种版本：已初始化（init）和未初始化（unin）。</p>
-<h3 id="先看看相关的段信息（objdump-x-lt-input-object-files-gt-）"><a href="#先看看相关的段信息（objdump-x-lt-input-object-files-gt-）" class="headerlink" title="先看看相关的段信息（objdump -x &lt;input object files&gt;）"></a>先看看相关的段信息（objdump -x &lt;input object files&gt;）</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">Section</span><br><span class="line">  sectname __text</span><br><span class="line">   segname __TEXT</span><br><span class="line">      addr 0x0000000100000f50</span><br><span class="line">      size 0x000000000000003a</span><br><span class="line">    offset 3920</span><br><span class="line">     align 2^4 (16)</span><br><span class="line">    reloff 0</span><br><span class="line">    nreloc 0</span><br><span class="line">      type S_REGULAR</span><br><span class="line">Section</span><br><span class="line">  sectname __data</span><br><span class="line">   segname __DATA</span><br><span class="line">      addr 0x0000000100001018</span><br><span class="line">      size 0x000000000000000d</span><br><span class="line">    offset 4120</span><br><span class="line">     align 2^2 (4)</span><br><span class="line">    reloff 0</span><br><span class="line">    nreloc 0</span><br><span class="line">      type S_REGULAR</span><br><span class="line">Section</span><br><span class="line">  sectname __bss</span><br><span class="line">   segname __DATA</span><br><span class="line">      addr 0x0000000100001028</span><br><span class="line">      size 0x0000000000000005</span><br><span class="line">    offset 0</span><br><span class="line">     align 2^2 (4)</span><br><span class="line">    reloff 0</span><br><span class="line">    nreloc 0</span><br><span class="line">      type S_ZEROFILL</span><br><span class="line">Section</span><br><span class="line">  sectname __common</span><br><span class="line">   segname __DATA</span><br><span class="line">      addr 0x0000000100001030</span><br><span class="line">      size 0x0000000000000005</span><br><span class="line">    offset 0</span><br><span class="line">     align 2^2 (4)</span><br><span class="line">    reloff 0</span><br><span class="line">    nreloc 0</span><br><span class="line">      type S_ZEROFILL</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<h3 id="再看看符号表-（-objdump-t-lt-input-object-files-gt-）"><a href="#再看看符号表-（-objdump-t-lt-input-object-files-gt-）" class="headerlink" title="再看看符号表 （ objdump -t &lt;input object files&gt;）"></a>再看看符号表 （ objdump -t &lt;input object files&gt;）</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">0000000100001018 (__DATA,__data) external _global_init_a</span><br><span class="line">000000010000101c (__DATA,__data) external _global_init_b</span><br><span class="line">0000000100001020 (__DATA,__data) non-external _main.local_stat_init_a</span><br><span class="line">0000000100001024 (__DATA,__data) non-external _main.local_stat_init_b</span><br><span class="line">0000000100001028 (__DATA,__bss) non-external _main.local_stat_unin_a</span><br><span class="line">000000010000102c (__DATA,__bss) non-external _main.local_stat_unin_b</span><br><span class="line">0000000100001030 (__DATA,__common) external _global_unin_a</span><br><span class="line">0000000100001034 (__DATA,__common) external _global_unin_b</span><br></pre></td></tr></table></figure>
-<p>这里明显可以看出，已初始化的全局变量和局部静态变量都在 __data 段中，而未初始化的全局变量在 __common 段中，未初始化的局部静态变量在 __bss 段中。</p>
-<h3 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h3><blockquote>
-<p>已初始化的全局变量和局部静态变量都在 __data 段中，而未初始化的全局变量 在 __common 段中，未初始化的局部静态变量在 __bss 段中。</p>
-</blockquote>
-<h1 id="2、全局变量和静态变量初始化为-0-是不是就-在-data-段中了"><a href="#2、全局变量和静态变量初始化为-0-是不是就-在-data-段中了" class="headerlink" title="2、全局变量和静态变量初始化为 0 是不是就 在 __data 段中了?"></a>2、全局变量和静态变量初始化为 0 是不是就 在 __data 段中了?</h1><p>这个比较简单，就不做实验验证了，初始化为 0 的全局变量和静态变量还是按照未初始化处理的，即该在 __bss 段还在 __bss 段，该在 __common 段还在 __common 段。（容易理解，对于全局变量和静态变量来说，初始化为 0 和未初始化是一模一样的，因为按照未初始化来效果会更好，所以就当做是未初始化了。）</p>
-<h1 id="3、-common段和-bss-段有什么区别？"><a href="#3、-common段和-bss-段有什么区别？" class="headerlink" title="3、__common段和 __bss 段有什么区别？"></a>3、__common段和 __bss 段有什么区别？</h1><h3 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h3><p>在【问1】中我们看到未初始化的全局变量在 __common 段中，未初始化的局部静态变量在 __bss 段中；__common 段并不是一个常见的段，为什么不都放在 __bss 段中呢？</p>
-<h3 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h3><p>实际上使用不同的语言或不同的编译器，得到的结果都不太一样，比如 GCC 编译不会有 __common 段存在，未初始化的全局变量仅存在于符号表中。</p>
-<p>仔细观察上图中的段表可以发现，__common 段紧跟着 __bss 段，且相关属性也大体相同。再看符号表也能看到类似的结果：作为 __common 段首的 global_unin_a 也是紧跟在 __bss 段尾的 local_stat_unin_b 之后的。</p>
-<h3 id="结论-1"><a href="#结论-1" class="headerlink" title="结论"></a>结论</h3><blockquote>
-<p>虽然这里没有非常明显的证据，但我们还是可以认为 __common 段和 __bss 段没有太大区别；而之所以 __common 段独立于 __bss 段，是因为要考虑到 全局变量需要暴露给外部（external） ，涉及到“弱符号与强符号”的问题（这里不作介绍），否则与 __bss 段没区别。</p>
-</blockquote>
-<h1 id="4、如何理解-“-bss-段不占用可执行文件空间”？"><a href="#4、如何理解-“-bss-段不占用可执行文件空间”？" class="headerlink" title="4、如何理解 “__bss 段不占用可执行文件空间”？"></a>4、如何理解 “__bss 段不占用可执行文件空间”？</h1><h3 id="简介-1"><a href="#简介-1" class="headerlink" title="简介"></a>简介</h3><p>相信在很多介绍 __bss 段的文章中都提到说 “__bss 段不占用可执行文件空间”，意思是说 __bss 段 在可执行文件中是不实际存在的。但在 __bss 段信息中又是有长度的，这个该如何理解呢？</p>
-<h3 id="实验-1"><a href="#实验-1" class="headerlink" title="实验"></a>实验</h3><p>这里首先介绍一些基础知识，关于 ELF 文件（Linux下可执行文件等都是 ELF 文件）的结构，如下表：</p>
+<h1 id="字符串在内存中的位置"><a href="#字符串在内存中的位置" class="headerlink" title="字符串在内存中的位置"></a>字符串在内存中的位置</h1><p>字符串的初始化一般有两种方法：</p>
+<ul>
+<li>数组：<code>char str[] = &quot;Hello&quot;;</code></li>
+<li>指针：<code>char *str = &quot;World&quot;;</code></li>
+</ul>
+<p>这里考虑全局变量、静态局部变量和局部变量三种情况；对于全局变量和静态局部变量，还考虑已初始化和未初始化的情况。</p>
+<p>代码：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">char</span> global_unin_t1[] = &#123;&#125;;</span><br><span class="line"><span class="keyword">char</span> *global_unin_t2;</span><br><span class="line"><span class="keyword">char</span> global_t1[] = <span class="string">&quot;Hello&quot;</span>;</span><br><span class="line"><span class="keyword">char</span> *global_t2 = <span class="string">&quot;World&quot;</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">const</span> <span class="keyword">char</span> *argv[])</span> </span>&#123;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> local_stat_unin_t1[] = &#123;&#125;;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> *local_stat_unin_t2;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> local_stat_t1[] = <span class="string">&quot;Think&quot;</span>;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> *local_stat_t2 = <span class="string">&quot;Free&quot;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">char</span> local_t1[] = <span class="string">&quot;Here&quot;</span>;</span><br><span class="line">  <span class="keyword">char</span> *local_t2 = <span class="string">&quot;Comes&quot;</span>;</span><br><span class="line"></span><br><span class="line">  sleep(<span class="number">-1</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>先看看几个典型的段信息：</p>
 <table>
 <thead>
 <tr>
-<th align="center">ELF Header</th>
+<th align="center">sectname</th>
+<th align="center">segname</th>
+<th align="center">addr</th>
+<th align="center">size</th>
+<th align="center">type</th>
 </tr>
 </thead>
 <tbody><tr>
-<td align="center">Symbol Tables</td>
+<td align="center">__cstring</td>
+<td align="center">__TEXT</td>
+<td align="center">0x0000000100000f9e</td>
+<td align="center">0x0000000000000016</td>
+<td align="center">S_CSTRING_LITERALS</td>
 </tr>
 <tr>
-<td align="center">String Tables</td>
+<td align="center">__data</td>
+<td align="center">__DATA</td>
+<td align="center">0x0000000100001018</td>
+<td align="center">0x0000000000000020</td>
+<td align="center">S_REGULAR</td>
 </tr>
 <tr>
-<td align="center">Section header table</td>
+<td align="center">__common</td>
+<td align="center">__DATA</td>
+<td align="center">0x0000000100001038</td>
+<td align="center">0x0000000000000010</td>
+<td align="center">S_ZEROFILL</td>
 </tr>
 <tr>
-<td align="center">.text</td>
-</tr>
-<tr>
-<td align="center">.data</td>
-</tr>
-<tr>
-<td align="center">.bss</td>
-</tr>
-<tr>
-<td align="center">…</td>
-</tr>
-<tr>
-<td align="center">…</td>
+<td align="center">__bss</td>
+<td align="center">__DATA</td>
+<td align="center">0x0000000100001048</td>
+<td align="center">0x0000000000000010</td>
+<td align="center">S_ZEROFILL</td>
 </tr>
 </tbody></table>
-<p>【问1】中列出的段信息实际是在读取段表（Section Header Table），段表描述了每个段的段名、长度、偏移、读写权限等信息；并且[问1]中列出的符号表也是直接读取的 符号表（Symbol Table），符号表中就记录了全局变量和局部静态变量的地址、占用空间大小等信息（符号表包含的信息远不止这些）。</p>
-<p>既然段信息和变量信息都在专门的区域保存着，那 .data 和 .bss 中还剩下什么呢？不妨直接用命令看看。<br>__data 段内容：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Contents of (__DATA,__data) section</span><br><span class="line">0000000100001018           01 00 00 00 61 00 00 00 02 00 00 00 62</span><br></pre></td></tr></table></figure>
-<p>结合符号表很容易看出来，内存位置 0000000100001018 是 global_init_a，其值为 01 00 00 00，就是 1 了；紧随其后的是 global_init_b，值为 61，就是 ‘a’；再后面是 local_stat_init_a，值为 02 00 00 00，即 2；最后是 local_stat_init_b，值为 62，即 ‘b’。意思就是 __data 段保存的是已初始化的全局变量和局部静态变量的值。</p>
-<p>下面看看 __bss 段内容：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Contents of (__DATA,__bss) section</span><br><span class="line">zerofill section and has no contents in the file</span><br></pre></td></tr></table></figure>
-<p>__bss 段在可执行文件中没有任何内容，这个其实不难理解。存放在 __bss 段的是未初始化的全局变量和局部静态变量，既然没有初始化，可执行文件中也就不需要专门去记录变量的值了（也没有值拿来记录），唯一需要的就是给这些变量一个确定的内存地址（像 __data 段中的变量一样）。这样其实有两种方法：其一，像 __data 段那样在相应位置写一些初始值进去占位，可执行文件装载时直接映射就好了，和 __data 段一模一样；其二，不给 __bss 段在可执行文件中占位，在装载时根据 __bss 段信息直接在内存中开辟相应区域，即将占位从可执行文件推迟到装载时。 编译器就是选择的方法二，将占位从可执行文件推迟到装载时，这样做的好处就是减小了可执行文件的体积，比如一个长度为 10000 的未初始化 int 数组，采用方法二不会占用任何可执行文件空间，而采用方法一则会将可执行文件增大至少 40KB。</p>
-<p>如果你对此还有疑问，不妨在程序运行时暂停看看相关变量的内存信息，如下：</p>
-<p>global_init_a 内存地址为 0x100001018</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">100001018   01 00 00 00 61 00 00 00 02 00 00 00 62</span><br></pre></td></tr></table></figure>
-<p>local_stat_unin_a 内存地址为 0x100001028</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">100001028   00 00 00 00 00 00 00 00 00 00 00 00 00</span><br></pre></td></tr></table></figure>
-<p>运行时内存中为 __bss 段中变量分配了内存空间。</p>
-<h3 id="结论-2"><a href="#结论-2" class="headerlink" title="结论"></a>结论</h3><blockquote>
-<p>__bss 段确实不占用可执行文件空间，但文件装载后在内存中还是会占用相应大小的空间的，这种处理方法就是为了减少可执行文件大小，避免不必要的开销。</p>
+<p>再看看段内数据：</p>
+<h3 id="cstring"><a href="#cstring" class="headerlink" title="__cstring:"></a>__cstring:</h3><table>
+<thead>
+<tr>
+<th align="center">addr start</th>
+<th align="center">size</th>
+<th align="center">data (0x)</th>
+<th align="center">data (ASCII)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">0x100000fae</td>
+<td align="center">6</td>
+<td align="center">43 6F 6D 65 73 00</td>
+<td align="center">Comes</td>
+</tr>
+<tr>
+<td align="center">0x100000fa4</td>
+<td align="center">5</td>
+<td align="center">46 72 65 65 00</td>
+<td align="center">Free</td>
+</tr>
+<tr>
+<td align="center">0x100000fa9</td>
+<td align="center">5</td>
+<td align="center">48 65 72 65 00</td>
+<td align="center">Here</td>
+</tr>
+<tr>
+<td align="center">0x100000f9e</td>
+<td align="center">6</td>
+<td align="center">57 6F 72 6C 64 00</td>
+<td align="center">World</td>
+</tr>
+</tbody></table>
+<p>gcc 编译 __cstring 段中仅有 “World”、”Free” 和 “Comes”，没有 “Here”。</p>
+<h3 id="data"><a href="#data" class="headerlink" title="__data:"></a>__data:</h3><table>
+<thead>
+<tr>
+<th align="center">addr start</th>
+<th align="center">size</th>
+<th align="center">data (0x)</th>
+<th align="center">data (ASCII)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">0x100001018</td>
+<td align="center">6</td>
+<td align="center">48 65 6C 6C 6F 00</td>
+<td align="center">Hello</td>
+</tr>
+<tr>
+<td align="center">0x100001020</td>
+<td align="center">8</td>
+<td align="center">9E 0F 00 00 01 00 00 00</td>
+<td align="center">-</td>
+</tr>
+<tr>
+<td align="center">0x100001028</td>
+<td align="center">6</td>
+<td align="center">54 68 69 6E 6B 00</td>
+<td align="center">Think</td>
+</tr>
+<tr>
+<td align="center">0x100001030</td>
+<td align="center">8</td>
+<td align="center">A4 0F 00 00 01 00 00 00</td>
+<td align="center">-</td>
+</tr>
+</tbody></table>
+<h3 id="全局变量"><a href="#全局变量" class="headerlink" title="全局变量"></a>全局变量</h3><table>
+<thead>
+<tr>
+<th align="center">变量名</th>
+<th align="center">内存地址</th>
+<th align="center">所属段</th>
+<th align="center">值（十六进制）</th>
+<th align="center">值（ASCII/0x）</th>
+<th align="center">类型</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">global_unin_t1</td>
+<td align="center">0x100001038</td>
+<td align="center">__common</td>
+<td align="center">00</td>
+<td align="center"></td>
+<td align="center">char []</td>
+</tr>
+<tr>
+<td align="center">global_t1</td>
+<td align="center">0x100001018</td>
+<td align="center">__data</td>
+<td align="center">48 65 6C 6C 6F 00</td>
+<td align="center">Hello</td>
+<td align="center">char [6]</td>
+</tr>
+<tr>
+<td align="center">global_t2</td>
+<td align="center">0x100001020</td>
+<td align="center">__data</td>
+<td align="center">9E 0F 00 00 01 00 00 00</td>
+<td align="center">0x100000f9e</td>
+<td align="center">char *</td>
+</tr>
+<tr>
+<td align="center">global_unin_t2</td>
+<td align="center">0x100001040</td>
+<td align="center">__common</td>
+<td align="center">00 00 00 00 00 00 00 00</td>
+<td align="center">NULL</td>
+<td align="center">char *</td>
+</tr>
+</tbody></table>
+<p>未初始化的全局变量放在 __common 段中，已初始化的放在 __data 段中。采用数组方式初始化的 global_t1 将本数组内的所有值都放在 __data 段中；而采用指针方式初始化的 global_t2 则仅将指针放在 __data 段中，其指向 __cstring 段中的 “World”。</p>
+<h3 id="静态变量"><a href="#静态变量" class="headerlink" title="静态变量"></a>静态变量</h3><table>
+<thead>
+<tr>
+<th align="center">变量名</th>
+<th align="center">内存地址</th>
+<th align="center">所属段</th>
+<th align="center">值（十六进制）</th>
+<th align="center">值（ASCII/0x）</th>
+<th align="center">类型</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">local_stat_unin_t1</td>
+<td align="center">0x100001048</td>
+<td align="center">__bss</td>
+<td align="center">00</td>
+<td align="center"></td>
+<td align="center">char []</td>
+</tr>
+<tr>
+<td align="center">local_stat_unin_t2</td>
+<td align="center">0x100001050</td>
+<td align="center">__bss</td>
+<td align="center">00 00 00 00 00 00 00 00</td>
+<td align="center">NULL</td>
+<td align="center">char *</td>
+</tr>
+<tr>
+<td align="center">local_stat_t1</td>
+<td align="center">0x100001028</td>
+<td align="center">__data</td>
+<td align="center">54 68 69 6E 6B 00</td>
+<td align="center">Think</td>
+<td align="center">char [6]</td>
+</tr>
+<tr>
+<td align="center">local_stat_t2</td>
+<td align="center">0x100001030</td>
+<td align="center">__data</td>
+<td align="center">A4 0F 00 00 01 00 00 00</td>
+<td align="center">0x100000fa4</td>
+<td align="center">char *</td>
+</tr>
+</tbody></table>
+<p>未初始化的静态局部变量在 __bss 段中，已初始化的放在 __data 段中。采用数组方式初始化的 local_stat_t1 将本数组内的所有值都放在 __data 段中；而采用指针方式初始化的  local_stat_t2 则仅将指针放在 __data 段中，其指向 __cstring 段中的 “Free”。</p>
+<h1 id="局部变量"><a href="#局部变量" class="headerlink" title="局部变量"></a>局部变量</h1><p>分析局部变量我们直接看反汇编代码，将 clang 和 gcc 分开分析。</p>
+<h3 id="clang"><a href="#clang" class="headerlink" title="clang"></a>clang</h3><p><code>char local_t1[] = &quot;Here&quot;;</code></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">0x100000f52 &lt;+34&gt;: movl   0x51(%rip), %edi          ; &quot;Here&quot;</span><br><span class="line">0x100000f58 &lt;+40&gt;: movl   %edi, -0x15(%rbp)</span><br><span class="line">0x100000f5b &lt;+43&gt;: movb   0x4c(%rip), %dl           ; &quot;&quot;</span><br><span class="line">0x100000f61 &lt;+49&gt;: movb   %dl, -0x11(%rbp)</span><br></pre></td></tr></table></figure>
+<p>这里 rip 为指令指针寄存器，rbp 为帧指针（Frame Pointer）寄存器；mov 用来传送数据，movl 操作 32 位，movb 操作 8 位。</p>
+<p>rip 为下一指令地址即 0x100000f58，所以 0x51(%rip) 表示的就是 0x100000fa9，即 __cstring 段中的 “Here”。注意到 “Here” 实际共 5  byte，不能用 movx 指令一次移动完，所以分两次移动，一次 4 byte，一次 1  byte，这样将 “Here” 放到 -0x11(%rbp) 开始的栈中。即 local_t1 将本数组内的所有值都放栈中。</p>
+<p><code>char *local_t2 = &quot;Comes&quot;;</code></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">0x100000f3d &lt;+13&gt;: leaq   0x6a(%rip), %rcx          ; &quot;Comes&quot;</span><br><span class="line">0x100000f64 &lt;+52&gt;: movq   %rcx, -0x20(%rbp)</span><br></pre></td></tr></table></figure>
+<p>这里 rip 为指令指针寄存器，rbp 为帧指针（Frame Pointer）寄存器；lea 将地址指针写入到寄存器，leaq 操作 64 位。</p>
+<p>0x6a(%rip) 表示的是 0x100000fae，即 __cstring 段中的 “Comes”，最终这个地址被放到 -0x20(%rbp) 开始的栈中。即 local_t2 将指向 “Comes” 的指针放在栈中。</p>
+<h3 id="gcc"><a href="#gcc" class="headerlink" title="gcc"></a>gcc</h3><p><code>char local_t1[] = &quot;Here&quot;;</code></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">0000000100000f57           movl       $0x65726548, -0x10(%rbp) ## imm = 0x65726548</span><br><span class="line">0000000100000f5e           movb       $0x0, -0xc(%rbp)</span><br></pre></td></tr></table></figure>
+
+<p>这里直接将 “Here “的二进制值 48 65 72 65 00 硬编码到汇编中，将其压入栈中。和 clang 一样，local_t1将本数组内的所有值都放栈中。</p>
+<p><code>char *local_t2 = &quot;Comes&quot;;</code></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">0000000100000f62           leaq       0x3b(%rip), %rax        ## literal pool for: &quot;Comes&quot;</span><br><span class="line">0000000100000f69           movq       %rax, -0x8(%rbp)</span><br></pre></td></tr></table></figure>
+
+<p>这里和 clang 一样，不作过多解释。local_t2 将指向 “Comes” 的指针放在栈中。</p>
+<p>先说结论：采用数组方式初始化的 local_t1 将本数组内的所有值都放在栈中；而采用指针方式初始化的 local_t2 则仅将指针放在栈段中，其指向 __cstring 段中的 “Comes”。再谈谈 clang 和 gcc 的区别，主要就是在对以指针方式初始化的字符串上：clang 编译时将字符串放在 __cstring 段中，运行时从 __cstring 段复制到栈中；gcc 则在编译时直接将字符串放在代码段中，运行时直接压栈。两者的处理方式各有优缺点：clang 避免了将字符串常量放到代码段中，若代码中还有相同的字符串则可以合并为一个字符串，但运行时有复制的步骤，存在效率问题；gcc 直接将字符串放在代码段中，没有如上 clang 的好处，但运行时直接将值写入栈中，相对效率更高。</p>
+<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h3><blockquote>
+<p>可以看出，与基本类型变量不同的是，字符串变量用到了 __cstring 段用来保存字符串常量；但如果仔细分析，其实字符串同基本类型变量也没有太大差别，都遵循基本的规则。在对以数组方式初始化的局部变量的处理上，gcc 更常见，即将字符串以普通数组的方式编译；但 clang 则采用了一种“融合”的方法，将字符串所特有的 __cstring 段也利用了起来。<br>注意：这里没有介绍字符串在堆中的情况，因为在堆中的情况很简单：malloc() 申请堆空间，返回空间指针作为字符串头，按照常规方式读写或使用 string 库操作。</p>
 </blockquote>
-<p>但严格地说，__bss 段也还是占用一些可执行文件空间的，比如在段表中有  __bss 段的描述，在符号表中有 __bss 段内相关变量的描述，但这里就不是同一个概念了。</p>
-<h1 id="5、-data-段或-bss段的大小就是其内部变量大小之和吗？"><a href="#5、-data-段或-bss段的大小就是其内部变量大小之和吗？" class="headerlink" title="5、__data 段或 __bss段的大小就是其内部变量大小之和吗？"></a>5、__data 段或 __bss段的大小就是其内部变量大小之和吗？</h1><h3 id="简介-2"><a href="#简介-2" class="headerlink" title="简介"></a>简介</h3><p>既然 __data 段的内容就是其包含的变量的值，那么是不是 __data 段占用的内容空间就是其包含的各变量占用内存空间的和呢？</p>
-<h3 id="分析-1"><a href="#分析-1" class="headerlink" title="分析"></a>分析</h3><p>上图的例子中，__data 段中包含 4 个变量（global_init_a、global_init_b、local_stat_init_a 和 local_stat_init_b），其中 2 个 int、2 个 char。这么计算 __data 段应该一共占用 10  byte，但段信息却显示 __data 段一共占用了 13 byte，多出了 3 byte。</p>
-<p>如果仔细看【问3】的话，其实已经看出端倪了，这里再把 __data 段中变量的内存地址和值写的明显一点：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">global_init_a       0x100001018</span><br><span class="line">global_init_b       0x10000101c</span><br><span class="line">local_stat_init_a   0x100001020</span><br><span class="line">local_stat_init_b   0x100001024</span><br></pre></td></tr></table></figure>
+<h1 id="不同位置读取效率"><a href="#不同位置读取效率" class="headerlink" title="不同位置读取效率"></a>不同位置读取效率</h1><p>这里仅考虑局部变量，分析两种初始化方式带来的读取效率差异。因为gcc和clang处理方法基本一样，所以这里只拿 clang 来举例。</p>
+<p>代码：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">const</span> <span class="keyword">char</span> *argv[])</span> </span>&#123;</span><br><span class="line">  <span class="keyword">char</span> str1[] = <span class="string">&quot;Hello&quot;</span>;</span><br><span class="line">  <span class="keyword">char</span> *str2 = <span class="string">&quot;World&quot;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">char</span> str1_0 = str1[<span class="number">0</span>];</span><br><span class="line">  <span class="keyword">char</span> str1_1 = str1[<span class="number">1</span>];</span><br><span class="line"></span><br><span class="line">  <span class="keyword">char</span> str2_0 = str2[<span class="number">0</span>];</span><br><span class="line">  <span class="keyword">char</span> str2_1 = str2[<span class="number">1</span>];</span><br><span class="line"></span><br><span class="line">  sleep(<span class="number">-1</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="数组方式"><a href="#数组方式" class="headerlink" title="数组方式"></a>数组方式</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">char</span> str1_0 = str1[<span class="number">0</span>];</span><br><span class="line"><span class="keyword">char</span> str1_1 = str1[<span class="number">1</span>];</span><br></pre></td></tr></table></figure>
+<p>对应的汇编：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">0x100000f4a &lt;+58&gt;:  movb   -0x16(%rbp), %r8b</span><br><span class="line">0x100000f4e &lt;+62&gt;:  movb   %r8b, -0x21(%rbp)</span><br><span class="line">0x100000f52 &lt;+66&gt;:  movb   -0x15(%rbp), %r8b</span><br><span class="line">0x100000f56 &lt;+70&gt;:  movb   %r8b, -0x22(%rbp)</span><br></pre></td></tr></table></figure>
+<p>这段汇编代码很容易(注意字符串数组就在栈里)：</p>
+<ol>
+<li>取栈中对应位置的数据，交给一个寄存器；</li>
+<li>由寄存器将数据交给栈。</li>
+</ol>
+<p>为什么要一个寄存器绕一下？因为栈在内存中，不能直接内存到内存，需要寄存器作为中间人。</p>
+<h3 id="指针方式"><a href="#指针方式" class="headerlink" title="指针方式"></a>指针方式</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">char</span> str2_0 = str2[<span class="number">0</span>];</span><br><span class="line"><span class="keyword">char</span> str2_1 = str2[<span class="number">1</span>];</span><br></pre></td></tr></table></figure>
 
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">100001018   01 00 00 00 61 00 00 00</span><br><span class="line">100001020   02 00 00 00 62 00 00 00</span><br></pre></td></tr></table></figure>
+<p>对应的汇编：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">0x100000f5a &lt;+74&gt;:  movq   -0x20(%rbp), %rcx</span><br><span class="line">0x100000f5e &lt;+78&gt;:  movb   (%rcx), %r8b</span><br><span class="line">0x100000f61 &lt;+81&gt;:  movb   %r8b, -0x23(%rbp)</span><br><span class="line">0x100000f65 &lt;+85&gt;:  movq   -0x20(%rbp), %rcx</span><br><span class="line">0x100000f69 &lt;+89&gt;:  movb   0x1(%rcx), %r8b</span><br><span class="line">0x100000f6d &lt;+93&gt;:  movb   %r8b, -0x24(%rbp)</span><br></pre></td></tr></table></figure>
 
-<p>global_init_b 和 local_stat_init_a 之间间隔了 3 byte，这是内存中常见的“对齐”处理。</p>
-<p>这个对齐是从哪来的呢？不妨看看汇编代码中 __data 段部分：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">.section    __DATA,__data</span><br><span class="line">.globl    _global_init_a          ## @global_init_a</span><br><span class="line">.align    2</span><br><span class="line">_global_init_a:</span><br><span class="line">.long    1                        ## 0x1</span><br><span class="line"></span><br><span class="line">.globl    _global_init_b          ## @global_init_b</span><br><span class="line">_global_init_b:</span><br><span class="line">.byte    97                       ## 0x61</span><br><span class="line"></span><br><span class="line">.align    2                       ## @main.local_stat_init_a</span><br><span class="line">_main.local_stat_init_a:</span><br><span class="line">.long    2                        ## 0x2</span><br><span class="line"></span><br><span class="line">_main.local_stat_init_b:          ## @main.local_stat_init_b</span><br><span class="line">.byte    98                       ## 0x62</span><br></pre></td></tr></table></figure>
-
-<p>__dat a段中有两个 .align 2，意思是内存地址与 2 的 2 次幂（即 4）对齐，简单来说就是内存指针往后移动到第一个地址能被 4 整除的地址。第一个 .align 2 就是 __data 段的段首，进行对齐（__data 段信息也有类似的描述），仔细想想是不是 __data 段前面也有可能有几个 byte 没有用只拿来对齐，而又没有算到 __data 段中？第二个 .align 2 就跳过了 3 个 byte 对齐到 0x100001020。</p>
-<p>这里就不仔细介绍内存对齐的原因了，那是计算机组成原理的范畴。</p>
-<h3 id="结论-3"><a href="#结论-3" class="headerlink" title="结论"></a>结论</h3><blockquote>
-<p>__data 段或 __bss 段的大小不一定是其内部变量大小之和，一般会大于或等于其内部变量大小之和。这是内存对齐造成的。</p>
+<p>这段汇编代码多个一个步骤（注意字符串在__cstring段中）：</p>
+<ol>
+<li>从栈中取指向字符串的指针，交给一个寄存器；</li>
+<li>取指针所指地址对应位置数据，交给一个寄存器；</li>
+<li>由寄存器将数据交给栈。</li>
+</ol>
+<p>为什么这里多绕一步？因为涉及到指针所指地址转换为地址的问题。</p>
+<h3 id="小结-1"><a href="#小结-1" class="headerlink" title="小结"></a>小结</h3><blockquote>
+<p>对比两种方式可以发现，读取字符串时，数组方式只需要用到一个寄存器，而指针方式需要用到两个寄存器（需要先把指针读到寄存器），读取以数组方式初始化的字符串要比以指针方式初始化的字符串效率高。但以指针方式初始化的字符串在加载时就已经在内存中，而以数组方式初始化的字符串还要进行压栈的操作。</p>
 </blockquote>
-<h1 id="6、局部变量在内存哪个区域？已初始化和未初始化有区别吗？"><a href="#6、局部变量在内存哪个区域？已初始化和未初始化有区别吗？" class="headerlink" title="6、局部变量在内存哪个区域？已初始化和未初始化有区别吗？"></a>6、局部变量在内存哪个区域？已初始化和未初始化有区别吗？</h1><h3 id="简介-3"><a href="#简介-3" class="headerlink" title="简介"></a>简介</h3><p>上面介绍了全局变量和局部静态变量的相关内容，我们不禁好奇一般的局部变量存储在内存的哪个区域呢？是不是也在哪个段中？</p>
-<h3 id="实验-2"><a href="#实验-2" class="headerlink" title="实验"></a>实验</h3><p>我们在【问1】代码的基础上，加上一般变量：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">int</span> global_init_a = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">char</span> global_init_b = <span class="string">&#x27;a&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">int</span> global_unin_a;</span><br><span class="line"><span class="keyword">char</span> global_unin_b;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">const</span> <span class="keyword">char</span> *argv[])</span> </span>&#123;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">int</span> local_stat_init_a = <span class="number">2</span>;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> local_stat_init_b = <span class="string">&#x27;b&#x27;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">int</span> local_stat_unin_a;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> local_stat_unin_b;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">int</span> local_init_a = <span class="number">3</span>;</span><br><span class="line">  <span class="keyword">char</span> local_init_b = <span class="string">&#x27;c&#x27;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">int</span> local_unin_a;</span><br><span class="line">  <span class="keyword">char</span> local_unin_b;</span><br><span class="line"></span><br><span class="line">  sleep(<span class="number">-1</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这次我们来看看 main() 的反汇编代码：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">Test_C`main:</span><br><span class="line">    0x100000f50 &lt;+0&gt;:  pushq  %rbp</span><br><span class="line">    0x100000f51 &lt;+1&gt;:  movq   %rsp, %rbp</span><br><span class="line">    0x100000f54 &lt;+4&gt;:  subq   $0x30, %rsp</span><br><span class="line">    0x100000f58 &lt;+8&gt;:  movl   $0xffffffff, %eax         ; imm = 0xFFFFFFFF</span><br><span class="line">    0x100000f5d &lt;+13&gt;: movl   $0x0, -0x4(%rbp)</span><br><span class="line">    0x100000f64 &lt;+20&gt;: movl   %edi, -0x8(%rbp)</span><br><span class="line">    0x100000f67 &lt;+23&gt;: movq   %rsi, -0x10(%rbp)</span><br><span class="line">    0x100000f6b &lt;+27&gt;: movl   $0x3, -0x14(%rbp)</span><br><span class="line">    0x100000f72 &lt;+34&gt;: movb   $0x63, -0x15(%rbp)</span><br><span class="line">    0x100000f76 &lt;+38&gt;: movl   %eax, %edi</span><br><span class="line">    0x100000f78 &lt;+40&gt;: callq  0x100000f8a               ; symbol stub for: sleep</span><br><span class="line"><span class="meta">-&gt;</span><span class="bash">  0x100000f7d &lt;+45&gt;: xorl   %edi, %edi</span></span><br><span class="line">    0x100000f7f &lt;+47&gt;: movl   %eax, -0x24(%rbp)</span><br><span class="line">    0x100000f82 &lt;+50&gt;: movl   %edi, %eax</span><br><span class="line">    0x100000f84 &lt;+52&gt;: addq   $0x30, %rsp</span><br><span class="line">    0x100000f88 &lt;+56&gt;: popq   %rbp</span><br><span class="line">    0x100000f89 &lt;+57&gt;: retq   </span><br></pre></td></tr></table></figure>
-<p>这里 rbp 就是帧指针（Frame Pointer，指向函数活动记录的一个固定位置)，而 rsp 就是指向栈顶的指针了（这里是函数调用的基础知识，如有疑问还请查阅资料）。我们主要关注这两行</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">0x100000f6b &lt;+27&gt;: movl   $0x3, -0x14(%rbp)</span><br><span class="line">0x100000f72 &lt;+34&gt;: movb   $0x63, -0x15(%rbp)</span><br></pre></td></tr></table></figure>
-
-<p>其对应代码中的：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> local_init_a = <span class="number">3</span>;</span><br><span class="line"><span class="keyword">char</span> local_init_b = <span class="string">&#x27;c&#x27;</span>;</span><br></pre></td></tr></table></figure>
-<p>我们知道栈是往小内存地址生长的，根据反汇编代码不难看出，局部变量存储在栈中。</p>
-<p>我们不妨在运行时看看相关变量的内存地址和值：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">local_init_a    0x7fff5fbff93c</span><br><span class="line">local_init_b    0x7fff5fbff93b</span><br><span class="line">local_unin_a    0x7fff5fbff934</span><br><span class="line">local_unin_b    0x7fff5fbff933</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">7fff5fbff933    00 00 00 00 00 00 00 00</span><br><span class="line">7fff5fbff93b    63 03 00 00 00 70 F9 BF</span><br></pre></td></tr></table></figure>
-<p>也可以看出这些局部变量都按顺序存储在栈中。</p>
-<h3 id="结论-4"><a href="#结论-4" class="headerlink" title="结论"></a>结论</h3><blockquote>
-<p>局部变量存储在栈中，已初始化和未初始化没有区别。</p>
+<h1 id="写字符串时的危险"><a href="#写字符串时的危险" class="headerlink" title="写字符串时的危险"></a>写字符串时的危险</h1><p>这里介绍字符串在栈中时，可能对程序造成的破坏。实际介绍的就是 C 中危险的指针操作，<strong>不仅限于字符串，只要涉及到指针操作都可能造成下面说到的破坏。</strong></p>
+<h3 id="例一"><a href="#例一" class="headerlink" title="例一"></a>例一</h3><p>在栈中时，指向字符串的指针不仅能够修改字符串本身，还能不经意间修改其他变量的值。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">const</span> <span class="keyword">char</span> *argv[])</span> </span>&#123;</span><br><span class="line">  <span class="keyword">int</span> a = <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">char</span> str[] = <span class="string">&quot;World&quot;</span>;</span><br><span class="line">  <span class="keyword">int</span> b = <span class="number">2</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">char</span> *str_ptr = &amp;str[<span class="number">0</span>];</span><br><span class="line">  *(str_ptr + <span class="number">6</span>) = <span class="string">&#x27;W&#x27;</span>;</span><br><span class="line">  *(str_ptr - <span class="number">3</span>) = <span class="string">&#x27;o&#x27;</span>; <span class="comment">// align</span></span><br><span class="line"></span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;a=%d, b=%d, str=\&quot;%s\&quot;\n&quot;</span>, a, b, str);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出为：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">a=87, b=1862270978, str=&quot;World&quot;</span><br></pre></td></tr></table></figure>
+<p>简单解释下，因为 a 先入栈，”World” 随后入栈，b 最后入栈，此时指针 str_ptr 指向 ‘W’。注意栈的增长方向是像内存地址更小的方向，str_ptr + 6 已经超出字符串范围，到达了 b 的内存区域，这时在修改b的值；str_ptr - 3 修改的是 a 的最低一个 byte，所以 a 的值变为 ‘o’，即 87，至于为什么不是 str_ptr - 1，是因为涉及到内存对齐的问题。</p>
+<h3 id="例二"><a href="#例二" class="headerlink" title="例二"></a>例二</h3><p>C 中函数调用时的返回地址、保存的寄存器的值等也是在栈中，指针操作还能威胁到整个程序的顺利运行。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">write_str</span><span class="params">(<span class="keyword">char</span> *str)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">2</span>; i &lt; <span class="number">40</span>; i++) &#123;</span><br><span class="line">    *(str + i) = <span class="string">&#x27;d&#x27;</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">const</span> <span class="keyword">char</span> *argv[])</span> </span>&#123;</span><br><span class="line">  <span class="keyword">char</span> str[] = <span class="string">&quot;World&quot;</span>;</span><br><span class="line">  <span class="keyword">char</span> *str_ptr = &amp;str[<span class="number">0</span>];</span><br><span class="line"></span><br><span class="line">  write_str(str);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>程序执行，在 return 0 时会提示程序出错 Thread 1: EXC_BAD_ACCESS (code=EXC_i386_GPLFT)。</p>
+<p>这里是因为操作字符串指针持续向栈底方向写数据，破坏了程序的活动记录（Activate Record），造成程序出错。</p>
+<h3 id="小结-2"><a href="#小结-2" class="headerlink" title="小结"></a>小结</h3><blockquote>
+<p>指针操作一定要慎重！</p>
 </blockquote>
-<h1 id="7、全局变量、静态变量和局部变量的默认值都是-0-吗？"><a href="#7、全局变量、静态变量和局部变量的默认值都是-0-吗？" class="headerlink" title="7、全局变量、静态变量和局部变量的默认值都是 0 吗？"></a>7、全局变量、静态变量和局部变量的默认值都是 0 吗？</h1><h3 id="简介-4"><a href="#简介-4" class="headerlink" title="简介"></a>简介</h3><p>未初始化的全局变量、静态变量和局部变量在程序运行时都会占用内存空间，也就是说都会有一个默认值（就是所在位置内存的值），那么这些默认值都会是 0 吗？</p>
-<p>这个问题的答案在刚开始学 C 语言的时候就知道了：全局变量和静态变量的默认值是 0，局部变量的默认值不确定。这里就来仔细分析一下为什么会是这样。</p>
-<h3 id="分析-2"><a href="#分析-2" class="headerlink" title="分析"></a>分析</h3><h4 id="全局变量、静态变量"><a href="#全局变量、静态变量" class="headerlink" title="全局变量、静态变量"></a>全局变量、静态变量</h4><p>全局变量和局部静态变量都是存储在 __bss 段和 __common 段的，关于默认值只需要以段为单位分析就好了，这里以 __bss 段为例。</p>
-<p>再看看 __bss 段信息：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">ection</span><br><span class="line">  sectname __bss</span><br><span class="line">   segname __DATA</span><br><span class="line">      addr 0x0000000100001028</span><br><span class="line">      size 0x0000000000000005</span><br><span class="line">    offset 0</span><br><span class="line">     align 2^2 (4)</span><br><span class="line">    reloff 0</span><br><span class="line">    nreloc 0</span><br><span class="line">      type S_ZEROFILL</span><br></pre></td></tr></table></figure>
-<p>注意到 <strong>type S_ZEROFILL</strong>，就是要求此段内容全部填充 0.<br>作为佐证，再看看汇编代码 __bss 段部分：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">.zerofill __DATA,__bss,_main.local_stat_unin_a,4,2 ## @main.local_stat_unin_a</span><br><span class="line">.zerofill __DATA,__bss,_main.local_stat_unin_b,1,0 ## @main.local_stat_unin_b</span><br></pre></td></tr></table></figure>
-<p><strong>.zerofill</strong> 指令就是对指定内存地址，指定长度填充 0。</p>
-<p>这里再来理一遍：可执行文件在装载时，很据段表得到 __bss 段内存起始位置和大小，为其分配空间后将此内存空间全部填充 0。程序运行时相应变量的内存值就是全 0，在 C 语言中就是对应各种变量类型的默认值。</p>
-<h3 id="局部变量"><a href="#局部变量" class="headerlink" title="局部变量"></a>局部变量</h3><p>在【问5】的反汇编代码中并不存在对未初始化局部变量填充 0 的代码，而仅仅是为其分配了空间，所以局部变量的默认值是不确定的。（但查看内存还是发现这些未初始化的局部变量的值都是默认值，还不太清楚是什么时候填充 0 的）</p>
-<h3 id="原因分析"><a href="#原因分析" class="headerlink" title="原因分析"></a>原因分析</h3><p>为什么全局变量和静态变量默认值是 0，而局部变量不确定？其实很容易理解。全局变量和静态变量存储在 __bss 段和 __common 段中，装载时内存地址已知，填充 0 开销不太大，且全局变量和静态变量作用于整个程序生命周期，对其进行初始化也是有价值的。反观局部变量，局部变量数量众多，生命周期短，存储在栈中且内存地址不能事先确定，如果每次都对局部变量填充 0 初始化，不仅消耗资源，且收益较小，得不偿失。</p>
-<h3 id="结论-5"><a href="#结论-5" class="headerlink" title="结论"></a>结论</h3><blockquote>
-<p>全局变量和静态变量的默认值是 0，局部变量的默认值不确定</p>
-</blockquote>
-<h1 id="8、const-修饰的变量在内存中位置会有不同吗？"><a href="#8、const-修饰的变量在内存中位置会有不同吗？" class="headerlink" title="8、const 修饰的变量在内存中位置会有不同吗？"></a>8、const 修饰的变量在内存中位置会有不同吗？</h1><h3 id="简介-5"><a href="#简介-5" class="headerlink" title="简介"></a>简介</h3><p>const 修饰的变量会变成常量，其值不能再更改，那这些变量会放在哪里呢？</p>
-<h3 id="实验-3"><a href="#实验-3" class="headerlink" title="实验"></a>实验</h3><p>在【问5】的代码基础上，我们为每个变量都增加一个 const 版：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">int</span> global_init_a = <span class="number">1</span>;</span><br><span class="line"><span class="keyword">char</span> global_init_b = <span class="string">&#x27;a&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> <span class="keyword">int</span> global_con_init_a = <span class="number">2</span>;</span><br><span class="line"><span class="keyword">const</span> <span class="keyword">char</span> global_con_init_b = <span class="string">&#x27;b&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">int</span> global_unin_a;</span><br><span class="line"><span class="keyword">char</span> global_unin_b;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> <span class="keyword">int</span> global_con_unin_a;</span><br><span class="line"><span class="keyword">const</span> <span class="keyword">char</span> global_con_unin_b;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">const</span> <span class="keyword">char</span> *argv[])</span> </span>&#123;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">int</span> local_stat_init_a = <span class="number">3</span>;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> local_stat_init_b = <span class="string">&#x27;c&#x27;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">const</span> <span class="keyword">static</span> <span class="keyword">int</span> local_con_stat_init_a = <span class="number">4</span>;</span><br><span class="line">  <span class="keyword">const</span> <span class="keyword">static</span> <span class="keyword">char</span> local_con_stat_init_b = <span class="string">&#x27;d&#x27;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">int</span> local_stat_unin_a;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> local_stat_unin_b;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">const</span> <span class="keyword">static</span> <span class="keyword">int</span> local_con_stat_unin_a;</span><br><span class="line">  <span class="keyword">const</span> <span class="keyword">static</span> <span class="keyword">char</span> local_con_stat_unin_b;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">int</span> local_init_a = <span class="number">5</span>;</span><br><span class="line">  <span class="keyword">char</span> local_init_b = <span class="string">&#x27;e&#x27;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">const</span> <span class="keyword">int</span> local_con_init_a = <span class="number">6</span>;</span><br><span class="line">  <span class="keyword">const</span> <span class="keyword">char</span> local_con_init_b = <span class="string">&#x27;f&#x27;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">int</span> local_unin_a;</span><br><span class="line">  <span class="keyword">char</span> local_unin_b;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">const</span> <span class="keyword">int</span> local_con_unin_a;</span><br><span class="line">  <span class="keyword">const</span> <span class="keyword">char</span> local_con_unin_b;</span><br><span class="line"></span><br><span class="line">  sleep(<span class="number">-1</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<h3 id="全局变量、静态变量-1"><a href="#全局变量、静态变量-1" class="headerlink" title="全局变量、静态变量"></a>全局变量、静态变量</h3><p>看看相关的段信息：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line">Section</span><br><span class="line">  sectname __text</span><br><span class="line">   segname __TEXT</span><br><span class="line">      addr 0x0000000100000f30</span><br><span class="line">      size 0x0000000000000045</span><br><span class="line">    offset 3888</span><br><span class="line">     align 2^4 (16)</span><br><span class="line">    reloff 0</span><br><span class="line">    nreloc 0</span><br><span class="line">      type S_REGULAR</span><br><span class="line">Section</span><br><span class="line">  sectname __const</span><br><span class="line">   segname __TEXT</span><br><span class="line">      addr 0x0000000100000f98</span><br><span class="line">      size 0x000000000000001d</span><br><span class="line">    offset 3992</span><br><span class="line">     align 2^2 (4)</span><br><span class="line">    reloff 0</span><br><span class="line">    nreloc 0</span><br><span class="line">      type S_REGULAR</span><br><span class="line">Section</span><br><span class="line">  sectname __data</span><br><span class="line">   segname __DATA</span><br><span class="line">      addr 0x0000000100001018</span><br><span class="line">      size 0x000000000000000d</span><br><span class="line">    offset 4120</span><br><span class="line">     align 2^2 (4)</span><br><span class="line">    reloff 0</span><br><span class="line">    nreloc 0</span><br><span class="line">      type S_REGULAR</span><br><span class="line">Section</span><br><span class="line">  sectname __bss</span><br><span class="line">   segname __DATA</span><br><span class="line">      addr 0x0000000100001028</span><br><span class="line">      size 0x0000000000000005</span><br><span class="line">    offset 0</span><br><span class="line">     align 2^2 (4)</span><br><span class="line">    reloff 0</span><br><span class="line">    nreloc 0</span><br><span class="line">      type S_ZEROFILL</span><br><span class="line">Section</span><br><span class="line">  sectname __common</span><br><span class="line">   segname __DATA</span><br><span class="line">      addr 0x0000000100001030</span><br><span class="line">      size 0x0000000000000005</span><br><span class="line">    offset 0</span><br><span class="line">     align 2^2 (4)</span><br><span class="line">    reloff 0</span><br><span class="line">    nreloc 0</span><br><span class="line">      type S_ZEROFILL</span><br></pre></td></tr></table></figure>
-<p>再看看相关的符号表：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">0000000100000f98 (__TEXT,__const) external _global_con_init_a</span><br><span class="line">0000000100000f9c (__TEXT,__const) external _global_con_init_b</span><br><span class="line">0000000100000fa0 (__TEXT,__const) non-external _main.local_con_stat_init_a</span><br><span class="line">0000000100000fa4 (__TEXT,__const) non-external _main.local_con_stat_init_b</span><br><span class="line">0000000100000fa8 (__TEXT,__const) non-external _main.local_con_stat_unin_a</span><br><span class="line">0000000100000fac (__TEXT,__const) non-external _main.local_con_stat_unin_b</span><br><span class="line">0000000100000fb0 (__TEXT,__const) external _global_con_unin_a</span><br><span class="line">0000000100000fb4 (__TEXT,__const) external _global_con_unin_b</span><br><span class="line">0000000100001018 (__DATA,__data) external _global_init_a</span><br><span class="line">000000010000101c (__DATA,__data) external _global_init_b</span><br><span class="line">0000000100001020 (__DATA,__data) non-external _main.local_stat_init_a</span><br><span class="line">0000000100001024 (__DATA,__data) non-external _main.local_stat_init_b</span><br><span class="line">0000000100001028 (__DATA,__bss) non-external _main.local_stat_unin_a</span><br><span class="line">000000010000102c (__DATA,__bss) non-external _main.local_stat_unin_b</span><br><span class="line">0000000100001030 (__DATA,__common) external _global_unin_a</span><br><span class="line">0000000100001034 (__DATA,__common) external _global_unin_b</span><br></pre></td></tr></table></figure>
-<p>最后看看 __const 段的内容：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Contents of (__TEXT,__const) section</span><br><span class="line">0000000100000f98           02 00 00 00 62 00 00 00 04 00 00 00 64 00 00 00</span><br><span class="line">0000000100000fa8           00 00 00 00 00 00 00 00 00 00 00 00 00</span><br></pre></td></tr></table></figure>
-<p>可以发现 所有以 const 修饰的全局变量和局部静态变量都放在了只读的 __const 段中。与不加 const 修饰的全局变量和局部静态变量相比，主要有以下几个区别：</p>
-<ul>
-<li>暴露在外（external）的全局变量和内部（non-external）的局部静态变量都在 __const 段中；</li>
-<li>已初始化和未初始化的变量都在 __const 段中；</li>
-<li>__const 段没有如 __bss 段节约可执行文件空间的特性。</li>
-</ul>
-<p>也就是说，未初始化的全局变量和局部静态变量都会占用可执行文件空间。</p>
-<h3 id="局部变量-1"><a href="#局部变量-1" class="headerlink" title="局部变量"></a>局部变量</h3><p>我们还是照【问5】来判断局部变量所在的位置。</p>
-<p>反汇编：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">Test_C`main:</span><br><span class="line">    0x100000f30 &lt;+0&gt;:  pushq  %rbp</span><br><span class="line">    0x100000f31 &lt;+1&gt;:  movq   %rsp, %rbp</span><br><span class="line">    0x100000f34 &lt;+4&gt;:  subq   $0x40, %rsp</span><br><span class="line">    0x100000f38 &lt;+8&gt;:  movl   $0xffffffff, %eax         ; imm = 0xFFFFFFFF</span><br><span class="line">    0x100000f3d &lt;+13&gt;: movl   $0x0, -0x4(%rbp)</span><br><span class="line">    0x100000f44 &lt;+20&gt;: movl   %edi, -0x8(%rbp)</span><br><span class="line">    0x100000f47 &lt;+23&gt;: movq   %rsi, -0x10(%rbp)</span><br><span class="line">    0x100000f4b &lt;+27&gt;: movl   $0x5, -0x14(%rbp)</span><br><span class="line">    0x100000f52 &lt;+34&gt;: movb   $0x65, -0x15(%rbp)</span><br><span class="line">    0x100000f56 &lt;+38&gt;: movl   $0x6, -0x1c(%rbp)</span><br><span class="line">    0x100000f5d &lt;+45&gt;: movb   $0x66, -0x1d(%rbp)</span><br><span class="line">    0x100000f61 &lt;+49&gt;: movl   %eax, %edi</span><br><span class="line">    0x100000f63 &lt;+51&gt;: callq  0x100000f76               ; symbol stub for: sleep</span><br><span class="line"><span class="meta">-&gt;</span><span class="bash">  0x100000f68 &lt;+56&gt;: xorl   %edi, %edi</span></span><br><span class="line">    0x100000f6a &lt;+58&gt;: movl   %eax, -0x34(%rbp)</span><br><span class="line">    0x100000f6d &lt;+61&gt;: movl   %edi, %eax</span><br><span class="line">    0x100000f6f &lt;+63&gt;: addq   $0x40, %rsp</span><br><span class="line">    0x100000f73 &lt;+67&gt;: popq   %rbp</span><br><span class="line">    0x100000f74 &lt;+68&gt;: retq   </span><br></pre></td></tr></table></figure>
-<p>注意无 const 修饰和有 const 修饰的这4行：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">0x100000f4b &lt;+27&gt;: movl   $0x5, -0x14(%rbp)</span><br><span class="line">0x100000f52 &lt;+34&gt;: movb   $0x65, -0x15(%rbp)</span><br><span class="line">0x100000f56 &lt;+38&gt;: movl   $0x6, -0x1c(%rbp)</span><br><span class="line">0x100000f5d &lt;+45&gt;: movb   $0x66, -0x1d(%rbp)</span><br></pre></td></tr></table></figure>
-<p>说明对于已初始化局部变量，有无 const 修饰对变量所在的位置没有影响，都是按顺序在栈中。</p>
-<p>看看相关变量的内存地址和值:</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">local_init_a      0x7fff5fbff93c</span><br><span class="line">local_init_b      0x7fff5fbff93b</span><br><span class="line">local_con_init_a  0x7fff5fbff934</span><br><span class="line">local_con_init_b  0x7fff5fbff933</span><br><span class="line">local_unin_a      0x7fff5fbff92c</span><br><span class="line">local_unin_b      0x7fff5fbff92b</span><br><span class="line">local_con_unin_a  0x7fff5fbff924</span><br><span class="line">local_con_unin_b  0x7fff5fbff923</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">7fff5fbff923    00 00 00 00 00 00 00 00</span><br><span class="line">7fff5fbff92b    00 00 00 00 00 00 00 00</span><br><span class="line">7fff5fbff933    66 06 00 00 00 00 00 00</span><br><span class="line">7fff5fbff93b    65 05 00 00 00 70 F9 BF</span><br></pre></td></tr></table></figure>
-
-<p>也印证了，对于局部变量，有无 const 修饰对变量所在的位置没有影响，都是按顺序在栈中。</p>
-<h3 id="结论-6"><a href="#结论-6" class="headerlink" title="结论"></a>结论</h3><blockquote>
-<p>由 const 修饰的全局变量和局部静态变量，会放在只读的 __const 段中；而对于局部变量，是否有 const 修饰对变量的位置没有影响，都是在栈中。<br>注意这里有个问题：__const 段只读是由操作系统保护，其内部的值不能修改；但有 const 修饰的局部变量没有保护机制（因为和一般局部变量一样放在栈中），这时 C 语言想要实现 const 的功能，只能干预编译过程，实现常量化。这个问题留到以后去考虑。</p>
-</blockquote>
-<h1 id="9、-字符串存放在哪里呢？"><a href="#9、-字符串存放在哪里呢？" class="headerlink" title="9、 字符串存放在哪里呢？"></a>9、 字符串存放在哪里呢？</h1><p>字符串的情况比较特殊，将另作一篇写，请参考:<a href="https://tubetrue01.github.io/articles/2021/05/15/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E5%9B%9B)%E5%8F%98%E9%87%8F%E4%B8%8E%E5%86%85%E5%AD%98(%E4%B8%8B%E7%AF%87)">【变量与内存（下篇）】</a></p>
-<h1 id="10、那哪些变量是放在堆中的呢？"><a href="#10、那哪些变量是放在堆中的呢？" class="headerlink" title="10、那哪些变量是放在堆中的呢？"></a>10、那哪些变量是放在堆中的呢？</h1><p>在堆中的情况很简单，这里就不用实验分析了。</p>
-<p>在 C/C++ 中只要是使用到 malloc() 申请到的内存空间，全都在堆中。</p>
-<p>那么 C++ 中 new 得到的变量呢？当然也在堆里了，看看 new 的源码：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">operator</span> <span class="title">new</span> <span class="params">(<span class="built_in">std</span>::<span class="keyword">size_t</span> sz, <span class="keyword">const</span> <span class="built_in">std</span>::<span class="keyword">nothrow_t</span>&amp;)</span> _GLIBCXX_USE_NOEXCEPT</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">void</span> *p;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/* malloc (0) is unpredictable; avoid it.  */</span></span><br><span class="line">  <span class="keyword">if</span> (sz == <span class="number">0</span>)</span><br><span class="line">    sz = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">while</span> (__builtin_expect ((p = <span class="built_in">malloc</span> (sz)) == <span class="number">0</span>, <span class="literal">false</span>))</span><br><span class="line">    &#123;</span><br><span class="line">        new_handler handler = <span class="built_in">std</span>::get_new_handler ();</span><br><span class="line">        <span class="keyword">if</span> (! handler)</span><br><span class="line">          <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">        __try</span><br><span class="line">          &#123;</span><br><span class="line">            handler ();</span><br><span class="line">          &#125;</span><br><span class="line">         __catch(<span class="keyword">const</span> bad_alloc&amp;)</span><br><span class="line">          &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">          &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> p;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>new 实际就是用的 malloc() 申请堆空间，当然是在堆中了。</p>
 <hr>
 <h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
-<li><a target="_blank" rel="noopener" href="https://www.polarxiong.com/archives/C-C-%E4%B8%AD%E5%B7%B2%E5%88%9D%E5%A7%8B%E5%8C%96-%E6%9C%AA%E5%88%9D%E5%A7%8B%E5%8C%96%E5%85%A8%E5%B1%80-%E9%9D%99%E6%80%81-%E5%B1%80%E9%83%A8%E5%8F%98%E9%87%8F-%E5%B8%B8%E9%87%8F%E5%9C%A8%E5%86%85%E5%AD%98%E4%B8%AD%E7%9A%84%E4%BD%8D%E7%BD%AE.html">【原文链接】</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.polarxiong.com/archives/C%E4%B8%AD%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%9C%A8%E5%86%85%E5%AD%98%E4%B8%AD%E7%9A%84%E4%BD%8D%E7%BD%AE%E5%8F%8A%E8%AF%BB%E5%86%99%E7%AD%89%E5%88%86%E6%9E%90.html">【原文链接】</a></li>
 </ul>
 
     
@@ -415,7 +526,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2021/05/15/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E4%B8%89)%E5%8F%98%E9%87%8F%E4%B8%8E%E5%86%85%E5%AD%98(%E4%B8%8A%E7%AF%87)/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2021/05/15/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E5%9B%9B)%E5%8F%98%E9%87%8F%E4%B8%8E%E5%86%85%E5%AD%98(%E4%B8%8B%E7%AF%87)/">展开全文 >></a>
     </p>
     
 
@@ -449,7 +560,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/20/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/19/">19</a><a class="page-number" href="/articles/page/20/">20</a><span class="page-number current">21</span><a class="page-number" href="/articles/page/22/">22</a><a class="page-number" href="/articles/page/23/">23</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/42/">42</a><a class="extend next" rel="next" href="/articles/page/22/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/20/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/19/">19</a><a class="page-number" href="/articles/page/20/">20</a><span class="page-number current">21</span><a class="page-number" href="/articles/page/22/">22</a><a class="page-number" href="/articles/page/23/">23</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/43/">43</a><a class="extend next" rel="next" href="/articles/page/22/">下一页</a>
     </nav>
   
 
@@ -573,10 +684,6 @@
           <ul class="article-tag-list" q-show="showTags">
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">CMake</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
               </li>
              
@@ -585,19 +692,19 @@
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">CMake</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color5">Mini</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">C</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">Reprint</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color5">Unix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">C</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -617,19 +724,27 @@
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">Git</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">Spring</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">redis</a>
+                <a href="javascript:void(0)" class="js-tag color3">Reprint</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">Git</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">git</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">jvm</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">redis</a>
               </li>
             
             <div class="clearfix"></div>
