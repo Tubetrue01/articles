@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-cloud_native/K8s集群搭建系列(三)K8s启动" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-java_trans/[译]Java_Native_Interface(JNI)" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2020/12/22/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%89)K8s%E5%90%AF%E5%8A%A8/" target="_blank">K8s 集群搭建系列（三）K8s 启动</a>
+	  <a class="article-title" href="/articles/2021/01/16/java_trans/%5B%E8%AF%91%5DJava_Native_Interface(JNI)/" target="_blank">Java Native Interface (JNI)【译】</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2020/12/22/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%89)K8s%E5%90%AF%E5%8A%A8/" class="archive-article-date">
-        <time datetime="2020-12-22T02:06:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-12-22</time>
+<a href="/articles/2021/01/16/java_trans/%5B%E8%AF%91%5DJava_Native_Interface(JNI)/" class="archive-article-date">
+        <time datetime="2021-01-16T01:58:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-01-16</time>
 </a>
 
   
@@ -216,36 +216,242 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>安装 <a href="https://tubetrue01.github.io/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%BA%8C)Docker%E5%AE%89%E8%A3%85/">【Docker】</a> 之后，我们马上就开始进入 K8s 的搭建工作，这里采用的搭建方式是 kubeadm，省略的无所谓的步骤，让搭建尽可能简单。好了，让我们开始吧。</p>
+<p>查看关于 JNI 相关资料的时候，不巧碰到了这篇文章，通篇读了一下感觉写的很不错，所以拿过来翻译了一下，由于翻译的比较快，有些细节方面的工作可能做的不是很到位，不过后期会进行相关修正，这里先放上来尝尝鲜。<br>如果你也对 JNI 比较感兴趣，并且打算深入学习，那么本文将会是一个不错的选择。</p>
 </blockquote>
-<h1 id="K8s-搭建"><a href="#K8s-搭建" class="headerlink" title="K8s 搭建"></a>K8s 搭建</h1><ul>
-<li><strong>关闭 selinux 以及防火墙</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# setenforce 0</span><br><span class="line">[root@localhost ~]# sed -i &quot;s/^SELINUX=enforcing/SELINUX=disabled/g&quot; /etc/sysconfig/selinux </span><br><span class="line">[root@localhost ~]# systemctl disable firewalld &amp;&amp; systemctl stop firewalld</span><br></pre></td></tr></table></figure></li>
-<li><strong>K8s 安装</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 添加源</span></span><br><span class="line">cat &lt;&lt;EOF &gt; /etc/yum.repos.d/kubernetes.repo</span><br><span class="line">[kubernetes]</span><br><span class="line">name=Kubernetes</span><br><span class="line">baseurl=http://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64</span><br><span class="line">enabled=1</span><br><span class="line">gpgcheck=0</span><br><span class="line">repo_gpgcheck=0</span><br><span class="line">gpgkey=http://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg</span><br><span class="line">       http://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg</span><br><span class="line">EOF</span><br><span class="line"><span class="meta">#</span><span class="bash"> 注意 kubelet、kubectl、kubeadm 的版本</span></span><br><span class="line">[root@localhost ~]# yum install -y kubelet-1.19.0 kubectl-1.19.0 kubeadm-1.19.0</span><br></pre></td></tr></table></figure></li>
-<li><strong>开启自启 kubelet</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~] systemctl enable kubelet</span><br></pre></td></tr></table></figure></li>
-<li><strong>Docker 驱动修改</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# vim /etc/docker/daemon.json</span><br><span class="line"><span class="meta">#</span><span class="bash"> 添加以下内容到文件</span></span><br><span class="line">&quot;exec-opts&quot;: [&quot;native.cgroupdriver=systemd&quot;]</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 最终你看到的文件内容为</span></span><br><span class="line">&#123;</span><br><span class="line">  &quot;registry-mirrors&quot;: [</span><br><span class="line">    &quot;https://registry.docker-cn.com&quot;</span><br><span class="line">  ],</span><br><span class="line">  &quot;exec-opts&quot;: [&quot;native.cgroupdriver=systemd&quot;]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
-<li><strong>关闭 swap</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# swapoff -a &amp;&amp; sed -i &#x27;/ swap / s/^/#/&#x27; /etc/fstab</span><br></pre></td></tr></table></figure></li>
+<h2 id="1-0-JNI-概述"><a href="#1-0-JNI-概述" class="headerlink" title="1.0 JNI 概述"></a>1.0 JNI 概述</h2><ul>
+<li><strong>什么是 JNI ？</strong><br>JNI 是 Java 与其他语言交互的一个桥梁。</li>
+<li><strong>为什么要有 JNI ？</strong><ul>
+<li>代码的可重用性<ol>
+<li>用 Java 重用现有的以及一些较老的代码（更多是用 C/C++ 编写的）。</li>
+</ol>
+</li>
+<li>性能<ol>
+<li>解释模式下，本地代码的速度最快于 Java 20 倍左右。</li>
+<li>现代的即使编译器（HotSpot）使其成为一个争议点。</li>
+</ol>
+</li>
+<li>可以使 Java 调用一些底层的进程，如：O/S, H/W。</li>
 </ul>
-<p><strong>到目前为止，通用的配置我们已经准备好了，剩下的步骤要分为两部分进行，一个是控制平面的搭建，一个是从工作节点的搭建。由于我们目前只有一台虚拟机，如果要从头开始搭建工作节点，那么就太麻烦了。我们关机利用 VMware 克隆出（完整克隆）另一台机器来。还有一点需要注意的是，因为是完整克隆，所以 ip 地址也一并克隆了下来，所以我们一定要记得修改工作节点的 ip 地址。</strong></p>
-<h1 id="控制平面"><a href="#控制平面" class="headerlink" title="控制平面"></a>控制平面</h1><ul>
-<li><strong>命名主机名</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# hostnamectl --static set-hostname master</span><br></pre></td></tr></table></figure></li>
-<li><strong>iptables 配置</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# echo &quot;1&quot; &gt; /proc/sys/net/bridge/bridge-nf-call-iptables</span><br></pre></td></tr></table></figure></li>
-<li><strong>控制平面初始化</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~] kubeadm init \</span><br><span class="line">--image-repository registry.cn-hangzhou.aliyuncs.com/google_containers \</span><br><span class="line">--apiserver-advertise-address 0.0.0.0 \</span><br><span class="line">--apiserver-bind-port 6443 \</span><br><span class="line">--cert-dir /etc/kubernetes/pki \</span><br><span class="line">--pod-network-cidr 10.244.0.0/16 \</span><br><span class="line">--kubernetes-version 1.19.0 \</span><br><span class="line">--service-dns-domain cluster.local \</span><br><span class="line">--upload-certs \</span><br><span class="line">--v=8 </span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 记录最后一行的 token 信息</span></span><br><span class="line">kubeadm join 192.168.133.128:6443 --token 2kql8o.jfotaacxgf2k5u1s \</span><br><span class="line">    --discovery-token-ca-cert-hash sha256:31770c7d57bbf9089d82a79e84e97bd5c1999b2a98c3543d8dc235025a36c9fa </span><br></pre></td></tr></table></figure></li>
-<li><strong>开启 kubelet</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~] systemctl start kubelet</span><br><span class="line">[root@master ~] systemctl status kubelet</span><br></pre></td></tr></table></figure></li>
-<li><strong>导出 kubectl 配置</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~] export KUBECONFIG=/etc/kubernetes/admin.conf</span><br></pre></td></tr></table></figure></li>
-<li><strong>安装网络组件</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~] kubectl apply -f &quot;https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d &#x27;\n&#x27;)&quot;</span><br></pre></td></tr></table></figure></li>
-<li><strong>监控节点信息</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~]# kubectl get node -w</span><br><span class="line">NAME     STATUS   ROLES    AGE     VERSION</span><br><span class="line">master   Ready    master   4m44s   v1.19.0</span><br></pre></td></tr></table></figure>
-至此，控制平面完成，我们开始准备工作节点。<h1 id="工作节点"><a href="#工作节点" class="headerlink" title="工作节点"></a>工作节点</h1></li>
-<li><strong>命名主机名</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# hostnamectl --static set-hostname node-1</span><br></pre></td></tr></table></figure></li>
-<li><strong>iptables 配置</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# echo &quot;1&quot; &gt; /proc/sys/net/bridge/bridge-nf-call-iptables</span><br></pre></td></tr></table></figure></li>
-<li><strong>加入集群</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 执行以下命令</span></span><br><span class="line">[root@localhost ~] kubeadm join 192.168.133.128:6443 --token 2kql8o.jfotaacxgf2k5u1s \</span><br><span class="line">    --discovery-token-ca-cert-hash sha256:31770c7d57bbf9089d82a79e84e97bd5c1999b2a98c3543d8dc235025a36c9fa </span><br></pre></td></tr></table></figure></li>
+</li>
+<li><strong>JNI 不可移植</strong></li>
 </ul>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>JNI 还可以用于本地编写的程序（如：C/C++）调用 Java 代码；<br>比如 Java 的命令行工具（Java 虚拟机启动 Java 代码）。</p>
+</blockquote>
+<h1 id="2-0-JNI-组件"><a href="#2-0-JNI-组件" class="headerlink" title="2.0 JNI 组件"></a>2.0 JNI 组件</h1><ul>
+<li><strong>javah</strong>  将包含 <strong>native</strong> 方法的 Java 类编译成 C 风格头文件的 JDK 工具<br>将 Java 方法签名转化为本地函数原型。</li>
+<li><strong>jni.h</strong> JDK 包含的 C/C++ 头文件，用于将 Java 类型映射为本地对应的类型<br>javah 会自动引入该文件到应用程序的头文件中。</li>
+</ul>
+<h1 id="3-0-JNI-开发-（Java）"><a href="#3-0-JNI-开发-（Java）" class="headerlink" title="3.0 JNI 开发 （Java）"></a>3.0 JNI 开发 （Java）</h1><ol>
+<li>创建一个包含 <strong>native</strong> 方法的 Java 类<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title">sayHi</span><span class="params">(String who, <span class="keyword">int</span> times)</span></span>;</span><br></pre></td></tr></table></figure></li>
+<li>载入实现该方法的库<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">System.loadLibrary(<span class="string">&quot;HelloImpl&quot;</span>);</span><br></pre></td></tr></table></figure></li>
+<li>Java 调用本地方法</li>
+</ol>
+<p><strong>Demo</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.marakana.jniexamples;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Hello</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title">sayHi</span><span class="params">(String who, <span class="keyword">int</span> times)</span></span>;   <span class="comment">// 1</span></span><br><span class="line">    <span class="comment">// 2</span></span><br><span class="line">    <span class="keyword">static</span> &#123;</span><br><span class="line">        System.loadLibrary(<span class="string">&quot;HelloImpl&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span> <span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        Hello hello = <span class="keyword">new</span> Hello();</span><br><span class="line">        hello.sayHi(args[<span class="number">0</span>], Integer.parseInt(args[<span class="number">1</span>])); <span class="comment">// 3</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其中：<br>1、3 C/C++ 将实现 <strong>sayHi</strong> 方法，并且编译成库文件<br>2 库的名称：</p>
+<ul>
+<li><strong>Linux</strong><br>libHelloImpl.so</li>
+<li><strong>Windows</strong><br>HelloImpl.dll</li>
+<li><strong>macOS</strong><br>libHelloImpl.jnilib</li>
+</ul>
+<p><strong>注意：</strong></p>
+<blockquote>
+<p>Java 载入的库叫 <strong>HelloImpl</strong>。</p>
+</blockquote>
+<h1 id="4-0-JNI-开发（C）"><a href="#4-0-JNI-开发（C）" class="headerlink" title="4.0 JNI 开发（C）"></a>4.0 JNI 开发（C）</h1><ul>
+<li>我们用 JDK 提供的工具 javah 生成包含 sayHi 方法原型的头文件 package_name_classname.h。<ol>
+<li><strong>编译生成 class 文件</strong><br>javac -d ./classes/ ./src/com/marakana/jniexamples/Hello.java</li>
+<li><strong>生成 com_marakana_jniexamples_Hello.h 头文件</strong><br>javah -jni com.marakana.jniexamples.Hello</li>
+</ol>
+</li>
+<li>我们接着创建 com_marakana_jniexamples_Hello.c 来实现 Java_com_marakana_jniexamples_Hello_sayHi 函数。</li>
+</ul>
+<p>com_marakana_jniexamples_Hello.h 文件如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;jni.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function">JNIEXPORT <span class="keyword">void</span> JNICALL <span class="title">Java_com_marakana_jniexamples_Hello_sayHi</span></span></span><br><span class="line"><span class="function">  <span class="params">(JNIEnv *, jobject, jstring, jint)</span></span>;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>Hello.c  文件如下图：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;com_marakana_jniexamples_Hello.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function">JNIEXPORT <span class="keyword">void</span> JNICALL <span class="title">Java_com_marakana_jniexamples_Hello_sayHi</span><span class="params">(JNIEnv *env, jobject obj, jstring who, jint times)</span> </span>&#123;</span><br><span class="line">  jint i;</span><br><span class="line">  jboolean iscopy;</span><br><span class="line">  <span class="keyword">const</span> <span class="keyword">char</span> *name;</span><br><span class="line">  name = (*env) -&gt; GetStringUTFChars(env, who, &amp;iscopy);</span><br><span class="line">  <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; times; i++) &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Hello %s\n&quot;</span>, name);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1 id="5-0-JNI-开发-编译"><a href="#5-0-JNI-开发-编译" class="headerlink" title="5.0 JNI 开发 (编译)"></a>5.0 JNI 开发 (编译)</h1><ul>
+<li>我们接下来编译并且运行它（不同的系统会有不同的编译结果）。</li>
+<li>生成相应的库 libHelloImpl.so, HelloImpl.dll, libHelloImpl.jnilib。</li>
+<li>设置 LD_LIBRARY_PATH 为你库保存的路径。</li>
+<li>运行应用程序。</li>
+</ul>
+<p>例如：为了编译类路径中的 com_marakana_jniexamples_Hello.c 文件（前提是你得确保 .h 以及 .c 文件在那）。</p>
+<p><strong>Linux</strong></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">gcc -o libHelloImpl.so -lc -shared \</span><br><span class="line">    -I/usr/local/jdk1.6.0_03/include \</span><br><span class="line">    -I/usr/local/jdk1.6.0_03/include/linux com_marakana_jniexamples_Hello.c</span><br></pre></td></tr></table></figure>
+<p><strong>macOS</strong></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc -o libHelloImpl.jnilib -lc -shared \</span><br><span class="line">    -I/System/Library/Frameworks/JavaVM.framework/Headers com_marakana_jniexamples_Hello.c</span><br></pre></td></tr></table></figure>
+<p>设置 <strong>LD_LIBRARY_PATH</strong> 环境变量。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">export LD_LIBRARY_PATH=.</span><br></pre></td></tr></table></figure>
+<p>最后，运行你的应用程序。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">java com.marakana.jniexamples.Hello Student 5</span><br><span class="line">Hello Student</span><br><span class="line">Hello Student</span><br><span class="line">Hello Student</span><br><span class="line">Hello Student</span><br><span class="line">Hello Student</span><br></pre></td></tr></table></figure>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>比较常见的问题是 java.lang.UnsatisfiedLinkError 错误，而导致该错误的一般问题是共享库名称的错误、库并没有在指定的搜索路径上或者 Java 代码载入了错误的库。</p>
+</blockquote>
+<h1 id="6-0-类型转换"><a href="#6-0-类型转换" class="headerlink" title="6.0 类型转换"></a>6.0 类型转换</h1><ul>
+<li>一般情况，程序需要向本地方法传递参数以及接收本地方法的返回值。</li>
+<li>Java 中存在两种类型：<br>原始类型，如：int、float、char 等。<br>引用类型，如：数组、字符串、实例、Classes 对象等。</li>
+<li>然而，原始类型与引用类型在 JNI 中有不同的处理方式。<ol>
+<li>在 JNI 中映射原始类型比较简单。</li>
+</ol>
+</li>
+</ul>
+<p><strong>Table 3. JNI 数据类型映射</strong></p>
+<table>
+<thead>
+<tr>
+<th align="center">Java 类型</th>
+<th align="center">本地类型</th>
+<th align="center">描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">boolean</td>
+<td align="center">jboolean</td>
+<td align="center">8 bits, unsigned</td>
+</tr>
+<tr>
+<td align="center">byte</td>
+<td align="center">jbyte</td>
+<td align="center">8 bits, signed</td>
+</tr>
+<tr>
+<td align="center">char</td>
+<td align="center">jchar</td>
+<td align="center">16 bits, unsigned</td>
+</tr>
+<tr>
+<td align="center">double</td>
+<td align="center">jdouble</td>
+<td align="center">64 bits</td>
+</tr>
+<tr>
+<td align="center">float</td>
+<td align="center">jfloat</td>
+<td align="center">32 bits</td>
+</tr>
+<tr>
+<td align="center">int</td>
+<td align="center">jint</td>
+<td align="center">32 bits, signed</td>
+</tr>
+<tr>
+<td align="center">long</td>
+<td align="center">jlong</td>
+<td align="center">64 bits, signed</td>
+</tr>
+<tr>
+<td align="center">short</td>
+<td align="center">jshort</td>
+<td align="center">16 bits, signed</td>
+</tr>
+<tr>
+<td align="center">void</td>
+<td align="center">void</td>
+<td align="center">N/A</td>
+</tr>
+</tbody></table>
+<ol start="2">
+<li>映射对象类型会更加复杂一点。这里我们主要关注字符串以及数组类型。不过不要着急，在我们深入探讨之前，先让我们看看本地方法的参数们。</li>
+</ol>
+<ul>
+<li>JNI 把这些对象作为不透明引用传递给本地方法。</li>
+<li>不透明引用是 C 指针的一种类型，它指向 JVM 内部的数据结构</li>
+</ul>
+<p>让我们考虑以下 Java class：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.marakana.jniexamples;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HelloName</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title">sayHelloName</span><span class="params">(String name)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">static</span> &#123;</span><br><span class="line">        System.loadLibrary(<span class="string">&quot;helloname&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span> <span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        HelloName hello = <span class="keyword">new</span> HelloName();</span><br><span class="line">        String name = <span class="string">&quot;John&quot;</span>;</span><br><span class="line">        hello.sayHelloName(name);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>.h 文件看起来如下所示：</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;jni.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function">JNIEXPORT <span class="keyword">void</span> JNICALL <span class="title">Java_com_marakana_jniexamples_HelloName_sayHelloName</span></span></span><br><span class="line"><span class="function">  <span class="params">(JNIEnv *, jclass, jstring)</span></span>;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>以下的 .c 文件并不会产生预期的结果：<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;com_marakana_jniexamples_HelloName.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function">JNIEXPORT <span class="keyword">void</span> JNICALL <span class="title">Java_com_marakana_jniexamples_HelloName_sayHelloName</span><span class="params">(JNIEnv *env, jclass class, jstring name)</span></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Hello %s&quot;</span>, name);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1 id="7-0-本地方法参数"><a href="#7-0-本地方法参数" class="headerlink" title="7.0 本地方法参数"></a>7.0 本地方法参数</h1></li>
+<li>所有的本地方法实现都接收两个标准参数：<ol>
+<li><strong>JNIEnv *env:</strong> 指向函数表（指针数组）的指针的指针。函数表中每个条目都指向一个 JNI 函数，我们可以使用这些函数进行类型转换。</li>
+<li>第二个参数依赖于本地方法是静态方法还是实例方法而不同。<br>实例方法：它是一个 <strong>jobject</strong> 参数，该参数指向方法调用者对象。<br>静态方法：它是一个 <strong>jclass</strong> 参数，该参数指向方法定义所在的 class 对象。<h1 id="8-0-字符串转换"><a href="#8-0-字符串转换" class="headerlink" title="8.0 字符串转换"></a>8.0 字符串转换</h1></li>
+</ol>
+</li>
+<li>我们刚刚讨论的 JNIEnv *env 将会作为我们接下来找到的类型转换方法的参数来使用。</li>
+<li>有很多字符串相关的方法：<ul>
+<li>一些方法将 java.lang.String 转化为 C 字符串，如：GetStringChars (Unicode format), GetStringUTFChars (UTF-8 format)</li>
+<li>一些方法转换 java.lang.String 为 C 字符串，如：NewString (Unicode format), NewStringUTF (UTF-8 format)</li>
+<li>一些方法用来释放 C 字符串内存，如：ReleaseStringChars, ReleaseStringUTFChars</li>
+</ul>
+</li>
+</ul>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>详细的内容可以参考：<a target="_blank" rel="noopener" href="http://download.oracle.com/javase/6/docs/technotes/guides/jni/spec/functions.html">http://download.oracle.com/javase/6/docs/technotes/guides/jni/spec/functions.html</a></p>
+</blockquote>
+<ul>
+<li>不知你是否还记得前一个例子，那是一个用来显示 “Hello name” 的本地方法：</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;com_marakana_jniexamples_HelloName.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function">JNIEXPORT <span class="keyword">void</span> JNICALL <span class="title">Java_com_marakana_jniexamples_HelloName_sayHelloName</span><span class="params">(JNIEnv *env, jclass class, jstring name)</span> </span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Hello %s&quot;</span>, name); <span class="comment">// 1</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>因为 jstring 类型代表的是 Java 虚拟机中的字符串类型，而跟 C 中的字符串类型 (char *) 是不同的，所以这个例子不会按照预期运行。。</p>
+<ul>
+<li>以下是你需要做的，使用  UTF-8 string：</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;com_marakana_jniexamples_HelloName.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function">JNIEXPORT <span class="keyword">void</span> JNICALL <span class="title">Java_com_marakana_jniexamples_HelloName_sayHelloName</span><span class="params">(JNIEnv *env, jclass class, jstring name)</span></span>&#123;</span><br><span class="line">    <span class="keyword">const</span> jbyte *str;</span><br><span class="line">    str = (*env)-&gt;GetStringUTFChars(env, name, <span class="literal">NULL</span>); <span class="comment">// 1</span></span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Hello %s\n&quot;</span>, str);</span><br><span class="line">    (*env)-&gt;ReleaseStringUTFChars(env, name, str); <span class="comment">// 2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>1 它返回一个指向代表 UTF-8 编码的字符串字节数组的指针（并没有产生内存复制）。<br>2   当我们并没有发生字符串复制的时候，调用 ReleaseStringUTFChars 函数可以防止字符串使用的内存区域保持固定状态。如果数据被复制，我们需要调用 ReleaseStringUTFChars 去释放那些不再使用的内存。</p>
+<ul>
+<li>这是另外一个例子，用于构造以及返回一个 java.lang.String 字符串实例：</li>
+<li><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;com_marakana_jniexamples_GetName.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function">JNIEXPORT jstring JNICALL <span class="title">Java_com_marakana_jniexamples_ReturnName_GetName</span><span class="params">(JNIEnv *env, jclass class)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">char</span> buffer[<span class="number">20</span>];</span><br><span class="line">    <span class="built_in">scanf</span>(<span class="string">&quot;%s&quot;</span>, buffer);</span><br><span class="line">    <span class="keyword">return</span> (*env)-&gt;NewStringUTF(env, buffer);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+<li>我们接下来将焦点放到原始数组上，因为它们与 JNI 中的对象数组不同。</li>
+<li>数组在 JNI 中由 jarray 引用类型及其“子类型”（例如 jintArray）表示。注意 jarray 并不是 C 数组！</li>
+<li>我们将要再一次使用 JNIEnv *env 参数访问类型转换方法<ul>
+<li>Get<Type>ArrayRegion：复制原始数组的内容到预分配的 C 缓冲区中。当数组大小已知的情况下，该方法很好用。</li>
+<li>Get<Type>ArrayElements：获取指向原始数组的指针。</li>
+<li>New<Type>Array: 创建一个指定大小的数组。</li>
+</ul>
+</li>
+<li>我们接下来看一个如何在本地环境中读取 Java 原始数组的例子。</li>
+<li>首先，看看 Java 程序：</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.marakana.jniexamples;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ArrayReader</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">native</span> <span class="keyword">int</span> <span class="title">sumArray</span><span class="params">(<span class="keyword">int</span>[] arr)</span></span>; <span class="comment">// 1</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        <span class="comment">// Array declaration</span></span><br><span class="line">        <span class="keyword">int</span> arr[] = <span class="keyword">new</span> <span class="keyword">int</span>[<span class="number">10</span>];</span><br><span class="line">        <span class="comment">// Fill the array</span></span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++) &#123;</span><br><span class="line">            arr[i] = i;</span><br><span class="line">        &#125;</span><br><span class="line">        ArrayReader reader = <span class="keyword">new</span> ArrayReader();</span><br><span class="line">        <span class="comment">// Call native method</span></span><br><span class="line">        <span class="keyword">int</span> result = reader.sumArray(arr); <span class="comment">// 2</span></span><br><span class="line">        System.out.println(<span class="string">&quot;The sum of every element in the array is &quot;</span> + Integer.toString(result));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">static</span> &#123;</span><br><span class="line">        System.loadLibrary(<span class="string">&quot;arrayreader&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>1 2 这个方法将返回数组中元素的总和。</p>
+<ul>
+<li>运行 javah 之后，创建你的 .c 文件，如下图：</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;com_marakana_jniexamples_ArrayReader.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function">JNIEXPORT jint JNICALL <span class="title">Java_com_marakana_jniexamples_ArrayReader_sumArray</span><span class="params">(JNIEnv *env, jclass class, jintArray <span class="built_in">array</span>)</span> </span>&#123;</span><br><span class="line">    jint *native_array;</span><br><span class="line">    jint i, result = <span class="number">0</span>;</span><br><span class="line">    native_array = (*env) -&gt; GetIntArrayElements(env, <span class="built_in">array</span>, <span class="literal">NULL</span>);  <span class="comment">// 1</span></span><br><span class="line">    <span class="keyword">if</span> (native_array == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++) &#123;</span><br><span class="line">        result += native_array[i];</span><br><span class="line">    &#125;</span><br><span class="line">    (*env) -&gt; ReleaseIntArrayElements(env, <span class="built_in">array</span>, native_array, <span class="number">0</span>);</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>1 由于我们恰恰知道数组的大小，所以我们也可以使用 GetIntArrayRegion 函数</p>
+<h1 id="10-在本地世界中抛出异常"><a href="#10-在本地世界中抛出异常" class="headerlink" title="10 在本地世界中抛出异常"></a>10 在本地世界中抛出异常</h1><ul>
+<li>我们将看到如何在本地世界抛出一个异常</li>
+<li>从本地世界抛出异常需要以下几个步骤：<ul>
+<li>找到你想抛出异常的类</li>
+<li>抛出一个异常</li>
+<li>删除异常类的本地引用</li>
+</ul>
+</li>
+<li>我们可以想象出这样一个实用函数：</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">ThrowExceptionByClassName</span><span class="params">(JNIEnv *env, <span class="keyword">const</span> <span class="keyword">char</span> *name, <span class="keyword">const</span> <span class="keyword">char</span> *message)</span> </span>&#123;</span><br><span class="line">  jclass <span class="class"><span class="keyword">class</span> =</span> (*env) -&gt; FindClass(env, name); <span class="comment">// 1</span></span><br><span class="line">  <span class="keyword">if</span> (class != <span class="literal">NULL</span>) &#123;</span><br><span class="line">      (*env) -&gt; ThrowNew(env, class, message); <span class="comment">// 2</span></span><br><span class="line">  &#125;</span><br><span class="line">  (*env) -&gt; DeleteLocalRef(env, class); <span class="comment">// 3</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>1 通过名字找到该异常类<br>2 使用我们之前获得的类引用和异常信息抛出异常<br>3 删除异常类的本地引用</p>
+<ul>
+<li>以下是如何使用此程序的方法</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ThrowExceptionByClassName(env,<span class="string">&quot;java/lang/IllegalArgumentException&quot;</span>,<span class="string">&quot;This exception is thrown from C code&quot;</span>);</span><br></pre></td></tr></table></figure>
+<h1 id="11-从本地代码访问属性和方法"><a href="#11-从本地代码访问属性和方法" class="headerlink" title="11 从本地代码访问属性和方法"></a>11 从本地代码访问属性和方法</h1><ul>
+<li>你可能想要通过调用本地代码来修改一些属性或者实例的调用方法</li>
+<li>总会是围绕这几个操作开始：通过调用 GetObjectClass 方法获取指向对象的引用。</li>
+<li>接着通过使用 GetFieldID 或者 GetMethodID 方法从 class 引用获取实例的字段 id 或者实例方法 id</li>
+<li>最后，不同的地方依赖于我们访问的是一个字段还是一个方法</li>
+<li>从这个 Java 类中，我们将会看到如何在本地代码中调用它的方法或者访问它的属性</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.marakana.jniexamples;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">InstanceAccess</span> </span>&#123;</span><br><span class="line">    <span class="keyword">public</span> String name; <span class="comment">// 1</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setName</span><span class="params">(String name)</span> </span>&#123; <span class="comment">// 2</span></span><br><span class="line">        <span class="keyword">this</span>.name = name;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Native method</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title">propertyAccess</span><span class="params">()</span></span>; <span class="comment">// 3</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">native</span> <span class="keyword">void</span> <span class="title">methodAccess</span><span class="params">()</span></span>; <span class="comment">// 4</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String args[])</span> </span>&#123;</span><br><span class="line">        InstanceAccess instanceAccessor = <span class="keyword">new</span> InstanceAccess();</span><br><span class="line">        <span class="comment">// Set the initial value of the name property</span></span><br><span class="line">        instanceAccessor.setName(<span class="string">&quot;Jack&quot;</span>);</span><br><span class="line">        System.out.println(<span class="string">&quot;Java: value of name = \&quot;&quot;</span>+ instanceAccessor.name +<span class="string">&quot;\&quot;&quot;</span>);</span><br><span class="line">        <span class="comment">// Call the propetyAccess() method</span></span><br><span class="line">        System.out.println(<span class="string">&quot;Java: calling propertyAccess() method...&quot;</span>);</span><br><span class="line">        instanceAccessor.propertyAccess(); <span class="comment">// 5</span></span><br><span class="line">        <span class="comment">// Value of name after calling the propertyAccess() method</span></span><br><span class="line">        System.out.println(<span class="string">&quot;Java: value of name after calling propertyAccess() = \&quot;&quot;</span>+ instanceAccessor.name +<span class="string">&quot;\&quot;&quot;</span>);</span><br><span class="line">        <span class="comment">// Call the methodAccess() method</span></span><br><span class="line">        System.out.println(<span class="string">&quot;Java: calling methodAccess() method...&quot;</span>);</span><br><span class="line">        instanceAccessor.methodAccess(); <span class="comment">// 6</span></span><br><span class="line">        System.out.println(<span class="string">&quot;Java: value of name after calling methodAccess() = \&quot;&quot;</span>+ instanceAccessor.name +<span class="string">&quot;\&quot;&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Load library</span></span><br><span class="line">    <span class="keyword">static</span> &#123;</span><br><span class="line">        System.loadLibrary(<span class="string">&quot;instanceaccess&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>1 name 属性会在代码执行的时候被修改<br>2 该方法在本地代码修改 name 属性的时候被调用<br>3 5 本地方法通过直接访问 name 属性的方式对其进行修改<br>4 6 本地方法通过调用 Java setName() 方法对 name 属性进行修改</p>
+<ul>
+<li>以下就是我们用来本地执行的 C 代码</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;com_marakana_jniexamples_InstanceAccess.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function">JNIEXPORT <span class="keyword">void</span> JNICALL <span class="title">Java_com_marakana_jniexamples_InstanceAccess_propertyAccess</span><span class="params">(JNIEnv *env, jobject object)</span></span>&#123;</span><br><span class="line">    jfieldID fieldId;</span><br><span class="line">    jstring jstr;</span><br><span class="line">    <span class="keyword">const</span> <span class="keyword">char</span> *cString;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Getting a reference to object class */</span></span><br><span class="line">    jclass <span class="class"><span class="keyword">class</span> =</span> (*env) -&gt; GetObjectClass(env, object); <span class="comment">/* 1 */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Getting the field id in the class */</span></span><br><span class="line">    fieldId = (*env) -&gt; GetFieldID(env, class, <span class="string">&quot;name&quot;</span>, <span class="string">&quot;Ljava/lang/String;&quot;</span>); <span class="comment">/* 2 */</span></span><br><span class="line">    <span class="keyword">if</span> (fieldId == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span>; <span class="comment">/* Error while getting field id */</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Getting a jstring */</span></span><br><span class="line">    jstr = (*env) -&gt; GetObjectField(env, object, fieldId); <span class="comment">/* 3 */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* From that jstring we are getting a C string: char* */</span></span><br><span class="line">    cString = (*env) -&gt; GetStringUTFChars(env, jstr, <span class="literal">NULL</span>); <span class="comment">/* 4 */</span></span><br><span class="line">    <span class="keyword">if</span> (cString == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span>;  <span class="comment">/* Out of memory */</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;C: value of name before property modification = \&quot;%s\&quot;\n&quot;</span>, cString);</span><br><span class="line">    (*env) -&gt; ReleaseStringUTFChars(env, jstr, cString);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Creating a new string containing the new name */</span></span><br><span class="line">    jstr = (*env) -&gt; NewStringUTF(env, <span class="string">&quot;Brian&quot;</span>); <span class="comment">/* 5 */</span></span><br><span class="line">    <span class="keyword">if</span> (jstr == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span>;  <span class="comment">/* Out of memory */</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/* Overwrite the value of the name property */</span></span><br><span class="line">    (*env) -&gt; SetObjectField(env, object, fieldId, jstr); <span class="comment">/* 6 */</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function">JNIEXPORT <span class="keyword">void</span> JNICALL <span class="title">Java_com_marakana_jniexamples_InstanceAccess_methodAccess</span><span class="params">(JNIEnv *env, jobject object)</span></span>&#123;</span><br><span class="line">    jclass <span class="class"><span class="keyword">class</span> =</span> (*env) -&gt; GetObjectClass(env, object); <span class="comment">/* 7 */</span></span><br><span class="line">    jmethodID methodId = (*env) -&gt; GetMethodID(env, class, <span class="string">&quot;setName&quot;</span>, <span class="string">&quot;(Ljava/lang/String;)V&quot;</span>); <span class="comment">/* 8 */</span></span><br><span class="line">    jstring jstr;</span><br><span class="line">    <span class="keyword">if</span> (methodId == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span>; <span class="comment">/* method not found */</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/* Creating a new string containing the new name */</span></span><br><span class="line">    jstr = (*env) -&gt; NewStringUTF(env, <span class="string">&quot;Nick&quot;</span>); <span class="comment">/* 9 */</span></span><br><span class="line">    (*env) -&gt; CallVoidMethod(env, object, methodId, jstr); <span class="comment">/* 10 */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>1 7 获取 class 对象的引用<br>2 从 class 对象中获取字段 Id，以及指定要获取的属性以及内部类型。可以从以下链接中获取关于 jni 类型的信息：<a target="_blank" rel="noopener" href="http://download.oracle.com/javase/6/docs/technotes/guides/jni/spec/types.html">http://download.oracle.com/javase/6/docs/technotes/guides/jni/spec/types.html</a><br>3 这里将会返回本地类型中的属性值 jstring<br>4 我们需要将 jstring 类型转换为 C 中的字符串<br>5 这里会创建出一个新的 java.lang.String 类型用以修改属性的值<br>6 将新的值设置给该属性<br>8 从先前获取到的 class 对象中通过方法的名称以及签名获取方法 id 。这里有一个用来获取方法签名的实用工具：javap -s -p ClassName for instance javap -s -p InstanceAccess<br>9 创建出一个新的 java.lang.String 对象作为从本地代码调用 java 方法的参数。<br>10 由于 Java 方法返回值类型为 void，所以调用 CallVoidMethod 方法，并且将先前创建出的 jstring 作为参数传递给它</p>
 <hr>
-<p><strong>集群到此已经搭建完成了，我们可以在控制平面查看节点信息</strong></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~]# kubectl get node -w</span><br><span class="line">NAME     STATUS   ROLES    AGE       VERSION</span><br><span class="line">master   Ready    master   10m       v1.19.0</span><br><span class="line">node-1   NotReady   &lt;none&gt;   0s      v1.19.0</span><br><span class="line">master   Ready    master   12m       v1.19.0</span><br><span class="line">node-1   Ready    &lt;none&gt;   103s      v1.19.0</span><br></pre></td></tr></table></figure>
-<p>细心的话，你会发现 node-1 对应的 ROLES 为 <none>，我们可以为它分配个角色</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~]# kubectl label node node-1 node-role.kubernetes.io/node=</span><br><span class="line">node/node-1 labeled</span><br><span class="line"><span class="meta">#</span><span class="bash"> 在观察，就正常了</span></span><br><span class="line">[root@master ~]# kubectl get node </span><br><span class="line">NAME     STATUS   ROLES    AGE     VERSION</span><br><span class="line">master   Ready    master   15m     v1.19.0</span><br><span class="line">node-1   Ready    node     5m11s   v1.19.0</span><br></pre></td></tr></table></figure>
-<hr>
-<h1 id="尾声"><a href="#尾声" class="headerlink" title="尾声"></a>尾声</h1><p>K8s 的搭建目前已经全部完毕了，如果对 Istio 感兴趣的话，可以关注 <a href="https://tubetrue01.github.io/articles/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio">【K8s 集群搭建系列（四）你好 Istio】</a>。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
+<li><a target="_blank" rel="noopener" href="https://www.protechtraining.com/content/java_fundamentals_tutorial-_java_native_interface_jni">【原文 Java Fundamentals Tutorial: Java Native Interface (JNI)】</a></li>
+</ul>
 
     
 
@@ -262,7 +468,7 @@
 		<ul class="article-tag-list">
 			 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">K8s</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color5">Java</a>
         		</li>
       		
 		</ul>
@@ -272,7 +478,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2020/12/22/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%89)K8s%E5%90%AF%E5%8A%A8/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2021/01/16/java_trans/%5B%E8%AF%91%5DJava_Native_Interface(JNI)/">展开全文 >></a>
     </p>
     
 
@@ -306,7 +512,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/33/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/32/">32</a><a class="page-number" href="/articles/page/33/">33</a><span class="page-number current">34</span><a class="page-number" href="/articles/page/35/">35</a><a class="page-number" href="/articles/page/36/">36</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/43/">43</a><a class="extend next" rel="next" href="/articles/page/35/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/33/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/32/">32</a><a class="page-number" href="/articles/page/33/">33</a><span class="page-number current">34</span><a class="page-number" href="/articles/page/35/">35</a><a class="page-number" href="/articles/page/36/">36</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/44/">44</a><a class="extend next" rel="next" href="/articles/page/35/">下一页</a>
     </nav>
   
 
@@ -430,14 +636,6 @@
           <ul class="article-tag-list" q-show="showTags">
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">CMake</a>
               </li>
              
@@ -446,11 +644,23 @@
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color5">Unix</a>
+                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">C</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">Reprint</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color5">Unix</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -459,6 +669,14 @@
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">K8s</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">Git</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">git</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -471,18 +689,6 @@
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">Spring</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">Reprint</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">Git</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">git</a>
               </li>
              
               <li class="article-tag-list-item">
