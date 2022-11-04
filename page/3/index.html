@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-cases/案例系列(一)虚拟机与容器流量调度" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-java_trans/[译]InitialRAMPercentage_MinRAMPercentage_MaxRAMPercentage之间的区别" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2022/06/18/cases/%E6%A1%88%E4%BE%8B%E7%B3%BB%E5%88%97(%E4%B8%80)%E8%99%9A%E6%8B%9F%E6%9C%BA%E4%B8%8E%E5%AE%B9%E5%99%A8%E6%B5%81%E9%87%8F%E8%B0%83%E5%BA%A6/" target="_blank">案例系列（一）虚拟机与容器流量调度</a>
+	  <a class="article-title" href="/articles/2022/08/15/java_trans/%5B%E8%AF%91%5DInitialRAMPercentage_MinRAMPercentage_MaxRAMPercentage%E4%B9%8B%E9%97%B4%E7%9A%84%E5%8C%BA%E5%88%AB/" target="_blank">InitialRAMPercentage、MinRAMPercentage, MaxRAMPercentage 之间的区别【译】</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2022/06/18/cases/%E6%A1%88%E4%BE%8B%E7%B3%BB%E5%88%97(%E4%B8%80)%E8%99%9A%E6%8B%9F%E6%9C%BA%E4%B8%8E%E5%AE%B9%E5%99%A8%E6%B5%81%E9%87%8F%E8%B0%83%E5%BA%A6/" class="archive-article-date">
-        <time datetime="2022-06-18T08:37:33.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2022-06-18</time>
+<a href="/articles/2022/08/15/java_trans/%5B%E8%AF%91%5DInitialRAMPercentage_MinRAMPercentage_MaxRAMPercentage%E4%B9%8B%E9%97%B4%E7%9A%84%E5%8C%BA%E5%88%AB/" class="archive-article-date">
+        <time datetime="2022-08-15T08:37:33.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2022-08-15</time>
 </a>
 
   
@@ -215,26 +215,38 @@
   
   <div class="article-entry" itemprop="articleBody">
     
-    <h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><blockquote>
-<p>线上并存虚拟机服务以及容器环境服务，两者存在互相调用的场景。那么如何处理这部分流量就是本文要讲解的内容。</p>
+    <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
+<p>本文主要是讲解 InitialRAMPercentage、MinRAMPercentage, MaxRAMPercentage 三个 JVM 参数之间的区别。参数由 Java 8 update 191 引入，主要是用于配置运行在物理机或者容器中的 Java 应用堆内存大小。</p>
 </blockquote>
-<h1 id="集群版本"><a href="#集群版本" class="headerlink" title="集群版本"></a>集群版本</h1><ul>
-<li>K8s 版本：v1.21.3</li>
-<li>Istio 版本：1.13.1</li>
+<h1 id="InitialRAMPercentage"><a href="#InitialRAMPercentage" class="headerlink" title="InitialRAMPercentage"></a>InitialRAMPercentage</h1><p><code>-XX:InitialRAMPercentage</code> 用于配置堆的初始化大小。假如物理机或者容器的内存大小（limit 限制）为 1 GB，<code> -XX:InitialRAMPercentage=25</code>，那么堆内存大小大概为 250 MB（1 GB 的 25%）。</p>
+<p>当 <code>-Xms</code> 参数未指定时，<code>-XX:InitialRAMPercentage</code> 用于配置堆的初始化大小。如果指定了 <code>-Xms</code> ，<code>-XX:InitialRAMPercentage</code> 将会被 JVM 忽略。</p>
+<h1 id="MaxRAMPercentage、MinRAMPercentage"><a href="#MaxRAMPercentage、MinRAMPercentage" class="headerlink" title="MaxRAMPercentage、MinRAMPercentage"></a>MaxRAMPercentage、MinRAMPercentage</h1><p>以上两个参数主要用于配置堆的最大内存大小（JDK 的开发团队起的名字 <code>-XX:MinRAMPercentage</code>   很容易让人理解为是堆的最小内存大小，然而并不是）。</p>
+<p>如果你的物理机（或容器）内存小于 <strong>250 MB</strong>（大约），那么 <code>-XX:MinRAMPercentage</code> 参数用于配置应用堆的最大内存大小。假如物理机内存大小为 100MB，<code>-XX:MinRAMPercentage=50</code>，那么应用的最大堆内存大小为 <strong>50 MB</strong>。</p>
+<p>当你的物理机（或容器）的内存大于 <strong>250 MB</strong>（大约），<code>-XX:MaxRAMPercentage</code> 参数将用于配置应用堆的最大内存大小。</p>
+<p>我们举两个例子来验证以上结论：</p>
+<ul>
+<li><h3 id="例-1：较小的宿主机内存"><a href="#例-1：较小的宿主机内存" class="headerlink" title="例 1：较小的宿主机内存"></a>例 1：较小的宿主机内存</h3>我们把容器的内存限制为 100 MB，MaxRAMPercentage 配置为 25， MinRAMPercentage 配置为 50。那么由于宿主机的内存 100 MB 小于 250 MB，所以后者的配置应该生效，也就是如图所示，应用的最大堆大小为 48.38 MB（100 MB 的 50%）。从该例子中看出 <code>MaxRAMPercentage</code> 被忽略。 </li>
 </ul>
-<h1 id="环境"><a href="#环境" class="headerlink" title="环境"></a>环境</h1><p>我们将测试、预发合并为单一 K8s 集群，生产环境单独一套集群。本文主要介绍如何处理测试、预发集群与基于虚拟机服务的流量调度策略。</p>
-<h2 id="版本与环境"><a href="#版本与环境" class="headerlink" title="版本与环境"></a>版本与环境</h2><p>如何处理好版本与环境？我们以 ticket 服务为例，预发环境由于只会有一个版本存在，我们将它的域名定为：<a target="_blank" rel="noopener" href="https://ticket.staging.demo.com.其中/">https://ticket.staging.demo.com。其中</a> staging 代表环境为预发环境。</p>
-<p>测试环境是一个比较复杂多样的环境，因为不同的开发人员都会在测试环境进行发布测试（与其说是测试环境不如说是开发环境更为合适）。假如当前存在两个并行的开发业务，分支分别为：feature/v1，feature/v2，那么基于该分支会创建出两个测试环境，即：<a target="_blank" rel="noopener" href="https://v1-ticket.test.demo.com,https//v2-ticket.test.demo.com%E3%80%82%E5%85%B6%E4%B8%AD%EF%BC%9Atest">https://v1-ticket.test.demo.com，https://v2-ticket.test.demo.com。其中：test</a> 为测试环境，v1、v2 为版本。当然，测试环境还有另外一个称作稳定版本的 <a target="_blank" rel="noopener" href="https://ticket.test.demo.com./">https://ticket.test.demo.com。</a><br>这些子域名在经过 Istio 网关的时候会进行处理，将它们转换成类似 <a target="_blank" rel="noopener" href="https://ticket.test.demo.com/">https://ticket.test.demo.com</a> 的域名。由于证书原因，我们让域名包括了环境的信息。其中的原有域名的版本信息我们把它提取出来作为 label 进行传递（其实环境也会提取出来作为 label 传递，只不过让它保留在了域名里）。</p>
-<p>以上是通过什么处理的呢？没错！EnvoyFilter。</p>
-<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">envoy_on_request</span><span class="params">(request_handle)</span></span></span><br><span class="line">     <span class="comment">-- 提取host</span></span><br><span class="line">    <span class="keyword">local</span> host, key = getHost(request_handle)</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">-- 如果不能匹配到 *.*.demo.com 则略过下面过滤</span></span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> <span class="built_in">match</span>(host, <span class="string">&quot;^[^%.]+%.[^%.]+%.&quot;</span> .. commonDomain .. <span class="string">&quot;$&quot;</span>) <span class="keyword">then</span> <span class="keyword">return</span> <span class="keyword">end</span></span><br><span class="line">    <span class="keyword">local</span> SVE = getVersionSystemEnvFrom(request_handle)</span><br><span class="line">    setRequestHeader(request_handle, versionKey, SVE[<span class="string">&quot;version&quot;</span>])</span><br><span class="line">    setRequestHeader(request_handle, systemKey, SVE[<span class="string">&quot;system&quot;</span>])</span><br><span class="line">    setRequestHeader(request_handle, envKey, SVE[<span class="string">&quot;env&quot;</span>])</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">-- 替换成 Version 无关域名</span></span><br><span class="line">    <span class="keyword">if</span> SVE[<span class="string">&quot;system&quot;</span>] <span class="keyword">then</span> host = SVE[<span class="string">&quot;system&quot;</span>] .. <span class="string">&quot;.&quot;</span> .. SVE[<span class="string">&quot;env&quot;</span>] .. <span class="string">&quot;.&quot;</span> .. commonDomain <span class="keyword">end</span></span><br><span class="line">    request_handle:headers():replace(key, host)</span><br><span class="line">    request_handle:logDebug(<span class="string">&quot;[HOST(replaced)] -&gt; &quot;</span> .. request_handle:headers():get(key))</span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
-<p>这里我们省略掉了辅助代码，保留大体思路。重造 host 域名，将版本相关信息作为 label 向后传递。将该过滤器作用到 GATEWAY 上，Envoy.filters.network.http_connection_manager/envoy.filters.http.cors 之前。</p>
-<h1 id="虚拟机到容器"><a href="#虚拟机到容器" class="headerlink" title="虚拟机到容器"></a>虚拟机到容器</h1><p>有了以上的内容说明，我们知道流量的传递方式。但是问题来了，测试、预发集群整合到了一起，但是虚拟机的集群并非如此。那么我们怎么处理这部分流量呢？其实我们主要区分出预发环境的流量就行了。因为容器环境，预发环境只有一套服务，不像测试环境会存在多套。而预发环境的 ip 我们都有登记，那么这样一来就好说了：</p>
-<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line">apiVersion: networking.istio.<span class="built_in">io</span>/v1alpha3</span><br><span class="line">kind: EnvoyFilter</span><br><span class="line">metadata:</span><br><span class="line">  name: internal-env-filter</span><br><span class="line">  namespace: istio-system</span><br><span class="line">spec:</span><br><span class="line">  configPatches:</span><br><span class="line">  - applyTo: HTTP_FILTER</span><br><span class="line">    <span class="built_in">match</span>:</span><br><span class="line">      context: GATEWAY</span><br><span class="line">      listener:</span><br><span class="line">        filterChain:</span><br><span class="line">          filter:</span><br><span class="line">            name: envoy.filters.network.http_connection_manager</span><br><span class="line">            subFilter:</span><br><span class="line">              name: envoy.filters.http.fault</span><br><span class="line">        portNumber: <span class="number">8080</span></span><br><span class="line">    patch:</span><br><span class="line">      operation: INSERT_AFTER</span><br><span class="line">      value:</span><br><span class="line">        name: internal-env.lua</span><br><span class="line">        typed_config:</span><br><span class="line">          <span class="string">&#x27;@type&#x27;</span>: <span class="built_in">type</span>.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua</span><br><span class="line">          inlineCode: |</span><br><span class="line">            <span class="keyword">local</span> shouldTagedIps = &#123;</span><br><span class="line">                <span class="string">&quot;172.10.0.0&quot;</span>,</span><br><span class="line">                <span class="string">&quot;172.10.0.10&quot;</span>,</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">local</span> envKey = <span class="string">&quot;x-request-demo-env&quot;</span></span><br><span class="line"></span><br><span class="line">            <span class="function"><span class="keyword">function</span> <span class="title">envoy_on_request</span><span class="params">(request_handle)</span></span></span><br><span class="line">                <span class="keyword">local</span> headers = request_handle:headers()</span><br><span class="line">                <span class="keyword">local</span> ip = request_handle:streamInfo():downstreamDirectRemoteAddress()</span><br><span class="line">                ip = <span class="built_in">string</span>.<span class="built_in">sub</span>(ip, <span class="number">1</span>, <span class="built_in">string</span>.<span class="built_in">find</span>(ip, <span class="string">&quot;:&quot;</span>) - <span class="number">1</span>)</span><br><span class="line">                <span class="keyword">for</span> i, v <span class="keyword">in</span> <span class="built_in">pairs</span>(shouldTagedIps) <span class="keyword">do</span></span><br><span class="line">                    <span class="keyword">if</span> (v == ip) <span class="keyword">then</span></span><br><span class="line">                        request_handle:logDebug(<span class="string">&quot;add header for ip : &quot;</span> .. ip .. <span class="string">&quot;:80&quot;</span>)</span><br><span class="line">                        headers:replace(envKey, <span class="string">&quot;staging&quot;</span>)</span><br><span class="line">                        <span class="keyword">break</span></span><br><span class="line">                    <span class="keyword">end</span></span><br><span class="line">                <span class="keyword">end</span></span><br><span class="line">            <span class="keyword">end</span></span><br><span class="line">  workloadSelector:</span><br><span class="line">    labels:</span><br><span class="line">      app: internal-istio-ingressgateway</span><br></pre></td></tr></table></figure>
-<p>我们只需要确定来源 ip，然后为对应的 ip 打上 label 就可以了。这里需要注意的地点就是来源 ip 的获取 api，一定要用 <code>downstreamDirectRemoteAddress()</code>，请求头添加也一定要用 <code>headers:replace()</code>，因为只要该 api 才会强制替换原有请求头。</p>
-<p>有人可能好奇，预发环境解决了。但是测试环境版本多，怎么解决这部分流量呢？我们提到过，流量都是用 label 进行区分了。那么虚拟机要关心的就是如何传递这些 label，其实这块就交给自研的 SDK 解决了。</p>
-<h1 id="容器到虚拟机"><a href="#容器到虚拟机" class="headerlink" title="容器到虚拟机"></a>容器到虚拟机</h1><p>无论是虚拟机到容器还是容器到虚拟机，我们都是通过 SVC 来处理 ip 问题的。虚拟机上，我们配置好 DNS 服务器，将 SVC 域名解析到 Istio 的入口网关。而容器上，那么处于虚拟机的服务怎么访问呢？很简单，ServiceEntry！</p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.istio.io/v1beta1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ServiceEntry</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">demo-se</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">demo</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">endpoints:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">address:</span> <span class="number">172.31</span><span class="number">.0</span><span class="number">.0</span></span><br><span class="line">    <span class="attr">labels:</span></span><br><span class="line">      <span class="attr">env:</span> <span class="string">test</span></span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">      <span class="attr">http:</span> <span class="number">10010</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">address:</span> <span class="number">172.31</span><span class="number">.0</span><span class="number">.10</span></span><br><span class="line">    <span class="attr">labels:</span></span><br><span class="line">      <span class="attr">env:</span> <span class="string">staging</span></span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">      <span class="attr">http:</span> <span class="number">10010</span></span><br><span class="line">  <span class="attr">hosts:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">demo.demo.svc.cluster.local</span></span><br><span class="line">  <span class="attr">location:</span> <span class="string">MESH_EXTERNAL</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">http</span></span><br><span class="line">    <span class="attr">number:</span> <span class="number">80</span></span><br><span class="line">    <span class="attr">protocol:</span> <span class="string">HTTP</span></span><br><span class="line">  <span class="attr">resolution:</span> <span class="string">STATIC</span></span><br></pre></td></tr></table></figure>
-<p>我们为虚拟上的服务创建 VS、DR、SVC、SE 资源，将流量导入到指定的虚拟机上。这样一来，流量问题就解决了！但是我们思考个问题，流量调度是根据 label 标识的，那么 pod 与 pod 之间调度如何区流量呢？</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> docker run -m 100MB openjdk:10 java -XX:MaxRAMPercentage=25 -XX:MinRAMPercentage=50 -XshowSettings:vm -version</span></span><br><span class="line">VM settings:</span><br><span class="line">    Max. Heap Size (Estimated): 48.38M</span><br><span class="line">    Using VM: OpenJDK 64-Bit Server VM</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><h3 id="例-2：较大的宿主机内存"><a href="#例-2：较大的宿主机内存" class="headerlink" title="例 2：较大的宿主机内存"></a>例 2：较大的宿主机内存</h3>我们把容器的内存限制改为 1 GB，MaxRAMPercentage 配置为 25， MinRAMPercentage 配置为 50。我们看到实际的应用堆最大大小为 247.50 MB（由于宿主机内存大于 250 MB，所以前者配置生效）。</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> docker run -m 1GB openjdk:10 java -XX:MaxRAMPercentage=25 -XX:MinRAMPercentage=50 -XshowSettings:vm -version</span></span><br><span class="line">VM settings:</span><br><span class="line">    Max. Heap Size (Estimated): 247.50M</span><br><span class="line">    Using VM: OpenJDK 64-Bit Server VM</span><br></pre></td></tr></table></figure>
+
+<p>当 <code>-Xmx</code> 未指定时，<code>-XX:MaxRAMPercentage</code> 及 <code>-XX:MinRAMPercentage</code> 用于配置堆的最大内存大小。如果 <code>-Xmx</code> 指定了，那么以上两个参数将会被 JVM 忽略。如图：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> docker run -m 1GB openjdk:10 java -XX:MaxRAMPercentage=25 -XX:MinRAMPercentage=25 -Xmx512m -XshowSettings:vm -version</span></span><br><span class="line">VM settings:</span><br><span class="line">    Max. Heap Size: 512.00M</span><br><span class="line">    Using VM: OpenJDK 64-Bit Server VM</span><br></pre></td></tr></table></figure>
+
+<p><code>-Xmx512m</code>、<code>-XX:MaxRAMPercentage=25</code>、<code>-XX:MinRAMPercentage=25</code> 同时指定了，但是只有 <code>-Xmx512m</code> 起到了作用。</p>
+<h1 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h1><ul>
+<li>用 <code>-XX:InitialRAMPercentage</code> 配置你的应用堆初始化内存大小（前提是 <code>-Xms</code> 未配置）。</li>
+<li><code>-XX:MinRAMPercentage</code>、<code>-XX:MaxRAMPercentage</code> 用于配置最大堆大小（前提是 <code>-Xmx</code> 未配置）。</li>
+<li><code>-XX:MaxRAMPercentage</code> 应用于大多场景，毕竟主流的企业级 Java 应用内存已经超过了 250 MB。除非构建的是微型应用，物理机内存小于 250 MB，你才需要使用 <code>-XX:MinRAMPercentage</code>。</li>
+</ul>
+<hr>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
+<li><a target="_blank" rel="noopener" href="https://blog.gceasy.io/2020/11/05/difference-between-initialrampercentage-minrampercentage-maxrampercentage/">【原文 Difference between InitialRAMPercentage, MinRAMPercentage, MaxRAMPercentage】</a></li>
+</ul>
 
     
 
@@ -251,7 +263,7 @@
 		<ul class="article-tag-list">
 			 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">K8s</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">jvm</a>
         		</li>
       		
 		</ul>
@@ -261,7 +273,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2022/06/18/cases/%E6%A1%88%E4%BE%8B%E7%B3%BB%E5%88%97(%E4%B8%80)%E8%99%9A%E6%8B%9F%E6%9C%BA%E4%B8%8E%E5%AE%B9%E5%99%A8%E6%B5%81%E9%87%8F%E8%B0%83%E5%BA%A6/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2022/08/15/java_trans/%5B%E8%AF%91%5DInitialRAMPercentage_MinRAMPercentage_MaxRAMPercentage%E4%B9%8B%E9%97%B4%E7%9A%84%E5%8C%BA%E5%88%AB/">展开全文 >></a>
     </p>
     
 
@@ -295,7 +307,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/2/">上一页</a><a class="page-number" href="/articles/">1</a><a class="page-number" href="/articles/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/articles/page/4/">4</a><a class="page-number" href="/articles/page/5/">5</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/44/">44</a><a class="extend next" rel="next" href="/articles/page/4/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/2/">上一页</a><a class="page-number" href="/articles/">1</a><a class="page-number" href="/articles/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/articles/page/4/">4</a><a class="page-number" href="/articles/page/5/">5</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/45/">45</a><a class="extend next" rel="next" href="/articles/page/4/">下一页</a>
     </nav>
   
 
@@ -427,27 +439,11 @@
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">C</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">Reprint</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color5">Unix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">TCP</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -463,6 +459,14 @@
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color5">Unix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">TCP</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color5">Java</a>
               </li>
              
@@ -475,11 +479,19 @@
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">redis</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">jvm</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">redis</a>
+                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
               </li>
             
             <div class="clearfix"></div>

@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-c_reprint/C转载系列(四)变量与内存(下篇)" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-c_unix/IO多路复用(四)epoll 函数" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2021/05/15/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E5%9B%9B)%E5%8F%98%E9%87%8F%E4%B8%8E%E5%86%85%E5%AD%98(%E4%B8%8B%E7%AF%87)/" target="_blank">C 转载系列（四）变量与内存（下篇）</a>
+	  <a class="article-title" href="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/" target="_blank">IO 多路复用（四）epoll 函数</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2021/05/15/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E5%9B%9B)%E5%8F%98%E9%87%8F%E4%B8%8E%E5%86%85%E5%AD%98(%E4%B8%8B%E7%AF%87)/" class="archive-article-date">
-        <time datetime="2021-05-15T03:24:01.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-05-15</time>
+<a href="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/" class="archive-article-date">
+        <time datetime="2021-07-11T07:55:10.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-07-11</time>
 </a>
 
   
@@ -216,285 +216,233 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p><a href="https://tubetrue01.github.io/articles/2021/05/15/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E4%B8%89)%E5%8F%98%E9%87%8F%E4%B8%8E%E5%86%85%E5%AD%98(%E4%B8%8A%E7%AF%87)">【上一篇】</a>文章中介绍到 C/C++ 中一些基本类型变量在内存中的位置，本来想把字符串也在上一篇中介绍的，但测试发现字符串的情况比基本类型变量复杂的多，所以单独写一篇专门来介绍字符串。<br>这里说的字符串复杂是因为字符串实际就是 char 数组，且经常要和指针打交道，甚至不同编译器还有不同的表现，不是一句两句能说清楚的。本文旨在介绍一些常见情况下字符串实际在内存中的位置（段、栈和堆），读取字符串的过程，和一些需要注意的问题；本文编译器使用 clang 和 gcc 两种（默认使用 clang ），用以介绍不同编译器的不同点。</p>
+<p>epoll 是 Linux 特有的结构，它允许一个进程监听多个文件描述符，并在 I/O 就绪时获取到通知。epoll 有 ET（edge-triggered） 跟 LT（level-triggered） 两种对文件描述符的操作模式，默认为 LT。在我们深入了解它之前，让我们先看看它的语法。</p>
 </blockquote>
-<h1 id="开发环境"><a href="#开发环境" class="headerlink" title="开发环境"></a>开发环境</h1><ul>
-<li>OS X El Captian (10.11.6)</li>
-<li>Apple LLVM 7.3.0 (clang-703.0.31)</li>
-<li>gcc 6.1.0</li>
-</ul>
-<h1 id="字符串在内存中的位置"><a href="#字符串在内存中的位置" class="headerlink" title="字符串在内存中的位置"></a>字符串在内存中的位置</h1><p>字符串的初始化一般有两种方法：</p>
+<h1 id="epll-语法"><a href="#epll-语法" class="headerlink" title="epll 语法"></a>epll 语法</h1><p>与 poll 不同的是，epoll 本身并不是一个系统调用。它是一个允许进程在多个文件描述符上复用 I/O 的内核数据结构。</p>
+<hr>
+<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/01.png" class="" width="400">
+
+<hr>
+<p>该数据结构通过以下三个系统调用创建、修改、删除。</p>
+<h2 id="epoll-create"><a href="#epoll-create" class="headerlink" title="epoll_create"></a>epoll_create</h2><p><strong>epoll_create</strong> 用于创建 epoll 实例，并返回一个文件描述符给 epoll 实例。方法签名如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/epoll.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_create</span><span class="params">(<span class="keyword">int</span> size)</span></span>;</span><br></pre></td></tr></table></figure>
+<p><strong>size</strong> 参数用来告知内核进程想要监听的文件描述符数量，以此来辅助内核推算出 epoll 实例的大小。但是，从 Linux 2.6.8 起，epoll 数据结构可以随着文件描述符的添加、删除动态调整，所以该参数就可忽略了。</p>
+<p><strong>epoll_create</strong> 返回一个文件描述符给新创建的 epll 内核数据结构。调用进程可以通过该描述进行添加、删除、修改它想要监听 I/O 的其他描述符 给 epoll 实例。</p>
+<hr>
+<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/02.png" class="" width="400">
+
+<hr>
+<p>另一个 <strong>epoll_create1</strong> 的系统调用签名如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_create1</span><span class="params">(<span class="keyword">int</span> flags)</span></span>;</span><br></pre></td></tr></table></figure>
+<p><strong>flag</strong> 参数既可以是 0 也可以是 <strong>EPOLL_CLOEXEC</strong>。</p>
+<p>当 flag 为 0 的时候，该函数的行为跟 epoll_create 一致。</p>
+<p>当 flag 为 <strong>EPOLL_CLOEXEC</strong> 时，当前进程 fork 出来的任何子进程在执行前都会关闭 epoll 描述符。也因此，子进程不能够访问 epoll 实例。</p>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>有一点需要特别注意，关联 epoll 实例的文件描述符需要通过 <strong>close()</strong> 系统调用来释放。多个进程可能持有同一个 epoll 实例的文件描述符（如：当 <strong>EPOLL_CLOEXEC</strong> 标记没有指定时，fork 出来的子进程会复制该文件描述符）。当所有的进程都不再使用该描述符时（通过调用 close() 或者退出），内核才会销毁 epoll 实例。</p>
+</blockquote>
+<h2 id="epoll-ctl"><a href="#epoll-ctl" class="headerlink" title="epoll_ctl"></a>epoll_ctl</h2><p>进程可以通过 epoll_ctl 来添加它想要监听的描述符给 epoll 实例。所有注册到 epoll 实例的文件描述符统称为 <strong>epoll set</strong> 或者 <strong>interest list</strong>。</p>
+<hr>
+<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/03.png" class="" width="400">
+
+<hr>
+<p>上图中，pid 为 483 的进程在 epoll 实例中注册了 FD1，FD2，FD3，FD4，FD5 文件描述符。以上就是 epoll 实例的 interest list 或者 epoll set。随后，当任何文件描述符已经准备好 I/O 时，它们就会放到 ready list 中。</p>
+<p>ready list 是 interest list 的子集，如图所示：</p>
+<hr>
+<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/04.png" class="" width="400">
+
+<hr>
+<p><strong>epoll_ctl</strong> 的签名如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/epoll.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_ctl</span><span class="params">(<span class="keyword">int</span> epfd, <span class="keyword">int</span> op, <span class="keyword">int</span> fd, struct epoll_event *event)</span></span>;</span><br></pre></td></tr></table></figure>
+<hr>
+<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/05.png" class="" width="400">
+
+<hr>
 <ul>
-<li>数组：<code>char str[] = &quot;Hello&quot;;</code></li>
-<li>指针：<code>char *str = &quot;World&quot;;</code></li>
+<li><p><strong>epfd</strong> 由 <strong>epoll_create</strong> 返回的 epoll 文件描述符，指向内核中 epoll 实例。</p>
+</li>
+<li><p><strong>fd</strong> 需要注册到 epoll list 或者 interest list 中的文件描述符。</p>
+</li>
+<li><p><strong>op</strong> 对以上文件描述符 fd 要执行的操作，一般支持以下三个操作：</p>
+</li>
+<li><p><strong>EPOLL_CTL_ADD</strong> 向 epoll 实例中注册该文件描述符，当指定事件发生时，获取到通知。</p>
+</li>
+<li><p><strong>EPOLL_CTL_DEL</strong> 将该文件描述符从 eopll 实例中删除，意味着进程不会收到任何发生在该文件描述符上事件的通知。</p>
+</li>
+<li><p><strong>EPOLL_CTL_MOD</strong> 修改该文件描述符上的监听事件。</p>
+</li>
 </ul>
-<p>这里考虑全局变量、静态局部变量和局部变量三种情况；对于全局变量和静态局部变量，还考虑已初始化和未初始化的情况。</p>
-<p>代码：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">char</span> global_unin_t1[] = &#123;&#125;;</span><br><span class="line"><span class="keyword">char</span> *global_unin_t2;</span><br><span class="line"><span class="keyword">char</span> global_t1[] = <span class="string">&quot;Hello&quot;</span>;</span><br><span class="line"><span class="keyword">char</span> *global_t2 = <span class="string">&quot;World&quot;</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">const</span> <span class="keyword">char</span> *argv[])</span> </span>&#123;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> local_stat_unin_t1[] = &#123;&#125;;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> *local_stat_unin_t2;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> local_stat_t1[] = <span class="string">&quot;Think&quot;</span>;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> *local_stat_t2 = <span class="string">&quot;Free&quot;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">char</span> local_t1[] = <span class="string">&quot;Here&quot;</span>;</span><br><span class="line">  <span class="keyword">char</span> *local_t2 = <span class="string">&quot;Comes&quot;</span>;</span><br><span class="line"></span><br><span class="line">  sleep(<span class="number">-1</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>先看看几个典型的段信息：</p>
-<table>
-<thead>
-<tr>
-<th align="center">sectname</th>
-<th align="center">segname</th>
-<th align="center">addr</th>
-<th align="center">size</th>
-<th align="center">type</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center">__cstring</td>
-<td align="center">__TEXT</td>
-<td align="center">0x0000000100000f9e</td>
-<td align="center">0x0000000000000016</td>
-<td align="center">S_CSTRING_LITERALS</td>
-</tr>
-<tr>
-<td align="center">__data</td>
-<td align="center">__DATA</td>
-<td align="center">0x0000000100001018</td>
-<td align="center">0x0000000000000020</td>
-<td align="center">S_REGULAR</td>
-</tr>
-<tr>
-<td align="center">__common</td>
-<td align="center">__DATA</td>
-<td align="center">0x0000000100001038</td>
-<td align="center">0x0000000000000010</td>
-<td align="center">S_ZEROFILL</td>
-</tr>
-<tr>
-<td align="center">__bss</td>
-<td align="center">__DATA</td>
-<td align="center">0x0000000100001048</td>
-<td align="center">0x0000000000000010</td>
-<td align="center">S_ZEROFILL</td>
-</tr>
-</tbody></table>
-<p>再看看段内数据：</p>
-<h3 id="cstring"><a href="#cstring" class="headerlink" title="__cstring:"></a>__cstring:</h3><table>
-<thead>
-<tr>
-<th align="center">addr start</th>
-<th align="center">size</th>
-<th align="center">data (0x)</th>
-<th align="center">data (ASCII)</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center">0x100000fae</td>
-<td align="center">6</td>
-<td align="center">43 6F 6D 65 73 00</td>
-<td align="center">Comes</td>
-</tr>
-<tr>
-<td align="center">0x100000fa4</td>
-<td align="center">5</td>
-<td align="center">46 72 65 65 00</td>
-<td align="center">Free</td>
-</tr>
-<tr>
-<td align="center">0x100000fa9</td>
-<td align="center">5</td>
-<td align="center">48 65 72 65 00</td>
-<td align="center">Here</td>
-</tr>
-<tr>
-<td align="center">0x100000f9e</td>
-<td align="center">6</td>
-<td align="center">57 6F 72 6C 64 00</td>
-<td align="center">World</td>
-</tr>
-</tbody></table>
-<p>gcc 编译 __cstring 段中仅有 “World”、”Free” 和 “Comes”，没有 “Here”。</p>
-<h3 id="data"><a href="#data" class="headerlink" title="__data:"></a>__data:</h3><table>
-<thead>
-<tr>
-<th align="center">addr start</th>
-<th align="center">size</th>
-<th align="center">data (0x)</th>
-<th align="center">data (ASCII)</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center">0x100001018</td>
-<td align="center">6</td>
-<td align="center">48 65 6C 6C 6F 00</td>
-<td align="center">Hello</td>
-</tr>
-<tr>
-<td align="center">0x100001020</td>
-<td align="center">8</td>
-<td align="center">9E 0F 00 00 01 00 00 00</td>
-<td align="center">-</td>
-</tr>
-<tr>
-<td align="center">0x100001028</td>
-<td align="center">6</td>
-<td align="center">54 68 69 6E 6B 00</td>
-<td align="center">Think</td>
-</tr>
-<tr>
-<td align="center">0x100001030</td>
-<td align="center">8</td>
-<td align="center">A4 0F 00 00 01 00 00 00</td>
-<td align="center">-</td>
-</tr>
-</tbody></table>
-<h3 id="全局变量"><a href="#全局变量" class="headerlink" title="全局变量"></a>全局变量</h3><table>
-<thead>
-<tr>
-<th align="center">变量名</th>
-<th align="center">内存地址</th>
-<th align="center">所属段</th>
-<th align="center">值（十六进制）</th>
-<th align="center">值（ASCII/0x）</th>
-<th align="center">类型</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center">global_unin_t1</td>
-<td align="center">0x100001038</td>
-<td align="center">__common</td>
-<td align="center">00</td>
-<td align="center"></td>
-<td align="center">char []</td>
-</tr>
-<tr>
-<td align="center">global_t1</td>
-<td align="center">0x100001018</td>
-<td align="center">__data</td>
-<td align="center">48 65 6C 6C 6F 00</td>
-<td align="center">Hello</td>
-<td align="center">char [6]</td>
-</tr>
-<tr>
-<td align="center">global_t2</td>
-<td align="center">0x100001020</td>
-<td align="center">__data</td>
-<td align="center">9E 0F 00 00 01 00 00 00</td>
-<td align="center">0x100000f9e</td>
-<td align="center">char *</td>
-</tr>
-<tr>
-<td align="center">global_unin_t2</td>
-<td align="center">0x100001040</td>
-<td align="center">__common</td>
-<td align="center">00 00 00 00 00 00 00 00</td>
-<td align="center">NULL</td>
-<td align="center">char *</td>
-</tr>
-</tbody></table>
-<p>未初始化的全局变量放在 __common 段中，已初始化的放在 __data 段中。采用数组方式初始化的 global_t1 将本数组内的所有值都放在 __data 段中；而采用指针方式初始化的 global_t2 则仅将指针放在 __data 段中，其指向 __cstring 段中的 “World”。</p>
-<h3 id="静态变量"><a href="#静态变量" class="headerlink" title="静态变量"></a>静态变量</h3><table>
-<thead>
-<tr>
-<th align="center">变量名</th>
-<th align="center">内存地址</th>
-<th align="center">所属段</th>
-<th align="center">值（十六进制）</th>
-<th align="center">值（ASCII/0x）</th>
-<th align="center">类型</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center">local_stat_unin_t1</td>
-<td align="center">0x100001048</td>
-<td align="center">__bss</td>
-<td align="center">00</td>
-<td align="center"></td>
-<td align="center">char []</td>
-</tr>
-<tr>
-<td align="center">local_stat_unin_t2</td>
-<td align="center">0x100001050</td>
-<td align="center">__bss</td>
-<td align="center">00 00 00 00 00 00 00 00</td>
-<td align="center">NULL</td>
-<td align="center">char *</td>
-</tr>
-<tr>
-<td align="center">local_stat_t1</td>
-<td align="center">0x100001028</td>
-<td align="center">__data</td>
-<td align="center">54 68 69 6E 6B 00</td>
-<td align="center">Think</td>
-<td align="center">char [6]</td>
-</tr>
-<tr>
-<td align="center">local_stat_t2</td>
-<td align="center">0x100001030</td>
-<td align="center">__data</td>
-<td align="center">A4 0F 00 00 01 00 00 00</td>
-<td align="center">0x100000fa4</td>
-<td align="center">char *</td>
-</tr>
-</tbody></table>
-<p>未初始化的静态局部变量在 __bss 段中，已初始化的放在 __data 段中。采用数组方式初始化的 local_stat_t1 将本数组内的所有值都放在 __data 段中；而采用指针方式初始化的  local_stat_t2 则仅将指针放在 __data 段中，其指向 __cstring 段中的 “Free”。</p>
-<h1 id="局部变量"><a href="#局部变量" class="headerlink" title="局部变量"></a>局部变量</h1><p>分析局部变量我们直接看反汇编代码，将 clang 和 gcc 分开分析。</p>
-<h3 id="clang"><a href="#clang" class="headerlink" title="clang"></a>clang</h3><p><code>char local_t1[] = &quot;Here&quot;;</code></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">0x100000f52 &lt;+34&gt;: movl   0x51(%rip), %edi          ; &quot;Here&quot;</span><br><span class="line">0x100000f58 &lt;+40&gt;: movl   %edi, -0x15(%rbp)</span><br><span class="line">0x100000f5b &lt;+43&gt;: movb   0x4c(%rip), %dl           ; &quot;&quot;</span><br><span class="line">0x100000f61 &lt;+49&gt;: movb   %dl, -0x11(%rbp)</span><br></pre></td></tr></table></figure>
-<p>这里 rip 为指令指针寄存器，rbp 为帧指针（Frame Pointer）寄存器；mov 用来传送数据，movl 操作 32 位，movb 操作 8 位。</p>
-<p>rip 为下一指令地址即 0x100000f58，所以 0x51(%rip) 表示的就是 0x100000fa9，即 __cstring 段中的 “Here”。注意到 “Here” 实际共 5  byte，不能用 movx 指令一次移动完，所以分两次移动，一次 4 byte，一次 1  byte，这样将 “Here” 放到 -0x11(%rbp) 开始的栈中。即 local_t1 将本数组内的所有值都放栈中。</p>
-<p><code>char *local_t2 = &quot;Comes&quot;;</code></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">0x100000f3d &lt;+13&gt;: leaq   0x6a(%rip), %rcx          ; &quot;Comes&quot;</span><br><span class="line">0x100000f64 &lt;+52&gt;: movq   %rcx, -0x20(%rbp)</span><br></pre></td></tr></table></figure>
-<p>这里 rip 为指令指针寄存器，rbp 为帧指针（Frame Pointer）寄存器；lea 将地址指针写入到寄存器，leaq 操作 64 位。</p>
-<p>0x6a(%rip) 表示的是 0x100000fae，即 __cstring 段中的 “Comes”，最终这个地址被放到 -0x20(%rbp) 开始的栈中。即 local_t2 将指向 “Comes” 的指针放在栈中。</p>
-<h3 id="gcc"><a href="#gcc" class="headerlink" title="gcc"></a>gcc</h3><p><code>char local_t1[] = &quot;Here&quot;;</code></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">0000000100000f57           movl       $0x65726548, -0x10(%rbp) ## imm = 0x65726548</span><br><span class="line">0000000100000f5e           movb       $0x0, -0xc(%rbp)</span><br></pre></td></tr></table></figure>
+<hr>
+<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/06.png" class="" width="400">
 
-<p>这里直接将 “Here “的二进制值 48 65 72 65 00 硬编码到汇编中，将其压入栈中。和 clang 一样，local_t1将本数组内的所有值都放栈中。</p>
-<p><code>char *local_t2 = &quot;Comes&quot;;</code></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">0000000100000f62           leaq       0x3b(%rip), %rax        ## literal pool for: &quot;Comes&quot;</span><br><span class="line">0000000100000f69           movq       %rax, -0x8(%rbp)</span><br></pre></td></tr></table></figure>
+<hr>
+<p><strong>event</strong> 指向存储想要在该文件描述符监听事件的 <strong>epoll_event</strong> 结构的指针。</p>
+<hr>
+<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/07.png" class="" width="400">
 
-<p>这里和 clang 一样，不作过多解释。local_t2 将指向 “Comes” 的指针放在栈中。</p>
-<p>先说结论：采用数组方式初始化的 local_t1 将本数组内的所有值都放在栈中；而采用指针方式初始化的 local_t2 则仅将指针放在栈段中，其指向 __cstring 段中的 “Comes”。再谈谈 clang 和 gcc 的区别，主要就是在对以指针方式初始化的字符串上：clang 编译时将字符串放在 __cstring 段中，运行时从 __cstring 段复制到栈中；gcc 则在编译时直接将字符串放在代码段中，运行时直接压栈。两者的处理方式各有优缺点：clang 避免了将字符串常量放到代码段中，若代码中还有相同的字符串则可以合并为一个字符串，但运行时有复制的步骤，存在效率问题；gcc 直接将字符串放在代码段中，没有如上 clang 的好处，但运行时直接将值写入栈中，相对效率更高。</p>
-<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h3><blockquote>
-<p>可以看出，与基本类型变量不同的是，字符串变量用到了 __cstring 段用来保存字符串常量；但如果仔细分析，其实字符串同基本类型变量也没有太大差别，都遵循基本的规则。在对以数组方式初始化的局部变量的处理上，gcc 更常见，即将字符串以普通数组的方式编译；但 clang 则采用了一种“融合”的方法，将字符串所特有的 __cstring 段也利用了起来。<br>注意：这里没有介绍字符串在堆中的情况，因为在堆中的情况很简单：malloc() 申请堆空间，返回空间指针作为字符串头，按照常规方式读写或使用 string 库操作。</p>
+<hr>
+<p>以下是 epoll_event 结构体：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">epoll_event</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="keyword">uint32_t</span> events;          <span class="comment">/* Epoll events */</span></span><br><span class="line">  <span class="keyword">epoll_data_t</span> data;        <span class="comment">/* User data variable */</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">union</span> <span class="title">epoll_data</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="keyword">void</span> *ptr;</span><br><span class="line">  <span class="keyword">int</span> fd;</span><br><span class="line">  <span class="keyword">uint32_t</span> u32;</span><br><span class="line">  <span class="keyword">uint64_t</span> u64;</span><br><span class="line">&#125; <span class="keyword">epoll_data_t</span>;</span><br></pre></td></tr></table></figure>
+
+<p>epoll_event 结构的第一个字段 <strong>events</strong> 是一个位掩码，表示 fd 上哪些事件正在监听。</p>
+<p>比如：如果 fd 是一个 socket 描述符，我们可能想要监听是否有新的数据到达 socket buffer，那我们可以设置 <strong>EPOLLIN</strong> 事件。如果我们想要获取 fd 上 edge-triggered 触发的通知，可以设置 <strong>EPOLLET</strong> 按位或 <strong>EPOLLIN</strong>等等。</p>
+<p>events 可以由以下几种宏表示：</p>
+<ul>
+<li><strong>EPOLLIN</strong> 表示对应的文件描述符可以读（包括对端 socket 正常关闭）。</li>
+<li><strong>EPOLLOUT</strong> 表示对应的文件描述符可以写。</li>
+<li><strong>EPOLLPRI</strong> 表示对应的文件描述符有紧急的数据可。</li>
+<li><strong>EPOLLERR</strong> 表示对应的文件描述符发生错误；</li>
+<li><strong>EPOLLHUP</strong> 表示对应的文件描述符被挂断；</li>
+<li><strong>EPOLLET</strong> 将 EPOLL 设为边缘触发（Edge Triggered）模式，这是相对于水平触发（Level Triggered）来说的。</li>
+<li><strong>EPOLLONESHOT</strong> 只监听一次事件，当监听完这次事件之后，如果还需要继续监听这个 socket 的话，需要再次把这个 socket 加入到 epoll 队列里</li>
+</ul>
+<p>更多的用法可以从<a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/man2/epoll_ctl.2.html">【man page】</a> 中获取。</p>
+<p>epoll_event 的第二个字段是一个联合类型。</p>
+<h2 id="epoll-wait"><a href="#epoll-wait" class="headerlink" title="epoll_wait"></a>epoll_wait</h2><p>通过 epoll_wait 系统调用通知线程 epoll set/ interest list 上事件的发生，该调用会一直阻塞，直到任何一个被监听的描述符准备好 I/O。</p>
+<p>该函数签名如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/epoll.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_wait</span><span class="params">(<span class="keyword">int</span> epfd, struct epoll_event *evlist, <span class="keyword">int</span> maxevents, <span class="keyword">int</span> timeout)</span></span>;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><p><strong>epfd</strong> epoll_create 返回的 epoll 文件描述符。</p>
+</li>
+<li><p><strong>evlist</strong> epoll_event 结构数组。evlist 由调用进程分配，当 epoll_wait 返回时，该数组存放处于 interest list 中就绪状态（ready list）的描述符及对应的事件信息。</p>
+</li>
+</ul>
+<p><strong>maxevents</strong> — evlist 数组的长度。</p>
+<p><strong>timeout</strong> — 该参数的行为跟 poll 以及 select 一致，指定 epoll_wait 调用等待时长。</p>
+<ul>
+<li>当 timeout 为 0 时，epoll_wait 调用在检查 epfd 的 interest list 中哪些文件描述符准备就绪之后立即返回，不会阻塞。</li>
+<li>当 timeout 为 -1 时，eopll_wait 会一直阻塞（此时内核会将该进程休眠，直到调用返回）直到一个或者多个处于 interest list 中的描述符变成就绪状态或者该调用被信号处理程序中断。</li>
+<li>当 timeout 为一个正值时，epoll_wait 调用会等待 timeout 毫秒数，除非有描述符就绪或者被信号中断。</li>
+</ul>
+<p>epoll_wait 有以下返回值：</p>
+<ul>
+<li>-1：当调用发生错误（EBADF or EINTR or EFAULT or EINVAL）。</li>
+<li>0：调用超时。</li>
+<li>返回就绪的描述符的数量，即 evlist 数组的长度</li>
+</ul>
+<h1 id="epoll-中的陷阱"><a href="#epoll-中的陷阱" class="headerlink" title="epoll 中的陷阱"></a>epoll 中的陷阱</h1><p>为了充分了解 epoll，我们需要了解文件描述符背后的工作原理是怎样的。<br>每个进程维护一套它能访问到的文件描述符表，表中每个条目都包含两个字段：</p>
+<ul>
+<li><strong>flags</strong> 用来控制对描述符的操作（唯一相同的 flag 是 close-on-exec）</li>
+<li> <strong>ptr</strong> 指向底层内核数据结构的指针</li>
+</ul>
+<p>描述符既可以被 open、pipe、socket 等系统调用显示地创建，也可以被父进程 fork 出来的子进程继承，或者被 dup/dup2 这样的系统调用“复制”。</p>
+<hr>
+<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/08.png" class="" width="400">
+
+<hr>
+<p>以下场景会释放描述符：</p>
+<ul>
+<li>进程退出</li>
+<li>close 系统调用</li>
+<li>进程调用 fork 派生出来的子进程会继承下来所有父进程的描述符。如果任何在父进程调用 fork 之后，子进程 execs 之前标记为 close-on-exec 的描述符，子进程都不可用，但是父进程仍然可以继续使用这些描述符</li>
+</ul>
+<p>假如上图中进程 A 描述符 3 被标记为 close-on-exec，当进程 A fork 出进程 B 之后，两者完全相同，进程 B 拥有了继承下来的描述符 0，1，2，3。</p>
+<p>但是，由于描述符 3 被标记为 close-on-exec，所以在进程 B execs 之前，该描述符会被标记为“inactive”，进程 B 也就不能够再访问它了。</p>
+<hr>
+<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/09.png" class="" width="400">
+
+<hr>
+<p>为了弄清它，我们需要知道描述符只是一个指向被称为文件描述符的底层内核数据结构的进程指针。<br>内核维护一个包含所有打开的文件描述符表叫做打开文件表（open file table）。</p>
+<hr>
+<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/10.png" class="" width="400">
+
+<hr>
+<p>我们假设进程 A 的描述符 fd3 是由 fd0 通过 dup 或者 fcntl 的系统调用创建的。原始的描述符 fd0 以及“复制”出来的描述符 fd3 都指向了内核中同一个文件描述符。</p>
+<p>如果进程 A 接着 fork 出进程 B 而 fd3 被标记了 close-on-exec，那么子进程 B 继承下 A 的所有描述符中，fd3 是不能使用的。</p>
+<p>有一点需要特别注意的是，子进程中的 fd0 也指向了内核打开文件表中同一个打开的文件描述符。</p>
+<hr>
+<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/11.png" class="" width="400">
+
+<hr>
+<p>现在有三个描述符，分别是进程 A 中的 fd0 和 fd3，以及进程 B 中的 fd0，它们指向了底层同一个文件描述符。为了简单化，我们忽略掉进程 A 跟进程 B 的其他所有描述符（它们也都分别指向了打开文件表中的一个条目）。</p>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>注意，文件描述符会在进程以及 fork 出的子进程中共享。如果一个进程通过 Unix Domain Socke 套接字将文件描述符传递给另一个进程，那么两个进程同样会指向底层同一个内核打开的文件描述符。</p>
 </blockquote>
-<h1 id="不同位置读取效率"><a href="#不同位置读取效率" class="headerlink" title="不同位置读取效率"></a>不同位置读取效率</h1><p>这里仅考虑局部变量，分析两种初始化方式带来的读取效率差异。因为gcc和clang处理方法基本一样，所以这里只拿 clang 来举例。</p>
-<p>代码：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">const</span> <span class="keyword">char</span> *argv[])</span> </span>&#123;</span><br><span class="line">  <span class="keyword">char</span> str1[] = <span class="string">&quot;Hello&quot;</span>;</span><br><span class="line">  <span class="keyword">char</span> *str2 = <span class="string">&quot;World&quot;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">char</span> str1_0 = str1[<span class="number">0</span>];</span><br><span class="line">  <span class="keyword">char</span> str1_1 = str1[<span class="number">1</span>];</span><br><span class="line"></span><br><span class="line">  <span class="keyword">char</span> str2_0 = str2[<span class="number">0</span>];</span><br><span class="line">  <span class="keyword">char</span> str2_1 = str2[<span class="number">1</span>];</span><br><span class="line"></span><br><span class="line">  sleep(<span class="number">-1</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="数组方式"><a href="#数组方式" class="headerlink" title="数组方式"></a>数组方式</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">char</span> str1_0 = str1[<span class="number">0</span>];</span><br><span class="line"><span class="keyword">char</span> str1_1 = str1[<span class="number">1</span>];</span><br></pre></td></tr></table></figure>
-<p>对应的汇编：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">0x100000f4a &lt;+58&gt;:  movb   -0x16(%rbp), %r8b</span><br><span class="line">0x100000f4e &lt;+62&gt;:  movb   %r8b, -0x21(%rbp)</span><br><span class="line">0x100000f52 &lt;+66&gt;:  movb   -0x15(%rbp), %r8b</span><br><span class="line">0x100000f56 &lt;+70&gt;:  movb   %r8b, -0x22(%rbp)</span><br></pre></td></tr></table></figure>
-<p>这段汇编代码很容易(注意字符串数组就在栈里)：</p>
-<ol>
-<li>取栈中对应位置的数据，交给一个寄存器；</li>
-<li>由寄存器将数据交给栈。</li>
-</ol>
-<p>为什么要一个寄存器绕一下？因为栈在内存中，不能直接内存到内存，需要寄存器作为中间人。</p>
-<h3 id="指针方式"><a href="#指针方式" class="headerlink" title="指针方式"></a>指针方式</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">char</span> str2_0 = str2[<span class="number">0</span>];</span><br><span class="line"><span class="keyword">char</span> str2_1 = str2[<span class="number">1</span>];</span><br></pre></td></tr></table></figure>
+<p>最后，我们需要了解另一个比较重要的概念— 文件描述符中的结点指针。<br>结点就是一种文件系统数据结构，它包含有关文件系统对象（如：文件、路径）的相关信息，比如：</p>
+<ul>
+<li>文件或者路径数据在磁盘上存储的位置</li>
+<li>文件或路径属性</li>
+<li>访问时间、所有者、权限等关于文件或者路径的元数据信息</li>
+</ul>
+<p>文件系统中的每个文件或者路径都有一个结点条目，该条目代表着文件的编号（也叫结点编号），在很多文件系统上，可分配的结点数是有上限的。</p>
+<p>在磁盘上有一个用于维护结点编号到磁盘上实际结点数据结构映射的结点表。为了获取文件位置或者有关文件的元信息，大部分文件系统使用内核提供的文件驱动通过结点编号来访问它。</p>
+<p>假如进程 A fork 出子进程 B 之后，进程 A 又创建了 fd4 跟 fd5（这两个描述符不会被 B 继承）。</p>
+<p>假如 fd5 是进程 A 为了读取 abc.txt 文件通过调用 open 来创建的，而进程 B 为了向 abc.txt 文件中写数据通过 open 调用返回的描述符是 fd10。<br>那么进程 A 的 fd5 以及进程 B 的 fd10 指向了打开文件表中不同的文件描述符，但是它们指向的却是同一个节点表中的条目（也就是说，它们指向了同一个文件）。</p>
+<hr>
+<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/12.png" class="" width="400">
 
-<p>对应的汇编：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">0x100000f5a &lt;+74&gt;:  movq   -0x20(%rbp), %rcx</span><br><span class="line">0x100000f5e &lt;+78&gt;:  movb   (%rcx), %r8b</span><br><span class="line">0x100000f61 &lt;+81&gt;:  movb   %r8b, -0x23(%rbp)</span><br><span class="line">0x100000f65 &lt;+85&gt;:  movq   -0x20(%rbp), %rcx</span><br><span class="line">0x100000f69 &lt;+89&gt;:  movb   0x1(%rcx), %r8b</span><br><span class="line">0x100000f6d &lt;+93&gt;:  movb   %r8b, -0x24(%rbp)</span><br></pre></td></tr></table></figure>
+<hr>
+<p>有两点值得注意的地方：</p>
+<ul>
+<li><p>由于进程 A 以及进程 B 中的 fd0 指向了同一个文件描述符，那么它们就会共享文件偏移量，也就是说，如果进程 A 通过调用 open()、write() 或者 lseek() 等向前移动了偏移量，那么进程 B 中的偏移量同样会发生变化。对于进程 A 的 fd3 也同样如此，因为 fd3 也指向了与 fd0 一样的文件描述符。</p>
+</li>
+<li><p>以上规则对于其中一个进程修改了文件状态标记（O_ASYNC, O_NONBLOCK, O_APPEND）同样适用。所以，如果进程 B 通过 fd0 使用 fcntl 系统调用将文件描述符改为非阻塞模式，那么进程 A 中的 fd0 跟 fd3 也同样变为非阻塞模式。</p>
+</li>
+</ul>
+<h1 id="剖析-epoll"><a href="#剖析-epoll" class="headerlink" title="剖析 epoll"></a>剖析 epoll</h1><p>假如进程 A 有两个指向不同结点的文件描述符 fd0 跟 fd1。</p>
+<hr>
+<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/13.png" class="" width="400">
 
-<p>这段汇编代码多个一个步骤（注意字符串在__cstring段中）：</p>
-<ol>
-<li>从栈中取指向字符串的指针，交给一个寄存器；</li>
-<li>取指针所指地址对应位置数据，交给一个寄存器；</li>
-<li>由寄存器将数据交给栈。</li>
-</ol>
-<p>为什么这里多绕一步？因为涉及到指针所指地址转换为地址的问题。</p>
-<h3 id="小结-1"><a href="#小结-1" class="headerlink" title="小结"></a>小结</h3><blockquote>
-<p>对比两种方式可以发现，读取字符串时，数组方式只需要用到一个寄存器，而指针方式需要用到两个寄存器（需要先把指针读到寄存器），读取以数组方式初始化的字符串要比以指针方式初始化的字符串效率高。但以指针方式初始化的字符串在加载时就已经在内存中，而以数组方式初始化的字符串还要进行压栈的操作。</p>
+<hr>
+<p>epoll_create 在内核中创建一个新的结点条目（epoll 实例）以及一个新的打开文件描述符，并把指向描述符的 fd9 返回给调用者。</p>
+<hr>
+<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/14.png" class="" width="400">
+
+<hr>
+<p>当我们通过 epoll_ctl 把 fd0 添加到 epoll 实例的 interest list 中是，实际上是把 fd0 对应的底层文件描述符（打开文件描述符）放到了 epoll 实例的 interest list 中。</p>
+<hr>
+<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/15.png" class="" width="400">
+
+<hr>
+<p>因此，epoll 实例实际上真正监控的是底层的文件描述符，并不是每个进程的文件描述符，这里有个有趣的现象：</p>
+<p>如果进程 A fork 出进程 B，B 就拥有了与 A 一样的描述符，也包括 fd9。不仅如此，进程 B 的 epoll 描述符 fd9 也跟进程 A 一样，拥有相同的 interest list。</p>
+<p>如果进程 A 在 fork 之后，创建了一个新的描述符 fd8 （并不会被进程 B 拥有），并通过 epoll_ctl 添加到 interest list 中。当 fd8 上的事件发生时，不仅仅是进程 A 会收到相关的通知，进程 B 也会收到。当通过调用 dup/dup2 复制 epoll 描述符或者通过 Unix Domain Socket 将 epoll 描述符从一个进程传递到另一个进程时，该现象同样会发生。</p>
+<hr>
+<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/16.png" class="" width="400">
+
+<hr>
+<p>如果进程 B 通过 open 打开一个 df8 指向的文件，其描述符为 fd15，然后进程 A 关闭 fd8。你可能觉得既然 fd8 已经被关闭，那么肯定不会再收到 fd8 上相关的事件了。但是，实际上并非如此，因为 interest list 还在监听着打开的文件描述符。由于 fd15 跟 fd8 指向了相同的描述符，进程 A 得到的通知其实是关于 fd15 的。肯定的是，如果一个进程将它关注的描述符关闭之后还陆续收到该描述符相关的事件，那么该文件描述符对应的底层描述符肯定还被其他至少一个属于该进程或者来自于其他进程的描述引用。</p>
+<h1 id="为什么-epoll-性能强于-select-跟-poll"><a href="#为什么-epoll-性能强于-select-跟-poll" class="headerlink" title="为什么 epoll 性能强于 select 跟 poll"></a>为什么 epoll 性能强于 select 跟 poll</h1><p>select/poll 时间复杂度为 O(N)，如果 N 比较大，那么每次 select/poll 被调用时即使就绪的描述符很少，内核也需要扫描集合中的每个描述符。</p>
+<p>epoll 监听的是底层的文件描述符，每当文件描述符 IO 就绪时，内核就会把它们添加到 ready list 中，此过程无需进程调用 epoll_wait 来实现。当进程调用 epoll_wait 等待事件发生时，内核除了将它维护的 ready list 返回给调用方外，无需做任何其他额外的工作。</p>
+<p>此外，每次调用 select/poll 时，都需要将进程想要监听的描述符信息传递给内核。而内核返回描述符信息时，进程都需要再一次扫描所有的描述符来检查哪个描述符已经就绪了。</p>
+<p>对于 epoll，只要我们通过 epoll_ctl 将我们想要监听的描述符添加到 epoll 实例的 interest list 中，我们就不需要将来调用 epoll_wait 时，向内核传递我们想要监听就绪信息的描述符了（select/poll 需要每次调用时传递）。</p>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>epoll 时间复杂度是 O(就绪的描述符数量) 并非 O(所要监听的描述符数量)。</p>
 </blockquote>
-<h1 id="写字符串时的危险"><a href="#写字符串时的危险" class="headerlink" title="写字符串时的危险"></a>写字符串时的危险</h1><p>这里介绍字符串在栈中时，可能对程序造成的破坏。实际介绍的就是 C 中危险的指针操作，<strong>不仅限于字符串，只要涉及到指针操作都可能造成下面说到的破坏。</strong></p>
-<h3 id="例一"><a href="#例一" class="headerlink" title="例一"></a>例一</h3><p>在栈中时，指向字符串的指针不仅能够修改字符串本身，还能不经意间修改其他变量的值。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">const</span> <span class="keyword">char</span> *argv[])</span> </span>&#123;</span><br><span class="line">  <span class="keyword">int</span> a = <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">char</span> str[] = <span class="string">&quot;World&quot;</span>;</span><br><span class="line">  <span class="keyword">int</span> b = <span class="number">2</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">char</span> *str_ptr = &amp;str[<span class="number">0</span>];</span><br><span class="line">  *(str_ptr + <span class="number">6</span>) = <span class="string">&#x27;W&#x27;</span>;</span><br><span class="line">  *(str_ptr - <span class="number">3</span>) = <span class="string">&#x27;o&#x27;</span>; <span class="comment">// align</span></span><br><span class="line"></span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;a=%d, b=%d, str=\&quot;%s\&quot;\n&quot;</span>, a, b, str);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>输出为：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">a=87, b=1862270978, str=&quot;World&quot;</span><br></pre></td></tr></table></figure>
-<p>简单解释下，因为 a 先入栈，”World” 随后入栈，b 最后入栈，此时指针 str_ptr 指向 ‘W’。注意栈的增长方向是像内存地址更小的方向，str_ptr + 6 已经超出字符串范围，到达了 b 的内存区域，这时在修改b的值；str_ptr - 3 修改的是 a 的最低一个 byte，所以 a 的值变为 ‘o’，即 87，至于为什么不是 str_ptr - 1，是因为涉及到内存对齐的问题。</p>
-<h3 id="例二"><a href="#例二" class="headerlink" title="例二"></a>例二</h3><p>C 中函数调用时的返回地址、保存的寄存器的值等也是在栈中，指针操作还能威胁到整个程序的顺利运行。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">write_str</span><span class="params">(<span class="keyword">char</span> *str)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">2</span>; i &lt; <span class="number">40</span>; i++) &#123;</span><br><span class="line">    *(str + i) = <span class="string">&#x27;d&#x27;</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">const</span> <span class="keyword">char</span> *argv[])</span> </span>&#123;</span><br><span class="line">  <span class="keyword">char</span> str[] = <span class="string">&quot;World&quot;</span>;</span><br><span class="line">  <span class="keyword">char</span> *str_ptr = &amp;str[<span class="number">0</span>];</span><br><span class="line"></span><br><span class="line">  write_str(str);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>程序执行，在 return 0 时会提示程序出错 Thread 1: EXC_BAD_ACCESS (code=EXC_i386_GPLFT)。</p>
-<p>这里是因为操作字符串指针持续向栈底方向写数据，破坏了程序的活动记录（Activate Record），造成程序出错。</p>
-<h3 id="小结-2"><a href="#小结-2" class="headerlink" title="小结"></a>小结</h3><blockquote>
-<p>指针操作一定要慎重！</p>
-</blockquote>
+<h1 id="边缘触发模式-ET"><a href="#边缘触发模式-ET" class="headerlink" title="边缘触发模式 ET"></a>边缘触发模式 ET</h1><p>默认情况下，epoll 提供了水平触发通知模式。每个 epoll_wait 调用只是返回 interest list 中就绪的描述符。</p>
+<p>假如我们注册了 fd1、fd2、fd3、fd4 四个描述符，在我们调用 epoll_wait 时，只有 fd2、fd3 已经就绪了，那么返回的也就只有这两个描述符信息。</p>
+<hr>
+<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/17.png" class="" width="400">
+
+<hr>
+<p>值得注意的是，在默认的水平触发模式下，由于 epoll 只是在底层描述符就绪时才会更新 ready list，所以 interest list 中的描述符性质（阻塞与非阻塞）并不会影响 epoll_wait 调用的结果。</p>
+<p>有时我们只是想查看 interest list 中任何一个描述符的状态，不管它是否已经就绪。边缘触发模式允许我们查看任何特定的描述符（即时在调用 epoll_wait 时还没有就绪）是否 I/O 可用。如果我们想要知道自从上次调用 epoll_wait 以来，文件描述符上是否有任何 I/O 活动发生或者描述符就绪时，epoll_wait 并没有调用，我们可以调用 epoll_ctl 时对 EPOLLET 按位或将描述符注册到 epoll 实例以得到边缘出发模式。</p>
+<p>代码示例：</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">Poller:register</span><span class="params">(fd, r, w)</span></span></span><br><span class="line">	<span class="keyword">local</span> ev = <span class="built_in">self</span>.ev[<span class="number">0</span>]</span><br><span class="line">    // 事件注册</span><br><span class="line">	ev.events = bit.bor(C.EPOLLET, C.EPOLLERR, C.EPOLLHUP)</span><br><span class="line">	    // 读事件</span><br><span class="line">	<span class="keyword">if</span> r <span class="keyword">then</span></span><br><span class="line">		ev.events = bit.bor(ev.events, C.EPOLLIN)</span><br><span class="line">	<span class="keyword">end</span></span><br><span class="line">	<span class="keyword">if</span> w <span class="keyword">then</span></span><br><span class="line">	    // 写事件</span><br><span class="line">		ev.events = bit.bor(ev.events, C.EPOLLOUT)</span><br><span class="line">	<span class="keyword">end</span></span><br><span class="line">	// 将文件描述符设置到事件对象中</span><br><span class="line">	ev.data.u64 = fd</span><br><span class="line">	// 调用 epoll_ctl 注册</span><br><span class="line">	<span class="keyword">local</span> rc = C.epoll_ctl(<span class="built_in">self</span>.fd, C.EPOLL_CTL_ADD, fd, ev)</span><br><span class="line">	<span class="keyword">if</span> rc &lt; <span class="number">0</span> <span class="keyword">then</span> errors.get(rc):abort() <span class="keyword">end</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>我们以图表的方式来说明边缘触发模式的工作原理。我们采用先前的例子进行说明，进程 A 注册了 4 个描述符到 epoll 实例，其中 fd3 是 socket 描述符。</p>
+<p>假如 t1 时刻，输出字节流到到达 fd3 引用的 socket 描述符。</p>
+<hr>
+<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/18.png" class="" width="400">
+
+<hr>
+<p>假定 t4 时，进程将调用 epoll_wait。</p>
+<p>如果 t4 时，fd2、fd3 已经就绪，epoll_wait 调用返回 fd2、fd3 已经就绪。</p>
+<hr>
+<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/19.png" class="" width="400">
+
+<hr>
+<p>假定进程 t6 时，再一次调用 epoll_wait。<br>此时 fd1 已经就绪，而 fd3 对应的 socket 描述符在 t4 跟 t6 之间没有数据到达。</p>
+<p>在水平触发模式下，调用 epoll_wait 将返回 fd1 给进程，因为此时 fd1 是唯一一个就绪的描述符。然而在边缘触发模式下，该调用将会阻塞，因为在 t4 跟 t6 之间没有 socket 数据到达。</p>
+<hr>
+<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/20.png" class="" width="400">
+
 <hr>
 <h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
-<li><a target="_blank" rel="noopener" href="https://www.polarxiong.com/archives/C%E4%B8%AD%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%9C%A8%E5%86%85%E5%AD%98%E4%B8%AD%E7%9A%84%E4%BD%8D%E7%BD%AE%E5%8F%8A%E8%AF%BB%E5%86%99%E7%AD%89%E5%88%86%E6%9E%90.html">【原文链接】</a></li>
+<li><a target="_blank" rel="noopener" href="https://copyconstruct.medium.com/the-method-to-epolls-madness-d9d2d6378642">【The method to epoll’s madness】</a></li>
+<li><a target="_blank" rel="noopener" href="https://code.woboq.org/gcc/include/sys/epoll.h.html">【epoll.h】</a></li>
 </ul>
 
     
@@ -516,7 +464,7 @@
         		</li>
       		 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color3">Reprint</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color5">Unix</a>
         		</li>
       		
 		</ul>
@@ -526,7 +474,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2021/05/15/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E5%9B%9B)%E5%8F%98%E9%87%8F%E4%B8%8E%E5%86%85%E5%AD%98(%E4%B8%8B%E7%AF%87)/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/">展开全文 >></a>
     </p>
     
 
@@ -560,7 +508,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/21/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/20/">20</a><a class="page-number" href="/articles/page/21/">21</a><span class="page-number current">22</span><a class="page-number" href="/articles/page/23/">23</a><a class="page-number" href="/articles/page/24/">24</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/44/">44</a><a class="extend next" rel="next" href="/articles/page/23/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/21/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/20/">20</a><a class="page-number" href="/articles/page/21/">21</a><span class="page-number current">22</span><a class="page-number" href="/articles/page/23/">23</a><a class="page-number" href="/articles/page/24/">24</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/45/">45</a><a class="extend next" rel="next" href="/articles/page/23/">下一页</a>
     </nav>
   
 
@@ -692,27 +640,11 @@
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">C</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">Reprint</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color5">Unix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">TCP</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -728,6 +660,14 @@
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color5">Unix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">TCP</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color5">Java</a>
               </li>
              
@@ -740,11 +680,19 @@
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">redis</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">jvm</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">redis</a>
+                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
               </li>
             
             <div class="clearfix"></div>
