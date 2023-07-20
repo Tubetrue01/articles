@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-c_mini/C迷你系列(六)select与stdio混用所带来的问题" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-entertainment/更换ChromecastWithGoogleTV桌面" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2021/08/09/c_mini/C%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E5%85%AD)select%E4%B8%8Estdio%E6%B7%B7%E7%94%A8%E6%89%80%E5%B8%A6%E6%9D%A5%E7%9A%84%E9%97%AE%E9%A2%98/" target="_blank">C 迷你系列（六）select 与 stdio 混用所带来的问题</a>
+	  <a class="article-title" href="/articles/2022/12/22/entertainment/%E6%9B%B4%E6%8D%A2ChromecastWithGoogleTV%E6%A1%8C%E9%9D%A2/" target="_blank">更换 Chromecast with Google TV 桌面</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2021/08/09/c_mini/C%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E5%85%AD)select%E4%B8%8Estdio%E6%B7%B7%E7%94%A8%E6%89%80%E5%B8%A6%E6%9D%A5%E7%9A%84%E9%97%AE%E9%A2%98/" class="archive-article-date">
-        <time datetime="2021-08-09T10:49:17.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-08-09</time>
+<a href="/articles/2022/12/22/entertainment/%E6%9B%B4%E6%8D%A2ChromecastWithGoogleTV%E6%A1%8C%E9%9D%A2/" class="archive-article-date">
+        <time datetime="2022-12-22T04:48:05.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2022-12-22</time>
 </a>
 
   
@@ -215,58 +215,48 @@
   
   <div class="article-entry" itemprop="articleBody">
     
-    <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p> 在 《UNIX 网络编程》一书 135 页的末尾提到关于 select 与 stdio 相关函数混用的问题。这里我把它单独拿出来，以一个简单的例子说明一下。避免之后的使用中出现类似的问题。</p>
-</blockquote>
-<h1 id="问题根源"><a href="#问题根源" class="headerlink" title="问题根源"></a>问题根源</h1><p>两者的缓冲区：</p>
-<ul>
-<li>系统 I/O 在内核空间中存在缓冲，而在用户空间没有；</li>
-<li>stdio 系列函数除了在内核空间中有缓存，在用户空间也有缓冲；</li>
-</ul>
-<p>缓冲区类型：</p>
-<ul>
-<li>全缓冲（大部分缓冲都是这类型）</li>
-<li>行缓冲（例如：stdio、stdout）</li>
-<li>无缓冲（例如：stderr）</li>
-</ul>
-<p>而具体的问题则是出现在 select 只会检测内核空间中的缓冲区，无法感知用户空间中的缓冲区。当数据从内核空间复制到用户空间的时候，即使该描述符对应的缓存空间有数据，select 也不会再给通知。如图：</p>
-<img src="/articles/2021/08/09/c_mini/C%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E5%85%AD)select%E4%B8%8Estdio%E6%B7%B7%E7%94%A8%E6%89%80%E5%B8%A6%E6%9D%A5%E7%9A%84%E9%97%AE%E9%A2%98/info.png" class="" width="650" height="500">
+    <h1 id="你？你？还是你？"><a href="#你？你？还是你？" class="headerlink" title="你？你？还是你？"></a>你？你？还是你？</h1><p>一直用 PS5 看流媒体，结果发现手柄实在费电，基本上一天要两充，比游戏还费电。所以还是选择一款机顶盒比较合适，眼下有三款可以选择：Chromecast with Google TV、Fire Stick 4K Max、AppleTV。考虑到对 FireTV 不感冒，AppleTV 最近刚更新了 7 代价格也不是很合适，所以最终选择了 Chromecast with Google TV。</p>
+<h1 id="简约而不简单"><a href="#简约而不简单" class="headerlink" title="简约而不简单"></a>简约而不简单</h1><img src="/articles/2022/12/22/entertainment/%E6%9B%B4%E6%8D%A2ChromecastWithGoogleTV%E6%A1%8C%E9%9D%A2/01.jpg" class="" width="600">
 
 
-<h1 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h1><ul>
-<li><h3 id="正常输出"><a href="#正常输出" class="headerlink" title="正常输出"></a>正常输出</h3></li>
-</ul>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> BUFFER 3</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> BUFFER_LEN (BUFFER - 1)</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> n;</span><br><span class="line">    fd_set rset;</span><br><span class="line">    <span class="keyword">char</span> buffer[BUFFER];</span><br><span class="line">    FD_ZERO(&amp;rset);</span><br><span class="line">    <span class="keyword">for</span> (;;)</span><br><span class="line">    &#123;</span><br><span class="line">        FD_SET(fileno(<span class="built_in">stdin</span>), &amp;rset);</span><br><span class="line">        select(fileno(<span class="built_in">stdin</span>) + <span class="number">1</span>, &amp;rset, <span class="literal">NULL</span>, <span class="literal">NULL</span>, <span class="literal">NULL</span>);</span><br><span class="line">        n = read(fileno(<span class="built_in">stdin</span>), buffer, BUFFER_LEN);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;读取到：[%d] 字节，内容为：[%s]\n&quot;</span>, n, buffer);</span><br><span class="line">        <span class="built_in">memset</span>(buffer, <span class="number">0</span>, <span class="keyword">sizeof</span>(buffer));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">--- input</span><br><span class="line"><span class="number">123456</span></span><br><span class="line"></span><br><span class="line">--- output</span><br><span class="line">读取到：[<span class="number">2</span>] 字节，内容为：[<span class="number">12</span>]</span><br><span class="line">读取到：[<span class="number">2</span>] 字节，内容为：[<span class="number">34</span>]</span><br><span class="line">读取到：[<span class="number">2</span>] 字节，内容为：[<span class="number">56</span>]</span><br><span class="line">读取到：[<span class="number">1</span>] 字节，内容为：[</span><br><span class="line">]</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p><strong>📚 Tips</strong></p>
-<blockquote>
-<p>我们分配 3 字节大小的缓冲区，然后再每次读取玩缓冲中的数据之后，将缓冲中的数据清空，避免影响输出。当我们输入：123456 并按回车换行时（实际：123456\n），内容依次输出了。最后的 1 字节内容就是最后的换行符。</p>
-</blockquote>
-<p>我们分析一下从我们输出完并按下回车到显示时，都发生了什么：</p>
+<p>整个包装盒里就这四件，比较小巧。用来接显示器正合适。</p>
+<p>【为您推荐】</p>
+<img src="/articles/2022/12/22/entertainment/%E6%9B%B4%E6%8D%A2ChromecastWithGoogleTV%E6%A1%8C%E9%9D%A2/02.png" class="" width="600">
+
+<p>【影片】</p>
+<img src="/articles/2022/12/22/entertainment/%E6%9B%B4%E6%8D%A2ChromecastWithGoogleTV%E6%A1%8C%E9%9D%A2/03.png" class="" width="600">
+
+<p>【节目】</p>
+<img src="/articles/2022/12/22/entertainment/%E6%9B%B4%E6%8D%A2ChromecastWithGoogleTV%E6%A1%8C%E9%9D%A2/04.png" class="" width="600">
+
+<p>【应用】</p>
+<img src="/articles/2022/12/22/entertainment/%E6%9B%B4%E6%8D%A2ChromecastWithGoogleTV%E6%A1%8C%E9%9D%A2/05.png" class="" width="600">
+
+<p>谷歌的界面整体上比国内的瀑布流界面要舒服的多，内容的推送也不错。系统升级到了最新的 Android 12。</p>
+<h1 id="极简至道"><a href="#极简至道" class="headerlink" title="极简至道"></a>极简至道</h1><p>用过一段时间之后发现一个问题，虽然是原生系统，但是 UI 时常掉帧。一卡一卡的还是很难受的，所以打算换个系统桌面。我的需求很简单，就是界面要简约、流畅。所以最终选择了 Emotn UI。</p>
+<img src="/articles/2022/12/22/entertainment/%E6%9B%B4%E6%8D%A2ChromecastWithGoogleTV%E6%A1%8C%E9%9D%A2/06.png" class="" width="600">
+<hr>
+<img src="/articles/2022/12/22/entertainment/%E6%9B%B4%E6%8D%A2ChromecastWithGoogleTV%E6%A1%8C%E9%9D%A2/07.png" class="" width="600">
+
+<p>Emotn UI 确实要简约很多，整个界面也十分漂亮。更重要的是，操作十分丝滑。</p>
+<h1 id="跟默认桌面说拜拜"><a href="#跟默认桌面说拜拜" class="headerlink" title="跟默认桌面说拜拜"></a>跟默认桌面说拜拜</h1><p>界面装好之后，你发现 Emotn UI 没有提供默认桌面选项。当系统重启或者遥控的 Home 键都会启动默认桌面。所以接下来要做的就是替换系统桌面（基本操作就不再细说了，基本上都会）。</p>
 <ol>
-<li>输入回车之后，数据从用户缓冲复制到了内核缓冲（行缓冲）；</li>
-<li>select 检测到 stdin 对应的内核缓冲有数据可读的时候，解除阻塞；</li>
-<li>read 函数取 2 个字节的数据到 buffer 中；</li>
-<li>printf 将 buffer 中的数据显示出来，并进行下次循环，阻塞到 select；</li>
-<li>由于内核中还有数据未读完，select 再次解除阻塞，直至数据取完为止；</li>
+<li><strong>ADB 连接到盒子（记得打开调试功能）</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">adb connect 10.66.1.7(机顶盒 IP)</span><br></pre></td></tr></table></figure></li>
+<li><strong>禁用系统桌面</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">adb shell</span><br><span class="line">pm disable-user --user 0 com.google.android.apps.tv.launcherx</span><br><span class="line">pm disable-user --user 0 com.google.android.tungsten.setupwraith</span><br></pre></td></tr></table></figure></li>
+<li><strong>按键映射</strong><br>到此为止，整个系统 UI 已经换成了 Emotn UI。但是你发现 YouTube 快捷键失效了，另外遥控器上也有无用的按键能不能定制成其他的快捷键呢？<br>我们需要另一款软件 <a target="_blank" rel="noopener" href="https://www.dl.farsroid.com/ap/Button-Mapper-Pro-3.09(www.Farsroid.com).apk">【Button Mapper】</a>。下载安装之后，我们需要按照如下步骤进行定制：</li>
 </ol>
-<ul>
-<li><h3 id="混用时的问题"><a href="#混用时的问题" class="headerlink" title="混用时的问题"></a>混用时的问题</h3></li>
-</ul>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> n;</span><br><span class="line">    fd_set rset;</span><br><span class="line">    FD_ZERO(&amp;rset);</span><br><span class="line">    <span class="keyword">for</span> (;;)</span><br><span class="line">    &#123;</span><br><span class="line">        FD_SET(fileno(<span class="built_in">stdin</span>), &amp;rset);</span><br><span class="line">        select(fileno(<span class="built_in">stdin</span>) + <span class="number">1</span>, &amp;rset, <span class="literal">NULL</span>, <span class="literal">NULL</span>, <span class="literal">NULL</span>);</span><br><span class="line">        n = getc(<span class="built_in">stdin</span>);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;内容为：[%c]\n&quot;</span>, n);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">---</span><br><span class="line">intput: <span class="number">123456</span></span><br><span class="line">output: 内容为：[<span class="number">1</span>]</span><br><span class="line">intput: <span class="number">9</span></span><br><span class="line">output: 内容为：[<span class="number">2</span>]</span><br><span class="line">output: 内容为：[<span class="number">3</span>]</span><br><span class="line">output: 内容为：[<span class="number">4</span>]</span><br><span class="line">output: 内容为：[<span class="number">5</span>]</span><br><span class="line">output: 内容为：[<span class="number">6</span>]</span><br><span class="line">output: 内容为：[</span><br><span class="line">output: ]</span><br><span class="line">output: 内容为：[<span class="number">9</span>]</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>我们发现输出已经出现问题了，我们继续分析一下该问题是怎么造成的：</p>
-<ol>
-<li>当我们输入 123456 之后，数据由用户空间缓冲复制到了内核缓冲；</li>
-<li>select 检测到有数据可读，解除阻塞；</li>
-<li>getc 函数从用户缓冲中取 1 字节数据，发现缓冲中无数据可读，于是将内核中的数据复制到用户缓冲，并取 1 字节作为输出；</li>
-<li>此时由于数据已经全部复制到了用户缓冲，所以 select 进入阻塞状态（即使用户空间的缓冲中有数据可读）；</li>
-<li>当输出 9 并回车时，该数据又被复制到了内核空间（行缓冲），select 解除阻塞；</li>
-<li>getc 函数从用户缓冲中取出 1 字节数据输出（由于用户缓冲中有数据，所以 getc 便不会再从内核中复制数据）；</li>
-<li>由于内核中有数据，所以 select 便再解除阻塞，getc 再取 1 字节直到 9 被复制到用户缓冲并输出为止；</li>
-</ol>
-<p><strong>📚 Tips</strong></p>
-<blockquote>
-<p>仔细看最后的输出，你会发现 9 之后的换行符还留在用户空间缓冲中，该数据只能等下次再有数据输出到内核空间中才会得到输出。</p>
-</blockquote>
+<hr>
+   <img src="/articles/2022/12/22/entertainment/%E6%9B%B4%E6%8D%A2ChromecastWithGoogleTV%E6%A1%8C%E9%9D%A2/08.png" class="" width="600">
+<hr>
+   <img src="/articles/2022/12/22/entertainment/%E6%9B%B4%E6%8D%A2ChromecastWithGoogleTV%E6%A1%8C%E9%9D%A2/09.png" class="" width="600">
+<hr>
+   <img src="/articles/2022/12/22/entertainment/%E6%9B%B4%E6%8D%A2ChromecastWithGoogleTV%E6%A1%8C%E9%9D%A2/10.png" class="" width="600">
+<hr>
+   <img src="/articles/2022/12/22/entertainment/%E6%9B%B4%E6%8D%A2ChromecastWithGoogleTV%E6%A1%8C%E9%9D%A2/11.png" class="" width="600">
+
+<p>至此，享受流媒体带来的幸福感吧！</p>
+<h1 id="给予后悔的机会"><a href="#给予后悔的机会" class="headerlink" title="给予后悔的机会"></a>给予后悔的机会</h1><p>如果有一天想换回原来的桌面，也仅仅是执行以下命令即可：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">adb connect 10.66.1.7(机顶盒 IP)</span><br><span class="line">adb shell</span><br><span class="line"></span><br><span class="line">pm enable --user 0 com.google.android.tungsten.setupwraith</span><br><span class="line">pm enable --user 0 com.google.android.apps.tv.launcherx</span><br></pre></td></tr></table></figure>
 
     
 
@@ -283,11 +273,11 @@
 		<ul class="article-tag-list">
 			 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color5">Mini</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color3">娱乐</a>
         		</li>
       		 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">C</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">机顶盒</a>
         		</li>
       		
 		</ul>
@@ -297,7 +287,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2021/08/09/c_mini/C%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E5%85%AD)select%E4%B8%8Estdio%E6%B7%B7%E7%94%A8%E6%89%80%E5%B8%A6%E6%9D%A5%E7%9A%84%E9%97%AE%E9%A2%98/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2022/12/22/entertainment/%E6%9B%B4%E6%8D%A2ChromecastWithGoogleTV%E6%A1%8C%E9%9D%A2/">展开全文 >></a>
     </p>
     
 
@@ -331,7 +321,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/19/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/18/">18</a><a class="page-number" href="/articles/page/19/">19</a><span class="page-number current">20</span><a class="page-number" href="/articles/page/21/">21</a><a class="page-number" href="/articles/page/22/">22</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/45/">45</a><a class="extend next" rel="next" href="/articles/page/21/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/19/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/18/">18</a><a class="page-number" href="/articles/page/19/">19</a><span class="page-number current">20</span><a class="page-number" href="/articles/page/21/">21</a><a class="page-number" href="/articles/page/22/">22</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/65/">65</a><a class="extend next" rel="next" href="/articles/page/21/">下一页</a>
     </nav>
   
 
@@ -344,7 +334,7 @@
   <div class="outer">
     <div id="footer-info">
     	<div class="footer-left">
-    		&copy; 2018-2022 <a target="_blank">Tubetrue01</a>
+    		&copy; 2018-2023 <a target="_blank">Tubetrue01</a>
     	</div>
     </div>
   </div>
@@ -516,6 +506,38 @@
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">Docker</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">C++</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">MySQL</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">Redis</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">网络</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
               </li>
             
             <div class="clearfix"></div>

@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-c_cmake/cmake迷你系列(一)开启" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-proxy/TLS混淆(二)解ClientHello" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2021/08/20/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%BC%80%E5%90%AF/" target="_blank">cmake 迷你系列（一）开启</a>
+	  <a class="article-title" href="/articles/2022/12/27/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%BA%8C)%E8%A7%A3ClientHello/" target="_blank">TLS 混淆（二）解 ClientHello</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2021/08/20/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%BC%80%E5%90%AF/" class="archive-article-date">
-        <time datetime="2021-08-20T15:31:17.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-08-20</time>
+<a href="/articles/2022/12/27/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%BA%8C)%E8%A7%A3ClientHello/" class="archive-article-date">
+        <time datetime="2022-12-27T09:21:05.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2022-12-27</time>
 </a>
 
   
@@ -216,41 +216,26 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>本系列文章主要讲解 cmake 相关知识，什么是 cmake 呢？用最简单的话说就是跨平台的编译工具。再详细说就不符合本系列的宗旨—迷你了。之所以定义为迷你系列就是用较短的篇幅，把 cmake 讲解一遍，让初学者可以快速上手。好了，废话不多说，直接上手吧。</p>
+<p><a href="https://tubetrue01.github.io/articles/2022/12/23/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%B8%80)ClientHello/">【上一篇文章】</a> 介绍了客户端发送请求到服务端进行 Hello Client 握手，本篇继续讲解服务端收到请求之后如何反解析具体的数据。</p>
 </blockquote>
-<h1 id="hello-world"><a href="#hello-world" class="headerlink" title="hello world"></a>hello world</h1><p>万物均以 “hello world ” 开始，本文也不例外，我们就以一个最简单 c 的程序开始，IDE 我这里使用的是 CLion，系统是 macOS Mojave。<br>项目结构是：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">test</span><br><span class="line"> |---src</span><br><span class="line">      |---main.c</span><br></pre></td></tr></table></figure>
-<p>我们在 main.c 中写一个 “hello world”：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">      <span class="built_in">printf</span>(<span class="string">&quot;Hello, World!\n&quot;</span>);</span><br><span class="line">      <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>写好如上代码之后，我们发现 main 函数是不能运行的，因为还没有告诉编译器，哪些文件需要编译以及怎么编译。那我们应该怎么做呢？我们在 test 目录添加一个 CMakeLists.txt 文件，结构如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">test</span><br><span class="line"> |---src</span><br><span class="line">      |---main.c</span><br><span class="line"> |---CMakeLists.txt</span><br></pre></td></tr></table></figure>
-<p>内容如下：</p>
-<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.21</span>)</span><br><span class="line"><span class="keyword">project</span>(<span class="keyword">test</span> VERSION <span class="number">0.0</span>.<span class="number">1</span> LANGUAGES C)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CMAKE_C_STANDARD <span class="number">11</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_executable</span>(<span class="keyword">test</span> src/main.c)</span><br></pre></td></tr></table></figure>
-<p>我们来分析一下：</p>
+<h1 id="庐山真面目"><a href="#庐山真面目" class="headerlink" title="庐山真面目"></a>庐山真面目</h1><p>Hello Client 握手包其实就只是一个用来欺骗防火墙的外壳，真正的数据也藏在其中。到达服务端之后，我们首先要做的就是去掉外壳，拿到真实的数据。</p>
 <ol>
-<li>1 行用来指示使用的 cmke 最低版本是多少</li>
-<li>2 行指定项目的名字、版本号、使用的语言</li>
-<li>4 行用来指定 C 的标准</li>
-<li>6 行用来告诉编译器，要添加一个执行文件，名字叫 test，编译的文件是 src 下的 main.c</li>
+<li><p>先判断当前是否启用混淆</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (obfs == <span class="literal">NULL</span> || obfs-&gt;deobfs_stage &lt; <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>;</span><br></pre></td></tr></table></figure></li>
+<li><p>如果当前混淆上下文中不存在 extra，实例化它，它的作用我们往后在介绍。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (obfs-&gt;extra == <span class="literal">NULL</span>)</span><br><span class="line">&#123;</span><br><span class="line">    obfs-&gt;extra = ss_malloc(<span class="keyword">sizeof</span>(<span class="keyword">frame_t</span>));</span><br><span class="line">    <span class="built_in">memset</span>(obfs-&gt;extra, <span class="number">0</span>, <span class="keyword">sizeof</span>(<span class="keyword">frame_t</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+<li><p>为当前混淆上下文初始化缓存，这里分配了 32 个字节。具体的作用，我们稍后介绍。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (obfs-&gt;buf == <span class="literal">NULL</span>)</span><br><span class="line">&#123;</span><br><span class="line">    obfs-&gt;buf = (<span class="keyword">buffer_t</span> *) ss_malloc(<span class="keyword">sizeof</span>(<span class="keyword">buffer_t</span>));</span><br><span class="line">    balloc(obfs-&gt;buf, <span class="number">32</span>);</span><br><span class="line">    obfs-&gt;buf-&gt;len = <span class="number">32</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+<li><p>由于当前的混淆阶段为 0（Hello Client 握手包，混淆阶段肯定为 0），所以开始解析 <strong>tls_client_hello</strong>。</p>
+</li>
 </ol>
-<p>有了 CMakeLists.txt 文件，main 函数就可以执行起来了。当然，如果我们想要生成可执行文件，我们需要执行以下命令：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cmake . &amp;&amp; make</span><br></pre></td></tr></table></figure>
-<p>然后在项目的根路径就会生成 cmake_install.cmake、CMakeCache.txt、Makefile 以及名为 test 的可执行文件，执行 test 文件，就会打印 “hello world” 了。</p>
-<p><strong>📚 Tips</strong></p>
-<blockquote>
-<p>注意 CMakeLists.txt 文件需要放到项目的根路径。</p>
-</blockquote>
-<h1 id="优化你的代码"><a href="#优化你的代码" class="headerlink" title="优化你的代码"></a>优化你的代码</h1><h2 id="使你的路径更干净"><a href="#使你的路径更干净" class="headerlink" title="使你的路径更干净"></a>使你的路径更干净</h2><p>在上一节，我们执行完 <code> cmake .</code> 命令之后，发现在根路径生成了四个编译文件，原本干净的路径都被这些文件破坏了，当构建的代码多的时候，这些文件更是让人讨厌，所以我们需要执行 <code>cmake -S . -B build</code> 命令，这样，构建相关的文件就会放到当前路径的 build 文件夹下了。我们的项目也就只是我们的代码，没有其他文件干扰了。当我们想要清理的文件时，直接删掉 build 文件夹即可。</p>
-<h2 id="指定你的源码路径"><a href="#指定你的源码路径" class="headerlink" title="指定你的源码路径"></a>指定你的源码路径</h2><p>在 CMakeLists.txt 文件的最后一行 <code>add_executable(test src/main.c)</code> 我们指定了需要编译的源码文件，如果说 src 下有多个 c 文件，我们都需要一个一个手动添加进来吗？当然不，我们可以使用 <code>aux_source_directory(src SOURCE) </code> 命令，将 src 指定为源码路径，并把该信息保存到了 SOURCE 这个变量中，然后我们就可以使用 <code>add_executable(test $&#123;SOURCE&#125;)</code> 来编译我们的程序，这样无论 src 下添加多少个 c 文件都会编译进来。当然，有时候这样并不好。</p>
-<p>我们以一个简单的例子结束本文，首先我们定义一个头文件 utils.h：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> TEST_UTILS_H</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> TEST_UTILS_H</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">add</span><span class="params">(<span class="keyword">int</span>,<span class="keyword">int</span>)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">//TEST_UTILS_H</span></span></span><br></pre></td></tr></table></figure>
-<p>定义头文件时，我们需要编写条件话宏，避免重复引用。该文件中，我们声明了一个函数 <code>int add(int,int)</code>。然后我们创建 utils.c 来实现它：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;utils.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">add</span><span class="params">(<span class="keyword">int</span> a, <span class="keyword">int</span> b)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> a + b;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>整体的结构如下所示：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">test</span><br><span class="line">  |---src</span><br><span class="line">       |---main.c</span><br><span class="line">       |---utils.c</span><br><span class="line">       |---utils.h</span><br><span class="line">  |---CMakeLists.txt</span><br></pre></td></tr></table></figure>
-<p>我们在 main.c 中调用该函数：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;utils.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> sum = add(<span class="number">10</span>, <span class="number">20</span>);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;the sum is %d\n&quot;</span>, sum);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>直接运行我们的代码，得到 30 的输出。以上除了添加 utils.h 以及 utils.c 文件之外，并没有修改 CMakeLists.txt 文件，而程序就这样顺利跑起来了，这也是 <code>aux_source_directory(src SOURCE)</code> 命令的功劳。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * buf-&gt;len 为整个 Hello Client 数据包的长度，包括：固定的混淆模板 + 数据 + 混淆域名长度</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">int</span> len = buf-&gt;len;</span><br><span class="line"></span><br><span class="line">len -= <span class="keyword">sizeof</span>(struct tls_client_hello);</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 减去 client hello 模板数据后为 0，说明此数据包有问题</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (len &lt;= <span class="number">0</span>) <span class="keyword">return</span> OBFS_NEED_MORE;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 将 hello 指针指向数据起始地址，用于取值</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tls_client_hello</span> *<span class="title">hello</span> =</span> (struct tls_client_hello *) buf-&gt;data;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* </span></span><br><span class="line"><span class="comment"> * 如果握手类型与 hello client 中的类型不一致，说明包出现了问题</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (hello-&gt;content_type != tls_client_hello_template.content_type)</span><br><span class="line">    <span class="keyword">return</span> OBFS_ERROR;</span><br><span class="line">    </span><br><span class="line"><span class="comment">/* </span></span><br><span class="line"><span class="comment"> * hello-&gt;len 是整个 Hello Client 内容的长度，加上 5 字节则代表整个 Hello Client 报文的大小（content_type、version、len 总共 5B），</span></span><br><span class="line"><span class="comment"> * 理论上该字段与 buf-&gt;len 字段大小一致</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">size_t</span> hello_len = CT_NTOHS(hello-&gt;len) + <span class="number">5</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 取 Hello Client 包中的 Session Id 字段，存与混淆上下文中的缓存里（步骤 3 中的缓存就是出于这个目的）</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="built_in">memcpy</span>(obfs-&gt;buf-&gt;data, hello-&gt;session_id, <span class="number">32</span>);</span><br></pre></td></tr></table></figure>
+<ol start="5">
+<li>获取真实数据</li>
+</ol>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 计算 session ticket 头大小</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">len -= <span class="keyword">sizeof</span>(struct tls_ext_session_ticket);</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 如果小于 0，则说明数据包出现了问题</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (len &lt;= <span class="number">0</span>) <span class="keyword">return</span> OBFS_NEED_MORE;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 计算指针偏移，获取 ticket 指针</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tls_ext_session_ticket</span> *<span class="title">ticket</span> =</span></span><br><span class="line">        (struct tls_ext_session_ticket *) (buf-&gt;data + <span class="keyword">sizeof</span>(struct tls_client_hello));</span><br><span class="line">        </span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 判断当前类型是否一致        </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (ticket-&gt;session_ticket_type != tls_ext_session_ticket_template.session_ticket_type)</span><br><span class="line">    <span class="keyword">return</span> OBFS_ERROR;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* </span></span><br><span class="line"><span class="comment"> * 获取真实数据长度</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">size_t</span> ticket_len = CT_NTOHS(ticket-&gt;session_ticket_ext_len);</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 如果去掉 hello client 头跟 ticket 头之后的长度 len 比数据内容还小，显然是有问题的</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (len &lt; ticket_len)</span><br><span class="line">    <span class="keyword">return</span> OBFS_NEED_MORE;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 将真实数据存放到 buf-&gt;data 中，注意这里用到了 memmove 函数，是因为内存肯定有重叠，</span></span><br><span class="line"><span class="comment"> * 此操作完成了以后，buf 中的数据只能通过 ticket_len 表示出有用的数据地址</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">memmove(buf-&gt;data, (<span class="keyword">char</span> *) ticket + <span class="keyword">sizeof</span>(struct tls_ext_session_ticket), ticket_len);</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 这是一个有意思的点，buf-&gt;len 是客户端传进来的，它等于 tls_len，</span></span><br><span class="line"><span class="comment"> * 而 tls_len 等于 buf_len + hello_len + server_name_len + host_len + ticket_len + other_ext_len，</span></span><br><span class="line"><span class="comment"> * 其中只有 buf_len 数据大小跟 host_len 混淆主机名长度是动态的，其他都是固定不变的。</span></span><br><span class="line"><span class="comment"> * 我们再来看看 hello_len，它是数据报文的 len 字段加 5 字节之后的大小，也就是整个 Hello Client 报文的大小。</span></span><br><span class="line"><span class="comment"> * 两者其实是等价的，但是为什么还会有这个判断逻辑呢？大家不妨可以先思考下</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (buf-&gt;len &gt; hello_len)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * buf-&gt;data + hello_len 指向了包的结尾，此次操作是将数据包之外多余的数据追加到数据之后</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    memmove(buf-&gt;data + ticket_len, buf-&gt;data + hello_len, buf-&gt;len - hello_len);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 将 buf-&gt;len 重新赋值为数据的真实长度</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">buf-&gt;len = ticket_len + buf-&gt;len - hello_len;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 递增混淆阶段</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">obfs-&gt;deobfs_stage++;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 如果有额外的数据</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (buf-&gt;len &gt; ticket_len)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * 需要解混淆数据内容</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">return</span> deobfs_app_data(buf, ticket_len, obfs);</span><br><span class="line">&#125; <span class="keyword">else</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * 思考一下，buf-&gt;len 除了等于 ticket_len 之外，存在小于 ticket_len 也就是说 buf-&gt;len - hello_len 为负的情况吗？</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    ((<span class="keyword">frame_t</span> *) obfs-&gt;extra)-&gt;idx = buf-&gt;len - ticket_len;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>以上就是对 Hello Client 解混淆的介绍，其中有几个令人疑惑的点，<code>deobfs_app_data</code> 、<code>Session Id</code> 的作用？什么情况会有额外的数据？<code>buf-&gt;len</code> 有可能比 <code>ticket_len</code> 小吗？不要着急，后续的文章会对这些内容逐一解释。</p>
+<p>此外，我们还要记住的一点是，obfs 上下文对象是针对于当前连接存在的。只要当前连接没有被销毁，obfs 就是同一个对象。</p>
 
     
 
@@ -267,11 +252,7 @@
 		<ul class="article-tag-list">
 			 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">CMake</a>
-        		</li>
-      		 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color5">Mini</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">proxy</a>
         		</li>
       		
 		</ul>
@@ -281,7 +262,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2021/08/20/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%BC%80%E5%90%AF/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2022/12/27/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%BA%8C)%E8%A7%A3ClientHello/">展开全文 >></a>
     </p>
     
 
@@ -315,7 +296,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/16/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/15/">15</a><a class="page-number" href="/articles/page/16/">16</a><span class="page-number current">17</span><a class="page-number" href="/articles/page/18/">18</a><a class="page-number" href="/articles/page/19/">19</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/45/">45</a><a class="extend next" rel="next" href="/articles/page/18/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/16/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/15/">15</a><a class="page-number" href="/articles/page/16/">16</a><span class="page-number current">17</span><a class="page-number" href="/articles/page/18/">18</a><a class="page-number" href="/articles/page/19/">19</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/65/">65</a><a class="extend next" rel="next" href="/articles/page/18/">下一页</a>
     </nav>
   
 
@@ -328,7 +309,7 @@
   <div class="outer">
     <div id="footer-info">
     	<div class="footer-left">
-    		&copy; 2018-2022 <a target="_blank">Tubetrue01</a>
+    		&copy; 2018-2023 <a target="_blank">Tubetrue01</a>
     	</div>
     </div>
   </div>
@@ -500,6 +481,38 @@
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">Docker</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">C++</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">MySQL</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">Redis</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">网络</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
               </li>
             
             <div class="clearfix"></div>

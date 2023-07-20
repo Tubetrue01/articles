@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-c_cmake/cmake迷你系列(三)分离你的模块" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-proxy/TLS混淆(四)解ServerHello" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2021/08/21/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%89)%E5%88%86%E7%A6%BB%E4%BD%A0%E7%9A%84%E6%A8%A1%E5%9D%97/" target="_blank">cmake 迷你系列（三）分离你的模块</a>
+	  <a class="article-title" href="/articles/2022/12/28/proxy/TLS%E6%B7%B7%E6%B7%86(%E5%9B%9B)%E8%A7%A3ServerHello/" target="_blank">TLS 混淆（四）解 Server Hello</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2021/08/21/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%89)%E5%88%86%E7%A6%BB%E4%BD%A0%E7%9A%84%E6%A8%A1%E5%9D%97/" class="archive-article-date">
-        <time datetime="2021-08-21T04:32:50.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-08-21</time>
+<a href="/articles/2022/12/28/proxy/TLS%E6%B7%B7%E6%B7%86(%E5%9B%9B)%E8%A7%A3ServerHello/" class="archive-article-date">
+        <time datetime="2022-12-28T09:05:05.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2022-12-28</time>
 </a>
 
   
@@ -216,61 +216,13 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>我们会创建静态库以及动态库之后，接下要分离我们的模块，既然工具包不仅仅是提供给 main 程序的，我们就没有别要它们放到一起了。</p>
+<p><a href="https://tubetrue01.github.io/articles/2022/12/28/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%B8%89)ServerHello/">【上一篇文章】</a> 介绍了服务端混淆插件将响应数据打包成 TLS 的过程。当数据包传递给客户端时，客户端混淆插件需要解析出响应数据。那么本篇文章将继续介绍客户端是如何解析的。</p>
 </blockquote>
-<h1 id="包就要规整"><a href="#包就要规整" class="headerlink" title="包就要规整"></a>包就要规整</h1><p>我们创建出另外一个包 utils，结构如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">test</span><br><span class="line"> |---CMakeLists.txt</span><br><span class="line"> |---src</span><br><span class="line">      |---CMakeLists.txt</span><br><span class="line">      |---main.c</span><br><span class="line"> |---utils</span><br><span class="line">      |---CMakeLists.txt</span><br><span class="line">      |---utils.c</span><br><span class="line">      |---utils.h</span><br></pre></td></tr></table></figure>
-<p>以上我们做了以下改动：</p>
-<ol>
-<li>新建 utils 包，叫模块应该更加合理。</li>
-<li>将 utils.c、utils.h 放到 utils 模块下。</li>
-<li>同时，我们发现每个模块下都有一个 CMakeLists.txt 文件，这是必须的，如果说你的模块需要参与编译。</li>
+<h1 id="解析真实数据"><a href="#解析真实数据" class="headerlink" title="解析真实数据"></a>解析真实数据</h1><ol>
+<li>开始依然是判断混淆的启用情况，以及辅助工具的内存分配<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (obfs == <span class="literal">NULL</span> || obfs-&gt;deobfs_stage &lt; <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (obfs-&gt;extra == <span class="literal">NULL</span>)</span><br><span class="line">&#123;</span><br><span class="line">    obfs-&gt;extra = ss_malloc(<span class="keyword">sizeof</span>(<span class="keyword">frame_t</span>));</span><br><span class="line">    <span class="built_in">memset</span>(obfs-&gt;extra, <span class="number">0</span>, <span class="keyword">sizeof</span>(<span class="keyword">frame_t</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+<li>由于是第一次进行解析，所以当前的解析阶段为 0，我们直接进入解析流程<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 计算 server hello 结构大小</span></span><br><span class="line"><span class="keyword">size_t</span> hello_len = <span class="keyword">sizeof</span>(struct tls_server_hello);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 取出报文数据</span></span><br><span class="line"><span class="keyword">char</span> *data = buf-&gt;data;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 混淆报文的总长度</span></span><br><span class="line"><span class="keyword">int</span> len = buf-&gt;len;</span><br><span class="line"><span class="comment">// 如果去掉 server hello 之后大小为 0 了，那说明数据包有问题</span></span><br><span class="line">len -= hello_len;</span><br><span class="line"><span class="keyword">if</span> (len &lt;= <span class="number">0</span>) <span class="keyword">return</span> OBFS_NEED_MORE;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 定位 server hello 头指针</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tls_server_hello</span> *<span class="title">hello</span> =</span> (struct tls_server_hello *) data;</span><br><span class="line"><span class="comment">// 类型判断，不符合约定的类型，说明包有问题</span></span><br><span class="line"><span class="keyword">if</span> (hello-&gt;content_type != tls_server_hello_template.content_type)</span><br><span class="line">    <span class="keyword">return</span> OBFS_ERROR;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 依次判断去掉密钥交换、加密的握手信息之后的大小是否符合预期    </span></span><br><span class="line"><span class="keyword">size_t</span> change_cipher_spec_len = <span class="keyword">sizeof</span>(struct tls_change_cipher_spec);</span><br><span class="line"><span class="keyword">size_t</span> encrypted_handshake_len = <span class="keyword">sizeof</span>(struct tls_encrypted_handshake);</span><br><span class="line"></span><br><span class="line">len -= change_cipher_spec_len + encrypted_handshake_len;</span><br><span class="line"><span class="keyword">if</span> (len &lt;= <span class="number">0</span>) <span class="keyword">return</span> OBFS_NEED_MORE;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 计算 tls 包的大小，包括 server hello 头、交换密钥头、加密的握手协议头，以便于定位到实际数据，注意此 tls_len 是不包括实际数据的</span></span><br><span class="line"><span class="keyword">size_t</span> tls_len = hello_len + change_cipher_spec_len + encrypted_handshake_len;</span><br><span class="line"><span class="comment">// buf-&gt;data 加上 server hello、交换密钥头大小就是加密握手信息的起始地址</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tls_encrypted_handshake</span> *<span class="title">encrypted_handshake</span> =</span></span><br><span class="line">        (struct tls_encrypted_handshake *) (buf-&gt;data + hello_len + change_cipher_spec_len);</span><br><span class="line"><span class="comment">// msg_len 就是实际数据的大小</span></span><br><span class="line"><span class="keyword">size_t</span> msg_len = CT_NTOHS(encrypted_handshake-&gt;len);</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * buf-&gt;data + tls_len 就是实际数据的起始地址偏移量，至于复制多长呢？这里我们</span></span><br><span class="line"><span class="comment"> * 看到，直接用数据包的总长度 - 固定 tls 头的长度，而不是直接取 msg_len</span></span><br><span class="line"><span class="comment"> * memmove(buf-&gt;data, buf-&gt;data + tls_len, buf-&gt;len - tls_len)</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="comment">// 实际的数据大小重新记录到 buf-&gt;len 中</span></span><br><span class="line">buf-&gt;len = buf-&gt;len - tls_len;</span><br><span class="line"><span class="comment">// 递增解析阶段</span></span><br><span class="line">obfs-&gt;deobfs_stage++;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 与解析请求类似，这两个值会出现不一样的情况吗？</span></span><br><span class="line"><span class="keyword">if</span> (buf-&gt;len &gt; msg_len)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">return</span> deobfs_app_data(buf, msg_len, obfs);</span><br><span class="line">&#125; <span class="keyword">else</span></span><br><span class="line">&#123;</span><br><span class="line">    ((<span class="keyword">frame_t</span> *) obfs-&gt;extra)-&gt;idx = buf-&gt;len - msg_len;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
 </ol>
-<h2 id="整理-CMakeLists-txt"><a href="#整理-CMakeLists-txt" class="headerlink" title="整理 CMakeLists.txt"></a>整理 CMakeLists.txt</h2><p>既然每个包下有一个 CMakeLists.txt 文件，我们接下来要做的就是把根路径里的 CMakeLists.txt 内容提取到各自模块中的 CMakeLists.txt 里。我们先回顾一下根中 CMakeLists.txt 的内容：</p>
-<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.21</span>)</span><br><span class="line"><span class="keyword">project</span>(<span class="keyword">test</span> VERSION <span class="number">0.0</span>.<span class="number">1</span> LANGUAGES C)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CMAKE_C_STANDARD <span class="number">11</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(MAIN_SOURCE</span><br><span class="line">        <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/src/main.c</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(UTILS_SOURCE</span><br><span class="line">        utils/utils.c</span><br><span class="line">        )</span><br><span class="line"><span class="keyword">unset</span>(UTILS_LIB CACHE)</span><br><span class="line"><span class="keyword">find_library</span>(UTILS_LIB NAMES utils PATHS <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/build)</span><br><span class="line"><span class="comment">#add_library(utils SHARED $&#123;UTILS_SOURCE&#125;)</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">add_executable</span>(<span class="keyword">test</span> <span class="variable">$&#123;MAIN_SOURCE&#125;</span>)</span><br><span class="line"><span class="keyword">target_link_libraries</span>(<span class="keyword">test</span> <span class="variable">$&#123;UTILS_LIB&#125;</span>)</span><br></pre></td></tr></table></figure>
-<p>我们要做的就是把 main 下相关的编译信息放到 src 包中的 CMakeLists.txt：</p>
-<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span>(MAIN_SOURCE</span><br><span class="line">        main.c</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_executable</span>(<span class="keyword">test</span> <span class="variable">$&#123;MAIN_SOURCE&#125;</span>)</span><br><span class="line"><span class="keyword">target_link_libraries</span>(<span class="keyword">test</span> <span class="variable">$&#123;UTILS_LIB&#125;</span>)</span><br></pre></td></tr></table></figure>
-
-<p>然后把 utils 模块相关信息放到 utils 模块中的 CMakeLists.txt 文件中：</p>
-<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span>(UTILS_SOURCE</span><br><span class="line">        utils.c</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_library</span>(utils SHARED <span class="variable">$&#123;UTILS_SOURCE&#125;</span>)</span><br></pre></td></tr></table></figure>
-<p>最后我们根路径中的 CMakeLists.txt 中就剩下如下内容：</p>
-<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.21</span>)</span><br><span class="line"><span class="keyword">project</span>(<span class="keyword">test</span> VERSION <span class="number">0.0</span>.<span class="number">1</span> LANGUAGES C)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CMAKE_C_STANDARD <span class="number">11</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">unset</span>(UTILS_LIB CACHE)</span><br><span class="line"><span class="keyword">find_library</span>(UTILS_LIB NAMES utils PATHS <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/build)</span><br></pre></td></tr></table></figure>
-<p>是不是精简了很多？而且各自模块的功能就要放到各自的模块，根包中的就只是单纯的做通用处理。到了这里我们还是没有办法启动我们的项目的，因为我们需要为根中的 CMakeLists.txt 指定它的子。本示例中，我们的子有两个，一个是 src 下的，一个是 utils 下的，所以我们要加进来：</p>
-<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.21</span>)</span><br><span class="line"><span class="keyword">project</span>(<span class="keyword">test</span> VERSION <span class="number">0.0</span>.<span class="number">1</span> LANGUAGES C)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CMAKE_C_STANDARD <span class="number">11</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">unset</span>(UTILS_LIB CACHE)</span><br><span class="line"><span class="keyword">find_library</span>(UTILS_LIB NAMES utils PATHS <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/build/utils)</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_subdirectory</span>(src)</span><br><span class="line"><span class="keyword">add_subdirectory</span>(utils)</span><br></pre></td></tr></table></figure>
-<p>9 行、10 行我们通过 <code>add_subdirectory</code> 指令，将 src、utils 两个模块加入进来。同时我们还要注意第 7 行路径改为：/build/utils，因为添加 utils 模块之后，就会在 build 里添加对应的包了，后续我们会讲解如何打包到指定位置，这样就不用修改我们的程序了。</p>
-<h1 id="安装你的库"><a href="#安装你的库" class="headerlink" title="安装你的库"></a>安装你的库</h1><p>由于编译之后，我们需要修改我们的库路径，所以这里我们指定我们的库安装路径。这样方便查找。<br>我们修改 utils 模块中的 CMakeLists.txt 内容：</p>
-<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span>(UTILS_SOURCE</span><br><span class="line">        utils.c</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_library</span>(utils STATIC <span class="variable">$&#123;UTILS_SOURCE&#125;</span>)</span><br><span class="line"><span class="keyword">add_library</span>(utils-share SHARED <span class="variable">$&#123;UTILS_SOURCE&#125;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">file</span>(STRINGS VERSION version)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set_target_properties</span>(utils-share</span><br><span class="line">        PROPERTIES</span><br><span class="line">        OUTPUT_NAME utils</span><br><span class="line">        PUBLIC_HEADER utils.h</span><br><span class="line">        VERSION <span class="variable">$&#123;version&#125;</span></span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line"><span class="keyword">install</span>(TARGETS utils utils-share</span><br><span class="line">        ARCHIVE DESTINATION <span class="variable">$&#123;LIB_INSTALL_DIR&#125;</span></span><br><span class="line">        LIBRARY DESTINATION <span class="variable">$&#123;LIB_INSTALL_DIR&#125;</span></span><br><span class="line">        PUBLIC_HEADER DESTINATION <span class="variable">$&#123;LIB_INCLUDE_DIR&#125;</span></span><br><span class="line">        )</span><br></pre></td></tr></table></figure>
-<p>内容比较多，不过没有关系，我们一步一步分析：</p>
-<ol>
-<li>5 行、6 行，我们这次同时生成动态库与静态库，由于变量明不能重复，所以动态库我们叫 utils-share。</li>
-<li>我们生成库的时候，一般都会定义一个版本号，所以我们就用 file 指令读取当前路径下的 VERSION 文件中的版本号，并存于 version 变量中。</li>
-<li>由于变量不能重名，导致动态库叫 utils-share，这显然不是我们想要的，所以我们需要给它重新命名，这也是第 10 行的作用。我们修改 utils-share 的属性，OUTPUT_NAME 用来指定动态库生成的名字；PUBLIC_HEADER 用来将我们的头文件暴露出来，毕竟库的使用方通过该头文件才能知道库提供的功能有哪些。VERSION 用于指定动态库的版本号。</li>
-<li>我们在第 17 行安装我们的库，TARGETS 指定我们要安装的目标对象，这里是 utils 静态库，utils-share 动态库两个。接下来的 ARCHIVE 指定我们静态库安装路径，LIBRARY 指定我们动态库安装路径，PUBLIC_HEADER 指定我们头文件安装路径。</li>
-<li>指令中的 LIB_INSTALL_DIR 以及 LIB_INCLUDE_DIR 则是在根路径定义的安装路径。</li>
-</ol>
-<p>以上命令会生成三个库文件：libutils.a、libutils.1.0.0.dylib、libutils.dylib。其中 1.0.0 就是 VERSION 文件中定义的版本号，而 libutils.dylib 是一个软链，指向了 libutils.1.0.0.dylib。</p>
-<p>最终根路径中的 CMakeLists.txt 内容如下：</p>
-<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.21</span>)</span><br><span class="line"><span class="keyword">project</span>(<span class="keyword">test</span> VERSION <span class="number">0.0</span>.<span class="number">1</span> LANGUAGES C)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CMAKE_C_STANDARD <span class="number">11</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(LIB_INSTALL_DIR <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/libs/lib)</span><br><span class="line"><span class="keyword">set</span>(LIB_INCLUDE_DIR <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/libs/<span class="keyword">include</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">unset</span>(UTILS_LIB CACHE)</span><br><span class="line"><span class="keyword">find_library</span>(UTILS_LIB NAMES utils PATHS <span class="variable">$&#123;LIB_INSTALL_DIR&#125;</span>)</span><br><span class="line"><span class="keyword">find_path</span>(UTILS_HEADER NAMES utils.h PATHS <span class="variable">$&#123;LIB_INCLUDE_DIR&#125;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#include_directories($&#123;UTILS_HEADER&#125;)</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">add_subdirectory</span>(src)</span><br><span class="line"><span class="keyword">add_subdirectory</span>(utils)</span><br></pre></td></tr></table></figure>
-<ol>
-<li>6 行、7 行指定了静态库以及头文件的安装路径。</li>
-<li>10 行指定我们的库文件路径。</li>
-<li>11 行我们这里指定了头文件的安装路径。</li>
-<li>13 行将我们找到的头文件包含进我们的程序中，有读者可能会有疑问，为什么不直接使用 <code>include_directories</code> 把头文件加进来，非要在用个 <code>find_path</code> 呢？其实这里主要是介绍一下 <code>find_path</code> 的用法，一方面是由于 <code>include_directories</code> 的范围有点大，所以我们更推荐的做法是采用 <code>target_include_directories()</code> 指令。除非该头文件是全局都需要使用的。这里我们就直接采用后者的方式，将头文件仅仅包括到当前编译文件中。</li>
-</ol>
-<p>src 下的 CMakeLists.txt 为：</p>
-<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span>(MAIN_SOURCE</span><br><span class="line">        main.c</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_executable</span>(<span class="keyword">test</span> <span class="variable">$&#123;MAIN_SOURCE&#125;</span>)</span><br><span class="line"><span class="keyword">target_include_directories</span>(<span class="keyword">test</span> PRIVATE <span class="variable">$&#123;UTILS_HEADER&#125;</span>)</span><br><span class="line"><span class="keyword">target_link_libraries</span>(<span class="keyword">test</span> <span class="variable">$&#123;UTILS_LIB&#125;</span>)</span><br></pre></td></tr></table></figure>
-<ol>
-<li><p>6 行，我们将头文件编译到 test 目标对象中。这里有个 PRIVATE 关键字，相似的还有 PUBLIC、INTERFACE，那它们分别是什么意思呢？</p>
-<ul>
-<li><strong>PRIVATE</strong><br>私有，指被链接的库仅仅被目标使用，目标不对外暴露这个被链接的库的接口；</li>
-<li><strong>PUBLIC</strong><br>公有，指被链接的库不仅被目标使用，目标还对外暴露这个被链接的库的接口;</li>
-<li><strong>INTERFACE</strong><br>接口，指被链接的库不被目标使用，但目标对外暴露这个被链接的库的接口;</li>
-</ul>
-<p>如果理解起来比较费劲，没有关系，在后续的文章中，我会单独开一篇，详细讲解这些特性。</p>
-</li>
-<li><p>7 行，将生成的库链接到 test 中。</p>
-</li>
-</ol>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>至此，TLS 的握手已经完成，客服端发送 Client Hello，而服务端响应 Server Hello。虽然这是“握手”阶段，但是已经开始传递真实数据了。握手之后，就是混淆实际的数据传输报文了，相比握手阶段，数据的传输混淆更复杂一些，这部分内容我就放到下篇文章进行介绍吧。</p>
 
     
 
@@ -287,11 +239,7 @@
 		<ul class="article-tag-list">
 			 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">CMake</a>
-        		</li>
-      		 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color5">Mini</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">proxy</a>
         		</li>
       		
 		</ul>
@@ -301,7 +249,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2021/08/21/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%89)%E5%88%86%E7%A6%BB%E4%BD%A0%E7%9A%84%E6%A8%A1%E5%9D%97/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2022/12/28/proxy/TLS%E6%B7%B7%E6%B7%86(%E5%9B%9B)%E8%A7%A3ServerHello/">展开全文 >></a>
     </p>
     
 
@@ -335,7 +283,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/14/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/13/">13</a><a class="page-number" href="/articles/page/14/">14</a><span class="page-number current">15</span><a class="page-number" href="/articles/page/16/">16</a><a class="page-number" href="/articles/page/17/">17</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/45/">45</a><a class="extend next" rel="next" href="/articles/page/16/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/14/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/13/">13</a><a class="page-number" href="/articles/page/14/">14</a><span class="page-number current">15</span><a class="page-number" href="/articles/page/16/">16</a><a class="page-number" href="/articles/page/17/">17</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/65/">65</a><a class="extend next" rel="next" href="/articles/page/16/">下一页</a>
     </nav>
   
 
@@ -348,7 +296,7 @@
   <div class="outer">
     <div id="footer-info">
     	<div class="footer-left">
-    		&copy; 2018-2022 <a target="_blank">Tubetrue01</a>
+    		&copy; 2018-2023 <a target="_blank">Tubetrue01</a>
     	</div>
     </div>
   </div>
@@ -520,6 +468,38 @@
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">Docker</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">C++</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">MySQL</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">Redis</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">网络</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
               </li>
             
             <div class="clearfix"></div>

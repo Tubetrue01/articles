@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-c_reprint/C转载系列(四)变量与内存(下篇)" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-java_trans/[译]InitialRAMPercentage_MinRAMPercentage_MaxRAMPercentage之间的区别" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2021/05/15/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E5%9B%9B)%E5%8F%98%E9%87%8F%E4%B8%8E%E5%86%85%E5%AD%98(%E4%B8%8B%E7%AF%87)/" target="_blank">C 转载系列（四）变量与内存（下篇）</a>
+	  <a class="article-title" href="/articles/2022/08/15/java_trans/%5B%E8%AF%91%5DInitialRAMPercentage_MinRAMPercentage_MaxRAMPercentage%E4%B9%8B%E9%97%B4%E7%9A%84%E5%8C%BA%E5%88%AB/" target="_blank">InitialRAMPercentage、MinRAMPercentage, MaxRAMPercentage 之间的区别【译】</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2021/05/15/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E5%9B%9B)%E5%8F%98%E9%87%8F%E4%B8%8E%E5%86%85%E5%AD%98(%E4%B8%8B%E7%AF%87)/" class="archive-article-date">
-        <time datetime="2021-05-15T03:24:01.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-05-15</time>
+<a href="/articles/2022/08/15/java_trans/%5B%E8%AF%91%5DInitialRAMPercentage_MinRAMPercentage_MaxRAMPercentage%E4%B9%8B%E9%97%B4%E7%9A%84%E5%8C%BA%E5%88%AB/" class="archive-article-date">
+        <time datetime="2022-08-15T08:37:33.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2022-08-15</time>
 </a>
 
   
@@ -216,285 +216,36 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p><a href="https://tubetrue01.github.io/articles/2021/05/15/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E4%B8%89)%E5%8F%98%E9%87%8F%E4%B8%8E%E5%86%85%E5%AD%98(%E4%B8%8A%E7%AF%87)">【上一篇】</a>文章中介绍到 C/C++ 中一些基本类型变量在内存中的位置，本来想把字符串也在上一篇中介绍的，但测试发现字符串的情况比基本类型变量复杂的多，所以单独写一篇专门来介绍字符串。<br>这里说的字符串复杂是因为字符串实际就是 char 数组，且经常要和指针打交道，甚至不同编译器还有不同的表现，不是一句两句能说清楚的。本文旨在介绍一些常见情况下字符串实际在内存中的位置（段、栈和堆），读取字符串的过程，和一些需要注意的问题；本文编译器使用 clang 和 gcc 两种（默认使用 clang ），用以介绍不同编译器的不同点。</p>
+<p>本文主要是讲解 InitialRAMPercentage、MinRAMPercentage, MaxRAMPercentage 三个 JVM 参数之间的区别。参数由 Java 8 update 191 引入，主要是用于配置运行在物理机或者容器中的 Java 应用堆内存大小。</p>
 </blockquote>
-<h1 id="开发环境"><a href="#开发环境" class="headerlink" title="开发环境"></a>开发环境</h1><ul>
-<li>OS X El Captian (10.11.6)</li>
-<li>Apple LLVM 7.3.0 (clang-703.0.31)</li>
-<li>gcc 6.1.0</li>
-</ul>
-<h1 id="字符串在内存中的位置"><a href="#字符串在内存中的位置" class="headerlink" title="字符串在内存中的位置"></a>字符串在内存中的位置</h1><p>字符串的初始化一般有两种方法：</p>
+<h1 id="InitialRAMPercentage"><a href="#InitialRAMPercentage" class="headerlink" title="InitialRAMPercentage"></a>InitialRAMPercentage</h1><p><code>-XX:InitialRAMPercentage</code> 用于配置堆的初始化大小。假如物理机或者容器的内存大小（limit 限制）为 1 GB，<code> -XX:InitialRAMPercentage=25</code>，那么堆内存大小大概为 250 MB（1 GB 的 25%）。</p>
+<p>当 <code>-Xms</code> 参数未指定时，<code>-XX:InitialRAMPercentage</code> 用于配置堆的初始化大小。如果指定了 <code>-Xms</code> ，<code>-XX:InitialRAMPercentage</code> 将会被 JVM 忽略。</p>
+<h1 id="MaxRAMPercentage、MinRAMPercentage"><a href="#MaxRAMPercentage、MinRAMPercentage" class="headerlink" title="MaxRAMPercentage、MinRAMPercentage"></a>MaxRAMPercentage、MinRAMPercentage</h1><p>以上两个参数主要用于配置堆的最大内存大小（JDK 的开发团队起的名字 <code>-XX:MinRAMPercentage</code>   很容易让人理解为是堆的最小内存大小，然而并不是）。</p>
+<p>如果你的物理机（或容器）内存小于 <strong>250 MB</strong>（大约），那么 <code>-XX:MinRAMPercentage</code> 参数用于配置应用堆的最大内存大小。假如物理机内存大小为 100MB，<code>-XX:MinRAMPercentage=50</code>，那么应用的最大堆内存大小为 <strong>50 MB</strong>。</p>
+<p>当你的物理机（或容器）的内存大于 <strong>250 MB</strong>（大约），<code>-XX:MaxRAMPercentage</code> 参数将用于配置应用堆的最大内存大小。</p>
+<p>我们举两个例子来验证以上结论：</p>
 <ul>
-<li>数组：<code>char str[] = &quot;Hello&quot;;</code></li>
-<li>指针：<code>char *str = &quot;World&quot;;</code></li>
+<li><h3 id="例-1：较小的宿主机内存"><a href="#例-1：较小的宿主机内存" class="headerlink" title="例 1：较小的宿主机内存"></a>例 1：较小的宿主机内存</h3>我们把容器的内存限制为 100 MB，MaxRAMPercentage 配置为 25， MinRAMPercentage 配置为 50。那么由于宿主机的内存 100 MB 小于 250 MB，所以后者的配置应该生效，也就是如图所示，应用的最大堆大小为 48.38 MB（100 MB 的 50%）。从该例子中看出 <code>MaxRAMPercentage</code> 被忽略。 </li>
 </ul>
-<p>这里考虑全局变量、静态局部变量和局部变量三种情况；对于全局变量和静态局部变量，还考虑已初始化和未初始化的情况。</p>
-<p>代码：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">char</span> global_unin_t1[] = &#123;&#125;;</span><br><span class="line"><span class="keyword">char</span> *global_unin_t2;</span><br><span class="line"><span class="keyword">char</span> global_t1[] = <span class="string">&quot;Hello&quot;</span>;</span><br><span class="line"><span class="keyword">char</span> *global_t2 = <span class="string">&quot;World&quot;</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">const</span> <span class="keyword">char</span> *argv[])</span> </span>&#123;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> local_stat_unin_t1[] = &#123;&#125;;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> *local_stat_unin_t2;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> local_stat_t1[] = <span class="string">&quot;Think&quot;</span>;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">char</span> *local_stat_t2 = <span class="string">&quot;Free&quot;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">char</span> local_t1[] = <span class="string">&quot;Here&quot;</span>;</span><br><span class="line">  <span class="keyword">char</span> *local_t2 = <span class="string">&quot;Comes&quot;</span>;</span><br><span class="line"></span><br><span class="line">  sleep(<span class="number">-1</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>先看看几个典型的段信息：</p>
-<table>
-<thead>
-<tr>
-<th align="center">sectname</th>
-<th align="center">segname</th>
-<th align="center">addr</th>
-<th align="center">size</th>
-<th align="center">type</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center">__cstring</td>
-<td align="center">__TEXT</td>
-<td align="center">0x0000000100000f9e</td>
-<td align="center">0x0000000000000016</td>
-<td align="center">S_CSTRING_LITERALS</td>
-</tr>
-<tr>
-<td align="center">__data</td>
-<td align="center">__DATA</td>
-<td align="center">0x0000000100001018</td>
-<td align="center">0x0000000000000020</td>
-<td align="center">S_REGULAR</td>
-</tr>
-<tr>
-<td align="center">__common</td>
-<td align="center">__DATA</td>
-<td align="center">0x0000000100001038</td>
-<td align="center">0x0000000000000010</td>
-<td align="center">S_ZEROFILL</td>
-</tr>
-<tr>
-<td align="center">__bss</td>
-<td align="center">__DATA</td>
-<td align="center">0x0000000100001048</td>
-<td align="center">0x0000000000000010</td>
-<td align="center">S_ZEROFILL</td>
-</tr>
-</tbody></table>
-<p>再看看段内数据：</p>
-<h3 id="cstring"><a href="#cstring" class="headerlink" title="__cstring:"></a>__cstring:</h3><table>
-<thead>
-<tr>
-<th align="center">addr start</th>
-<th align="center">size</th>
-<th align="center">data (0x)</th>
-<th align="center">data (ASCII)</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center">0x100000fae</td>
-<td align="center">6</td>
-<td align="center">43 6F 6D 65 73 00</td>
-<td align="center">Comes</td>
-</tr>
-<tr>
-<td align="center">0x100000fa4</td>
-<td align="center">5</td>
-<td align="center">46 72 65 65 00</td>
-<td align="center">Free</td>
-</tr>
-<tr>
-<td align="center">0x100000fa9</td>
-<td align="center">5</td>
-<td align="center">48 65 72 65 00</td>
-<td align="center">Here</td>
-</tr>
-<tr>
-<td align="center">0x100000f9e</td>
-<td align="center">6</td>
-<td align="center">57 6F 72 6C 64 00</td>
-<td align="center">World</td>
-</tr>
-</tbody></table>
-<p>gcc 编译 __cstring 段中仅有 “World”、”Free” 和 “Comes”，没有 “Here”。</p>
-<h3 id="data"><a href="#data" class="headerlink" title="__data:"></a>__data:</h3><table>
-<thead>
-<tr>
-<th align="center">addr start</th>
-<th align="center">size</th>
-<th align="center">data (0x)</th>
-<th align="center">data (ASCII)</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center">0x100001018</td>
-<td align="center">6</td>
-<td align="center">48 65 6C 6C 6F 00</td>
-<td align="center">Hello</td>
-</tr>
-<tr>
-<td align="center">0x100001020</td>
-<td align="center">8</td>
-<td align="center">9E 0F 00 00 01 00 00 00</td>
-<td align="center">-</td>
-</tr>
-<tr>
-<td align="center">0x100001028</td>
-<td align="center">6</td>
-<td align="center">54 68 69 6E 6B 00</td>
-<td align="center">Think</td>
-</tr>
-<tr>
-<td align="center">0x100001030</td>
-<td align="center">8</td>
-<td align="center">A4 0F 00 00 01 00 00 00</td>
-<td align="center">-</td>
-</tr>
-</tbody></table>
-<h3 id="全局变量"><a href="#全局变量" class="headerlink" title="全局变量"></a>全局变量</h3><table>
-<thead>
-<tr>
-<th align="center">变量名</th>
-<th align="center">内存地址</th>
-<th align="center">所属段</th>
-<th align="center">值（十六进制）</th>
-<th align="center">值（ASCII/0x）</th>
-<th align="center">类型</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center">global_unin_t1</td>
-<td align="center">0x100001038</td>
-<td align="center">__common</td>
-<td align="center">00</td>
-<td align="center"></td>
-<td align="center">char []</td>
-</tr>
-<tr>
-<td align="center">global_t1</td>
-<td align="center">0x100001018</td>
-<td align="center">__data</td>
-<td align="center">48 65 6C 6C 6F 00</td>
-<td align="center">Hello</td>
-<td align="center">char [6]</td>
-</tr>
-<tr>
-<td align="center">global_t2</td>
-<td align="center">0x100001020</td>
-<td align="center">__data</td>
-<td align="center">9E 0F 00 00 01 00 00 00</td>
-<td align="center">0x100000f9e</td>
-<td align="center">char *</td>
-</tr>
-<tr>
-<td align="center">global_unin_t2</td>
-<td align="center">0x100001040</td>
-<td align="center">__common</td>
-<td align="center">00 00 00 00 00 00 00 00</td>
-<td align="center">NULL</td>
-<td align="center">char *</td>
-</tr>
-</tbody></table>
-<p>未初始化的全局变量放在 __common 段中，已初始化的放在 __data 段中。采用数组方式初始化的 global_t1 将本数组内的所有值都放在 __data 段中；而采用指针方式初始化的 global_t2 则仅将指针放在 __data 段中，其指向 __cstring 段中的 “World”。</p>
-<h3 id="静态变量"><a href="#静态变量" class="headerlink" title="静态变量"></a>静态变量</h3><table>
-<thead>
-<tr>
-<th align="center">变量名</th>
-<th align="center">内存地址</th>
-<th align="center">所属段</th>
-<th align="center">值（十六进制）</th>
-<th align="center">值（ASCII/0x）</th>
-<th align="center">类型</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center">local_stat_unin_t1</td>
-<td align="center">0x100001048</td>
-<td align="center">__bss</td>
-<td align="center">00</td>
-<td align="center"></td>
-<td align="center">char []</td>
-</tr>
-<tr>
-<td align="center">local_stat_unin_t2</td>
-<td align="center">0x100001050</td>
-<td align="center">__bss</td>
-<td align="center">00 00 00 00 00 00 00 00</td>
-<td align="center">NULL</td>
-<td align="center">char *</td>
-</tr>
-<tr>
-<td align="center">local_stat_t1</td>
-<td align="center">0x100001028</td>
-<td align="center">__data</td>
-<td align="center">54 68 69 6E 6B 00</td>
-<td align="center">Think</td>
-<td align="center">char [6]</td>
-</tr>
-<tr>
-<td align="center">local_stat_t2</td>
-<td align="center">0x100001030</td>
-<td align="center">__data</td>
-<td align="center">A4 0F 00 00 01 00 00 00</td>
-<td align="center">0x100000fa4</td>
-<td align="center">char *</td>
-</tr>
-</tbody></table>
-<p>未初始化的静态局部变量在 __bss 段中，已初始化的放在 __data 段中。采用数组方式初始化的 local_stat_t1 将本数组内的所有值都放在 __data 段中；而采用指针方式初始化的  local_stat_t2 则仅将指针放在 __data 段中，其指向 __cstring 段中的 “Free”。</p>
-<h1 id="局部变量"><a href="#局部变量" class="headerlink" title="局部变量"></a>局部变量</h1><p>分析局部变量我们直接看反汇编代码，将 clang 和 gcc 分开分析。</p>
-<h3 id="clang"><a href="#clang" class="headerlink" title="clang"></a>clang</h3><p><code>char local_t1[] = &quot;Here&quot;;</code></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">0x100000f52 &lt;+34&gt;: movl   0x51(%rip), %edi          ; &quot;Here&quot;</span><br><span class="line">0x100000f58 &lt;+40&gt;: movl   %edi, -0x15(%rbp)</span><br><span class="line">0x100000f5b &lt;+43&gt;: movb   0x4c(%rip), %dl           ; &quot;&quot;</span><br><span class="line">0x100000f61 &lt;+49&gt;: movb   %dl, -0x11(%rbp)</span><br></pre></td></tr></table></figure>
-<p>这里 rip 为指令指针寄存器，rbp 为帧指针（Frame Pointer）寄存器；mov 用来传送数据，movl 操作 32 位，movb 操作 8 位。</p>
-<p>rip 为下一指令地址即 0x100000f58，所以 0x51(%rip) 表示的就是 0x100000fa9，即 __cstring 段中的 “Here”。注意到 “Here” 实际共 5  byte，不能用 movx 指令一次移动完，所以分两次移动，一次 4 byte，一次 1  byte，这样将 “Here” 放到 -0x11(%rbp) 开始的栈中。即 local_t1 将本数组内的所有值都放栈中。</p>
-<p><code>char *local_t2 = &quot;Comes&quot;;</code></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">0x100000f3d &lt;+13&gt;: leaq   0x6a(%rip), %rcx          ; &quot;Comes&quot;</span><br><span class="line">0x100000f64 &lt;+52&gt;: movq   %rcx, -0x20(%rbp)</span><br></pre></td></tr></table></figure>
-<p>这里 rip 为指令指针寄存器，rbp 为帧指针（Frame Pointer）寄存器；lea 将地址指针写入到寄存器，leaq 操作 64 位。</p>
-<p>0x6a(%rip) 表示的是 0x100000fae，即 __cstring 段中的 “Comes”，最终这个地址被放到 -0x20(%rbp) 开始的栈中。即 local_t2 将指向 “Comes” 的指针放在栈中。</p>
-<h3 id="gcc"><a href="#gcc" class="headerlink" title="gcc"></a>gcc</h3><p><code>char local_t1[] = &quot;Here&quot;;</code></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">0000000100000f57           movl       $0x65726548, -0x10(%rbp) ## imm = 0x65726548</span><br><span class="line">0000000100000f5e           movb       $0x0, -0xc(%rbp)</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> docker run -m 100MB openjdk:10 java -XX:MaxRAMPercentage=25 -XX:MinRAMPercentage=50 -XshowSettings:vm -version</span></span><br><span class="line">VM settings:</span><br><span class="line">    Max. Heap Size (Estimated): 48.38M</span><br><span class="line">    Using VM: OpenJDK 64-Bit Server VM</span><br></pre></td></tr></table></figure>
 
-<p>这里直接将 “Here “的二进制值 48 65 72 65 00 硬编码到汇编中，将其压入栈中。和 clang 一样，local_t1将本数组内的所有值都放栈中。</p>
-<p><code>char *local_t2 = &quot;Comes&quot;;</code></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">0000000100000f62           leaq       0x3b(%rip), %rax        ## literal pool for: &quot;Comes&quot;</span><br><span class="line">0000000100000f69           movq       %rax, -0x8(%rbp)</span><br></pre></td></tr></table></figure>
+<ul>
+<li><h3 id="例-2：较大的宿主机内存"><a href="#例-2：较大的宿主机内存" class="headerlink" title="例 2：较大的宿主机内存"></a>例 2：较大的宿主机内存</h3>我们把容器的内存限制改为 1 GB，MaxRAMPercentage 配置为 25， MinRAMPercentage 配置为 50。我们看到实际的应用堆最大大小为 247.50 MB（由于宿主机内存大于 250 MB，所以前者配置生效）。</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> docker run -m 1GB openjdk:10 java -XX:MaxRAMPercentage=25 -XX:MinRAMPercentage=50 -XshowSettings:vm -version</span></span><br><span class="line">VM settings:</span><br><span class="line">    Max. Heap Size (Estimated): 247.50M</span><br><span class="line">    Using VM: OpenJDK 64-Bit Server VM</span><br></pre></td></tr></table></figure>
 
-<p>这里和 clang 一样，不作过多解释。local_t2 将指向 “Comes” 的指针放在栈中。</p>
-<p>先说结论：采用数组方式初始化的 local_t1 将本数组内的所有值都放在栈中；而采用指针方式初始化的 local_t2 则仅将指针放在栈段中，其指向 __cstring 段中的 “Comes”。再谈谈 clang 和 gcc 的区别，主要就是在对以指针方式初始化的字符串上：clang 编译时将字符串放在 __cstring 段中，运行时从 __cstring 段复制到栈中；gcc 则在编译时直接将字符串放在代码段中，运行时直接压栈。两者的处理方式各有优缺点：clang 避免了将字符串常量放到代码段中，若代码中还有相同的字符串则可以合并为一个字符串，但运行时有复制的步骤，存在效率问题；gcc 直接将字符串放在代码段中，没有如上 clang 的好处，但运行时直接将值写入栈中，相对效率更高。</p>
-<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h3><blockquote>
-<p>可以看出，与基本类型变量不同的是，字符串变量用到了 __cstring 段用来保存字符串常量；但如果仔细分析，其实字符串同基本类型变量也没有太大差别，都遵循基本的规则。在对以数组方式初始化的局部变量的处理上，gcc 更常见，即将字符串以普通数组的方式编译；但 clang 则采用了一种“融合”的方法，将字符串所特有的 __cstring 段也利用了起来。<br>注意：这里没有介绍字符串在堆中的情况，因为在堆中的情况很简单：malloc() 申请堆空间，返回空间指针作为字符串头，按照常规方式读写或使用 string 库操作。</p>
-</blockquote>
-<h1 id="不同位置读取效率"><a href="#不同位置读取效率" class="headerlink" title="不同位置读取效率"></a>不同位置读取效率</h1><p>这里仅考虑局部变量，分析两种初始化方式带来的读取效率差异。因为gcc和clang处理方法基本一样，所以这里只拿 clang 来举例。</p>
-<p>代码：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">const</span> <span class="keyword">char</span> *argv[])</span> </span>&#123;</span><br><span class="line">  <span class="keyword">char</span> str1[] = <span class="string">&quot;Hello&quot;</span>;</span><br><span class="line">  <span class="keyword">char</span> *str2 = <span class="string">&quot;World&quot;</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">char</span> str1_0 = str1[<span class="number">0</span>];</span><br><span class="line">  <span class="keyword">char</span> str1_1 = str1[<span class="number">1</span>];</span><br><span class="line"></span><br><span class="line">  <span class="keyword">char</span> str2_0 = str2[<span class="number">0</span>];</span><br><span class="line">  <span class="keyword">char</span> str2_1 = str2[<span class="number">1</span>];</span><br><span class="line"></span><br><span class="line">  sleep(<span class="number">-1</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="数组方式"><a href="#数组方式" class="headerlink" title="数组方式"></a>数组方式</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">char</span> str1_0 = str1[<span class="number">0</span>];</span><br><span class="line"><span class="keyword">char</span> str1_1 = str1[<span class="number">1</span>];</span><br></pre></td></tr></table></figure>
-<p>对应的汇编：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">0x100000f4a &lt;+58&gt;:  movb   -0x16(%rbp), %r8b</span><br><span class="line">0x100000f4e &lt;+62&gt;:  movb   %r8b, -0x21(%rbp)</span><br><span class="line">0x100000f52 &lt;+66&gt;:  movb   -0x15(%rbp), %r8b</span><br><span class="line">0x100000f56 &lt;+70&gt;:  movb   %r8b, -0x22(%rbp)</span><br></pre></td></tr></table></figure>
-<p>这段汇编代码很容易(注意字符串数组就在栈里)：</p>
-<ol>
-<li>取栈中对应位置的数据，交给一个寄存器；</li>
-<li>由寄存器将数据交给栈。</li>
-</ol>
-<p>为什么要一个寄存器绕一下？因为栈在内存中，不能直接内存到内存，需要寄存器作为中间人。</p>
-<h3 id="指针方式"><a href="#指针方式" class="headerlink" title="指针方式"></a>指针方式</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">char</span> str2_0 = str2[<span class="number">0</span>];</span><br><span class="line"><span class="keyword">char</span> str2_1 = str2[<span class="number">1</span>];</span><br></pre></td></tr></table></figure>
+<p>当 <code>-Xmx</code> 未指定时，<code>-XX:MaxRAMPercentage</code> 及 <code>-XX:MinRAMPercentage</code> 用于配置堆的最大内存大小。如果 <code>-Xmx</code> 指定了，那么以上两个参数将会被 JVM 忽略。如图：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> docker run -m 1GB openjdk:10 java -XX:MaxRAMPercentage=25 -XX:MinRAMPercentage=25 -Xmx512m -XshowSettings:vm -version</span></span><br><span class="line">VM settings:</span><br><span class="line">    Max. Heap Size: 512.00M</span><br><span class="line">    Using VM: OpenJDK 64-Bit Server VM</span><br></pre></td></tr></table></figure>
 
-<p>对应的汇编：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">0x100000f5a &lt;+74&gt;:  movq   -0x20(%rbp), %rcx</span><br><span class="line">0x100000f5e &lt;+78&gt;:  movb   (%rcx), %r8b</span><br><span class="line">0x100000f61 &lt;+81&gt;:  movb   %r8b, -0x23(%rbp)</span><br><span class="line">0x100000f65 &lt;+85&gt;:  movq   -0x20(%rbp), %rcx</span><br><span class="line">0x100000f69 &lt;+89&gt;:  movb   0x1(%rcx), %r8b</span><br><span class="line">0x100000f6d &lt;+93&gt;:  movb   %r8b, -0x24(%rbp)</span><br></pre></td></tr></table></figure>
-
-<p>这段汇编代码多个一个步骤（注意字符串在__cstring段中）：</p>
-<ol>
-<li>从栈中取指向字符串的指针，交给一个寄存器；</li>
-<li>取指针所指地址对应位置数据，交给一个寄存器；</li>
-<li>由寄存器将数据交给栈。</li>
-</ol>
-<p>为什么这里多绕一步？因为涉及到指针所指地址转换为地址的问题。</p>
-<h3 id="小结-1"><a href="#小结-1" class="headerlink" title="小结"></a>小结</h3><blockquote>
-<p>对比两种方式可以发现，读取字符串时，数组方式只需要用到一个寄存器，而指针方式需要用到两个寄存器（需要先把指针读到寄存器），读取以数组方式初始化的字符串要比以指针方式初始化的字符串效率高。但以指针方式初始化的字符串在加载时就已经在内存中，而以数组方式初始化的字符串还要进行压栈的操作。</p>
-</blockquote>
-<h1 id="写字符串时的危险"><a href="#写字符串时的危险" class="headerlink" title="写字符串时的危险"></a>写字符串时的危险</h1><p>这里介绍字符串在栈中时，可能对程序造成的破坏。实际介绍的就是 C 中危险的指针操作，<strong>不仅限于字符串，只要涉及到指针操作都可能造成下面说到的破坏。</strong></p>
-<h3 id="例一"><a href="#例一" class="headerlink" title="例一"></a>例一</h3><p>在栈中时，指向字符串的指针不仅能够修改字符串本身，还能不经意间修改其他变量的值。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">const</span> <span class="keyword">char</span> *argv[])</span> </span>&#123;</span><br><span class="line">  <span class="keyword">int</span> a = <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">char</span> str[] = <span class="string">&quot;World&quot;</span>;</span><br><span class="line">  <span class="keyword">int</span> b = <span class="number">2</span>;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">char</span> *str_ptr = &amp;str[<span class="number">0</span>];</span><br><span class="line">  *(str_ptr + <span class="number">6</span>) = <span class="string">&#x27;W&#x27;</span>;</span><br><span class="line">  *(str_ptr - <span class="number">3</span>) = <span class="string">&#x27;o&#x27;</span>; <span class="comment">// align</span></span><br><span class="line"></span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;a=%d, b=%d, str=\&quot;%s\&quot;\n&quot;</span>, a, b, str);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>输出为：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">a=87, b=1862270978, str=&quot;World&quot;</span><br></pre></td></tr></table></figure>
-<p>简单解释下，因为 a 先入栈，”World” 随后入栈，b 最后入栈，此时指针 str_ptr 指向 ‘W’。注意栈的增长方向是像内存地址更小的方向，str_ptr + 6 已经超出字符串范围，到达了 b 的内存区域，这时在修改b的值；str_ptr - 3 修改的是 a 的最低一个 byte，所以 a 的值变为 ‘o’，即 87，至于为什么不是 str_ptr - 1，是因为涉及到内存对齐的问题。</p>
-<h3 id="例二"><a href="#例二" class="headerlink" title="例二"></a>例二</h3><p>C 中函数调用时的返回地址、保存的寄存器的值等也是在栈中，指针操作还能威胁到整个程序的顺利运行。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">write_str</span><span class="params">(<span class="keyword">char</span> *str)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">2</span>; i &lt; <span class="number">40</span>; i++) &#123;</span><br><span class="line">    *(str + i) = <span class="string">&#x27;d&#x27;</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">const</span> <span class="keyword">char</span> *argv[])</span> </span>&#123;</span><br><span class="line">  <span class="keyword">char</span> str[] = <span class="string">&quot;World&quot;</span>;</span><br><span class="line">  <span class="keyword">char</span> *str_ptr = &amp;str[<span class="number">0</span>];</span><br><span class="line"></span><br><span class="line">  write_str(str);</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>程序执行，在 return 0 时会提示程序出错 Thread 1: EXC_BAD_ACCESS (code=EXC_i386_GPLFT)。</p>
-<p>这里是因为操作字符串指针持续向栈底方向写数据，破坏了程序的活动记录（Activate Record），造成程序出错。</p>
-<h3 id="小结-2"><a href="#小结-2" class="headerlink" title="小结"></a>小结</h3><blockquote>
-<p>指针操作一定要慎重！</p>
-</blockquote>
+<p><code>-Xmx512m</code>、<code>-XX:MaxRAMPercentage=25</code>、<code>-XX:MinRAMPercentage=25</code> 同时指定了，但是只有 <code>-Xmx512m</code> 起到了作用。</p>
+<h1 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h1><ul>
+<li>用 <code>-XX:InitialRAMPercentage</code> 配置你的应用堆初始化内存大小（前提是 <code>-Xms</code> 未配置）。</li>
+<li><code>-XX:MinRAMPercentage</code>、<code>-XX:MaxRAMPercentage</code> 用于配置最大堆大小（前提是 <code>-Xmx</code> 未配置）。</li>
+<li><code>-XX:MaxRAMPercentage</code> 应用于大多场景，毕竟主流的企业级 Java 应用内存已经超过了 250 MB。除非构建的是微型应用，物理机内存小于 250 MB，你才需要使用 <code>-XX:MinRAMPercentage</code>。</li>
+</ul>
 <hr>
 <h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
-<li><a target="_blank" rel="noopener" href="https://www.polarxiong.com/archives/C%E4%B8%AD%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%9C%A8%E5%86%85%E5%AD%98%E4%B8%AD%E7%9A%84%E4%BD%8D%E7%BD%AE%E5%8F%8A%E8%AF%BB%E5%86%99%E7%AD%89%E5%88%86%E6%9E%90.html">【原文链接】</a></li>
+<li><a target="_blank" rel="noopener" href="https://blog.gceasy.io/2020/11/05/difference-between-initialrampercentage-minrampercentage-maxrampercentage/">【原文 Difference between InitialRAMPercentage, MinRAMPercentage, MaxRAMPercentage】</a></li>
 </ul>
 
     
@@ -512,11 +263,7 @@
 		<ul class="article-tag-list">
 			 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">C</a>
-        		</li>
-      		 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color3">Reprint</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">jvm</a>
         		</li>
       		
 		</ul>
@@ -526,7 +273,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2021/05/15/c_reprint/C%E8%BD%AC%E8%BD%BD%E7%B3%BB%E5%88%97(%E5%9B%9B)%E5%8F%98%E9%87%8F%E4%B8%8E%E5%86%85%E5%AD%98(%E4%B8%8B%E7%AF%87)/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2022/08/15/java_trans/%5B%E8%AF%91%5DInitialRAMPercentage_MinRAMPercentage_MaxRAMPercentage%E4%B9%8B%E9%97%B4%E7%9A%84%E5%8C%BA%E5%88%AB/">展开全文 >></a>
     </p>
     
 
@@ -560,7 +307,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/22/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/21/">21</a><a class="page-number" href="/articles/page/22/">22</a><span class="page-number current">23</span><a class="page-number" href="/articles/page/24/">24</a><a class="page-number" href="/articles/page/25/">25</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/45/">45</a><a class="extend next" rel="next" href="/articles/page/24/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/22/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/21/">21</a><a class="page-number" href="/articles/page/22/">22</a><span class="page-number current">23</span><a class="page-number" href="/articles/page/24/">24</a><a class="page-number" href="/articles/page/25/">25</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/65/">65</a><a class="extend next" rel="next" href="/articles/page/24/">下一页</a>
     </nav>
   
 
@@ -573,7 +320,7 @@
   <div class="outer">
     <div id="footer-info">
     	<div class="footer-left">
-    		&copy; 2018-2022 <a target="_blank">Tubetrue01</a>
+    		&copy; 2018-2023 <a target="_blank">Tubetrue01</a>
     	</div>
     </div>
   </div>
@@ -745,6 +492,38 @@
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">Docker</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">C++</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">MySQL</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">Redis</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">网络</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
               </li>
             
             <div class="clearfix"></div>

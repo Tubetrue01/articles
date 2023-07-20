@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-cloud_native/K8s集群搭建系列(二)Docker安装" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-c_cmake/cmake迷你系列(一)开启" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%BA%8C)Docker%E5%AE%89%E8%A3%85/" target="_blank">K8s 集群搭建系列（二） Docker 安装</a>
+	  <a class="article-title" href="/articles/2021/08/20/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%BC%80%E5%90%AF/" target="_blank">cmake 迷你系列（一）开启</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%BA%8C)Docker%E5%AE%89%E8%A3%85/" class="archive-article-date">
-        <time datetime="2020-12-21T05:44:47.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-12-21</time>
+<a href="/articles/2021/08/20/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%BC%80%E5%90%AF/" class="archive-article-date">
+        <time datetime="2021-08-20T15:31:17.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-08-20</time>
 </a>
 
   
@@ -216,17 +216,41 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>承接上一章<a href="https://tubetrue01.github.io/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%80)Centos7%E5%87%86%E5%A4%87">【K8s 集群搭建系列（一） Centos 7 准备】</a>，我们进行下一步，安装 Docker。好了，让我们开始吧！</p>
+<p>本系列文章主要讲解 cmake 相关知识，什么是 cmake 呢？用最简单的话说就是跨平台的编译工具。再详细说就不符合本系列的宗旨—迷你了。之所以定义为迷你系列就是用较短的篇幅，把 cmake 讲解一遍，让初学者可以快速上手。好了，废话不多说，直接上手吧。</p>
 </blockquote>
-<h1 id="Docker-安装"><a href="#Docker-安装" class="headerlink" title="Docker 安装"></a>Docker 安装</h1><ul>
-<li><strong>必要工具安装</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# yum install -y yum-utils</span><br></pre></td></tr></table></figure></li>
-<li><strong>添加 Docker 源</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo</span><br></pre></td></tr></table></figure></li>
-<li><strong>安装 Docker</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# yum makecache fast</span><br><span class="line">[root@localhost ~]# yum install -y docker-ce-19.03.12</span><br></pre></td></tr></table></figure></li>
-<li><strong>开机自启</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# systemctl enable docker </span><br><span class="line">[root@localhost ~]# systemctl start docker</span><br></pre></td></tr></table></figure></li>
-<li><strong>配置镜像源</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# vim /etc/docker/daemon.json</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 添加以下内容</span></span><br><span class="line">&#123;</span><br><span class="line">  &quot;registry-mirrors&quot;: [</span><br><span class="line">    &quot;https://registry.docker-cn.com&quot;</span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 重启 Docker</span></span><br><span class="line">[root@localhost ~]# systemctl daemon-reload</span><br><span class="line">[root@localhost ~]# systemctl restart docker</span><br></pre></td></tr></table></figure></li>
-</ul>
-<hr>
-<h1 id="尾声"><a href="#尾声" class="headerlink" title="尾声"></a>尾声</h1><p>Docker 已经安装完毕了，我们可以迅速进入下一章<a href="https://tubetrue01.github.io/articles/2020/12/22/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%89)K8s%E5%90%AF%E5%8A%A8">【K8s 搭建】</a>。</p>
+<h1 id="hello-world"><a href="#hello-world" class="headerlink" title="hello world"></a>hello world</h1><p>万物均以 “hello world ” 开始，本文也不例外，我们就以一个最简单 c 的程序开始，IDE 我这里使用的是 CLion，系统是 macOS Mojave。<br>项目结构是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">test</span><br><span class="line"> |---src</span><br><span class="line">      |---main.c</span><br></pre></td></tr></table></figure>
+<p>我们在 main.c 中写一个 “hello world”：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">      <span class="built_in">printf</span>(<span class="string">&quot;Hello, World!\n&quot;</span>);</span><br><span class="line">      <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>写好如上代码之后，我们发现 main 函数是不能运行的，因为还没有告诉编译器，哪些文件需要编译以及怎么编译。那我们应该怎么做呢？我们在 test 目录添加一个 CMakeLists.txt 文件，结构如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">test</span><br><span class="line"> |---src</span><br><span class="line">      |---main.c</span><br><span class="line"> |---CMakeLists.txt</span><br></pre></td></tr></table></figure>
+<p>内容如下：</p>
+<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.21</span>)</span><br><span class="line"><span class="keyword">project</span>(<span class="keyword">test</span> VERSION <span class="number">0.0</span>.<span class="number">1</span> LANGUAGES C)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CMAKE_C_STANDARD <span class="number">11</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_executable</span>(<span class="keyword">test</span> src/main.c)</span><br></pre></td></tr></table></figure>
+<p>我们来分析一下：</p>
+<ol>
+<li>1 行用来指示使用的 cmke 最低版本是多少</li>
+<li>2 行指定项目的名字、版本号、使用的语言</li>
+<li>4 行用来指定 C 的标准</li>
+<li>6 行用来告诉编译器，要添加一个执行文件，名字叫 test，编译的文件是 src 下的 main.c</li>
+</ol>
+<p>有了 CMakeLists.txt 文件，main 函数就可以执行起来了。当然，如果我们想要生成可执行文件，我们需要执行以下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cmake . &amp;&amp; make</span><br></pre></td></tr></table></figure>
+<p>然后在项目的根路径就会生成 cmake_install.cmake、CMakeCache.txt、Makefile 以及名为 test 的可执行文件，执行 test 文件，就会打印 “hello world” 了。</p>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>注意 CMakeLists.txt 文件需要放到项目的根路径。</p>
+</blockquote>
+<h1 id="优化你的代码"><a href="#优化你的代码" class="headerlink" title="优化你的代码"></a>优化你的代码</h1><h2 id="使你的路径更干净"><a href="#使你的路径更干净" class="headerlink" title="使你的路径更干净"></a>使你的路径更干净</h2><p>在上一节，我们执行完 <code> cmake .</code> 命令之后，发现在根路径生成了四个编译文件，原本干净的路径都被这些文件破坏了，当构建的代码多的时候，这些文件更是让人讨厌，所以我们需要执行 <code>cmake -S . -B build</code> 命令，这样，构建相关的文件就会放到当前路径的 build 文件夹下了。我们的项目也就只是我们的代码，没有其他文件干扰了。当我们想要清理的文件时，直接删掉 build 文件夹即可。</p>
+<h2 id="指定你的源码路径"><a href="#指定你的源码路径" class="headerlink" title="指定你的源码路径"></a>指定你的源码路径</h2><p>在 CMakeLists.txt 文件的最后一行 <code>add_executable(test src/main.c)</code> 我们指定了需要编译的源码文件，如果说 src 下有多个 c 文件，我们都需要一个一个手动添加进来吗？当然不，我们可以使用 <code>aux_source_directory(src SOURCE) </code> 命令，将 src 指定为源码路径，并把该信息保存到了 SOURCE 这个变量中，然后我们就可以使用 <code>add_executable(test $&#123;SOURCE&#125;)</code> 来编译我们的程序，这样无论 src 下添加多少个 c 文件都会编译进来。当然，有时候这样并不好。</p>
+<p>我们以一个简单的例子结束本文，首先我们定义一个头文件 utils.h：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> TEST_UTILS_H</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> TEST_UTILS_H</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">add</span><span class="params">(<span class="keyword">int</span>,<span class="keyword">int</span>)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">//TEST_UTILS_H</span></span></span><br></pre></td></tr></table></figure>
+<p>定义头文件时，我们需要编写条件话宏，避免重复引用。该文件中，我们声明了一个函数 <code>int add(int,int)</code>。然后我们创建 utils.c 来实现它：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;utils.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">add</span><span class="params">(<span class="keyword">int</span> a, <span class="keyword">int</span> b)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> a + b;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>整体的结构如下所示：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">test</span><br><span class="line">  |---src</span><br><span class="line">       |---main.c</span><br><span class="line">       |---utils.c</span><br><span class="line">       |---utils.h</span><br><span class="line">  |---CMakeLists.txt</span><br></pre></td></tr></table></figure>
+<p>我们在 main.c 中调用该函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;utils.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> sum = add(<span class="number">10</span>, <span class="number">20</span>);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;the sum is %d\n&quot;</span>, sum);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>直接运行我们的代码，得到 30 的输出。以上除了添加 utils.h 以及 utils.c 文件之外，并没有修改 CMakeLists.txt 文件，而程序就这样顺利跑起来了，这也是 <code>aux_source_directory(src SOURCE)</code> 命令的功劳。</p>
 
     
 
@@ -243,7 +267,11 @@
 		<ul class="article-tag-list">
 			 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">K8s</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">CMake</a>
+        		</li>
+      		 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color5">Mini</a>
         		</li>
       		
 		</ul>
@@ -253,7 +281,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2020/12/21/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%BA%8C)Docker%E5%AE%89%E8%A3%85/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2021/08/20/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%BC%80%E5%90%AF/">展开全文 >></a>
     </p>
     
 
@@ -287,7 +315,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/36/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/35/">35</a><a class="page-number" href="/articles/page/36/">36</a><span class="page-number current">37</span><a class="page-number" href="/articles/page/38/">38</a><a class="page-number" href="/articles/page/39/">39</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/45/">45</a><a class="extend next" rel="next" href="/articles/page/38/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/36/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/35/">35</a><a class="page-number" href="/articles/page/36/">36</a><span class="page-number current">37</span><a class="page-number" href="/articles/page/38/">38</a><a class="page-number" href="/articles/page/39/">39</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/65/">65</a><a class="extend next" rel="next" href="/articles/page/38/">下一页</a>
     </nav>
   
 
@@ -300,7 +328,7 @@
   <div class="outer">
     <div id="footer-info">
     	<div class="footer-left">
-    		&copy; 2018-2022 <a target="_blank">Tubetrue01</a>
+    		&copy; 2018-2023 <a target="_blank">Tubetrue01</a>
     	</div>
     </div>
   </div>
@@ -472,6 +500,38 @@
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">Docker</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">C++</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">MySQL</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">Redis</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">网络</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
               </li>
             
             <div class="clearfix"></div>

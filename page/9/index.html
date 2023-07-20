@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-git/Git系列(一)常用命令" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-cpp_mini/c++迷你系列(一)友元函数与友元类" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2021/09/28/git/Git%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/" target="_blank">Git 系列（一） 常用命令（动图讲解）</a>
+	  <a class="article-title" href="/articles/2023/02/11/cpp_mini/c++%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%8F%8B%E5%85%83%E5%87%BD%E6%95%B0%E4%B8%8E%E5%8F%8B%E5%85%83%E7%B1%BB/" target="_blank">C++ 迷你系列（一）友元函数与友元类</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2021/09/28/git/Git%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/" class="archive-article-date">
-        <time datetime="2021-09-28T05:27:00.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-09-28</time>
+<a href="/articles/2023/02/11/cpp_mini/c++%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%8F%8B%E5%85%83%E5%87%BD%E6%95%B0%E4%B8%8E%E5%8F%8B%E5%85%83%E7%B1%BB/" class="archive-article-date">
+        <time datetime="2023-02-11T06:59:17.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2023-02-11</time>
 </a>
 
   
@@ -216,119 +216,50 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>本文主要以动图的方式讲解 Git 中比较常用的命令，以加深对这些命令的理解。</p>
+<p>封装是对象的一大特征，它可以选择性的对外暴露属性和方法。但是有没有一种方式可以把自己的内部属性暴露给指定的函数、方法或者类呢？答案是肯定的，那就是友元。网络上大部分文章介绍的都是在同一个文件中使用友元，而本文章将示例分在不同文件中进行介绍。</p>
 </blockquote>
-<h1 id="Merging"><a href="#Merging" class="headerlink" title="Merging"></a>Merging</h1><p>我们通常用不同的分支开发不同的新功能。当对应的功能准备发布时，通过 <code>git merge</code> 命令将该分支内容合并到生产。然而该命令有两种不同的模式：<code>fast-forward</code> 以及 <code>no-fast-forward</code>，接下来，我们看下两者的不同！</p>
-<h2 id="Fast-forward-–ff"><a href="#Fast-forward-–ff" class="headerlink" title="Fast-forward (–ff)"></a>Fast-forward (–ff)</h2><p>如果 master 分支没有任何新的提交（即：落后于当前分支），那么将当前分支合并到 master 时，会采用 <code>fast-forward</code> 方式进行合并。该方式合并时并不会产生新的 commit，而是把当前分支的 commit 合并到 master 中。</p>
-<hr>
-<img src="/articles/2021/09/28/git/Git%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/01.gif" class="" width="600">
+<h1 id="友元函数"><a href="#友元函数" class="headerlink" title="友元函数"></a>友元函数</h1><p><code>parent.hpp</code> 头文件中声明了类 <code>Parent</code>，它有两个属性，分别是公开的 <code>username</code> 及私有的 <code>age</code>。同时声明了带参构造函数及打印基础信息的成员方法。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> CPPDEMO_PARENT_H</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> CPPDEMO_PARENT_H</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Parent</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    std::string username;</span><br><span class="line"><span class="keyword">private</span> :</span><br><span class="line">    <span class="keyword">int</span> age;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">Parent</span>(std::string username, <span class="keyword">int</span> age);</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">print_info</span><span class="params">()</span> <span class="keyword">const</span></span>;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">//CPPDEMO_PARENT_H</span></span></span><br></pre></td></tr></table></figure>
+<p>以下 <code>parent.cpp</code> 是具体的实现代码：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;utility&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;parent.hpp&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"></span><br><span class="line">Parent::<span class="built_in">Parent</span>(std::string username, <span class="keyword">int</span> age)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">this</span>-&gt;username = std::<span class="built_in">move</span>(username);</span><br><span class="line">    <span class="keyword">this</span>-&gt;age = age;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">Parent::print_info</span><span class="params">()</span> <span class="keyword">const</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;username is : &quot;</span> &lt;&lt; <span class="keyword">this</span>-&gt;username &lt;&lt; <span class="string">&quot; age is : &quot;</span> &lt;&lt; <span class="keyword">this</span>-&gt;age &lt;&lt; endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<hr>
-<h2 id="No-fast-forward-–no-ff"><a href="#No-fast-forward-–no-ff" class="headerlink" title="No-fast-forward (–no-ff)"></a>No-fast-forward (–no-ff)</h2><p>如果 master 上在我们检出开发分支后有了新的 commit（即：master 领先于当前分支），那么 git 将会使用 <code>no-fast-forward</code> 进行合并。此时会有一个新的 commit 被创建，该 commit 同时指向了 master 以及当前分支（也就是将两个分支的内容合并到了当前 commit 中）。</p>
-<hr>
-<img src="/articles/2021/09/28/git/Git%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/02.gif" class="" width="600">
+<p>以下的 <code>main.cpp</code> 是我们的测试类：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;parent.hpp&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">Parent <span class="title">p</span><span class="params">(<span class="string">&quot;father&quot;</span>, <span class="number">38</span>)</span></span>;</span><br><span class="line">    p.<span class="built_in">print_info</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>控制台输出本对象的基础信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># username is : father age is : 38</span><br></pre></td></tr></table></figure>
+<p>我们知道，<code>age</code> 是 <code>Parent</code> 比较私密的属性，毕竟谁也不想把自己的年龄告诉其他人，除非把自己的信息通过某种特殊的途径对外告知，比如：资料卡。</p>
+<p>我们在类 <code>Parent</code> 中添加传递信息的资料卡函数：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> CPPDEMO_PARENT_H</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> CPPDEMO_PARENT_H</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Parent</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="comment">// 将 card 函数声明为友元函数</span></span><br><span class="line">    <span class="function"><span class="keyword">friend</span> <span class="keyword">void</span> <span class="title">card</span><span class="params">(Parent &amp;)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    std::string username;</span><br><span class="line"><span class="keyword">private</span> :</span><br><span class="line">    <span class="keyword">int</span> age;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">Parent</span>(std::string username, <span class="keyword">int</span> age);</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">print_info</span><span class="params">()</span> <span class="keyword">const</span></span>;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">//CPPDEMO_PARENT_H</span></span></span><br></pre></td></tr></table></figure>
+<p>我们在 <code>main.cpp</code> 中添加对 <code>void card(Parent &amp;)</code> 函数的实现：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;parent.hpp&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">card</span><span class="params">(Parent &amp;parent)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;others get the username: &quot;</span> &lt;&lt; parent.username &lt;&lt; <span class="string">&quot; and age is : &quot;</span> &lt;&lt; parent.age &lt;&lt; endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">Parent <span class="title">p</span><span class="params">(<span class="string">&quot;father&quot;</span>, <span class="number">38</span>)</span></span>;</span><br><span class="line">    <span class="built_in">card</span>(p);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>控制台得到以下输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># others get the username: father and age is : 38</span><br></pre></td></tr></table></figure>
+<p>外部通过 <code>card</code> 方法拿到了 <code>Parent</code> 类中的私有字段 <code>age</code>。</p>
+<h1 id="友元类"><a href="#友元类" class="headerlink" title="友元类"></a>友元类</h1><p>作为父母，肯定愿意把自己的“一切”告诉孩子！所以我们改造类 <code>Parent</code>：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> CPPDEMO_PARENT_H</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> CPPDEMO_PARENT_H</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Parent</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="comment">// 将 child 类声明为友元类</span></span><br><span class="line">    <span class="keyword">friend</span> <span class="class"><span class="keyword">class</span> <span class="title">Child</span>;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    std::string username;</span><br><span class="line"><span class="keyword">private</span> :</span><br><span class="line">    <span class="keyword">int</span> age;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">Parent</span>(std::string username, <span class="keyword">int</span> age);</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">print_info</span><span class="params">()</span> <span class="keyword">const</span></span>;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">//CPPDEMO_PARENT_H</span></span></span><br></pre></td></tr></table></figure>
+<p>接着我们定义 <code>Child</code> 类：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> CPPDEMO_CHILD_H</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> CPPDEMO_CHILD_H</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 提前告诉编译器，Parent 是类，所以 Child 类定义中，别着急报错</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Parent</span>;</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Child</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    Parent *parent;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="comment">// 由于是单参数构造器，需要显示的声明，避免隐式转换</span></span><br><span class="line">    <span class="function"><span class="keyword">explicit</span> <span class="title">Child</span><span class="params">(Parent *parent)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">parent_info</span><span class="params">()</span></span>;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">//CPPDEMO_CHILD_H</span></span></span><br></pre></td></tr></table></figure>
+<p><code>Child</code> 类的实现为：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;child.hpp&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;parent.hpp&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 初始化列表方式</span></span><br><span class="line">Child::<span class="built_in">Child</span>(Parent *parent) : <span class="built_in">parent</span>(parent)</span><br><span class="line">&#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 访问 Parent 的私有属性</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">Child::parent_info</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;child get the parent info username is : &quot;</span> &lt;&lt;</span><br><span class="line">              <span class="keyword">this</span>-&gt;parent-&gt;username &lt;&lt; <span class="string">&quot; age is : &quot;</span> &lt;&lt; <span class="keyword">this</span>-&gt;parent-&gt;age &lt;&lt; endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<hr>
-<h2 id="Merge-Conflicts"><a href="#Merge-Conflicts" class="headerlink" title="Merge Conflicts"></a>Merge Conflicts</h2><p>如果不同的分支在相同的文件、相同的行上进行修改或者一个分支删除，一个分支修改同一个文件等操作时发生合并，就会产生冲突。比如在以下例子中，我们在两个分支（master、dev）分别编辑 README.md 文件：</p>
-<hr>
-<img src="/articles/2021/09/28/git/Git%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/03.png" class="" width="600">
+<p><code>main.cpp</code> 进行测试：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;parent.hpp&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;child.hpp&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">Parent <span class="title">p</span><span class="params">(<span class="string">&quot;father&quot;</span>, <span class="number">38</span>)</span></span>;</span><br><span class="line">    <span class="function">Child <span class="title">child</span><span class="params">(&amp;p)</span></span>;</span><br><span class="line">    child.<span class="built_in">parent_info</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># child get the parent info username is : father age is : 38</span><br></pre></td></tr></table></figure>
 
-<hr>
-<p>当把 dev 合并到 master 时，就会提示合并冲突，因为同时修改了 README.md 文件的第一行。此时，git 就会展示冲突的地方，我们可以手动的选择要保留的完成合并，然后再进行 add 以及 commit，提交我们合并之后的信息。</p>
-<hr>
-<img src="/articles/2021/09/28/git/Git%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/04.gif" class="" width="600">
+<h1 id="成员友元函数"><a href="#成员友元函数" class="headerlink" title="成员友元函数"></a>成员友元函数</h1><p>如果把类变成友元类，那么友元类中的所有方法都能访问私有属性了。那么如何限制指定的方法访问呢？此时就需要成员友元函数了。</p>
+<p>改造 <code>Parent</code> 类：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> CPPDEMO_PARENT_H</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> CPPDEMO_PARENT_H</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;child.hpp&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Parent</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="comment">// 改为成员友元函数</span></span><br><span class="line">    <span class="function"><span class="keyword">friend</span> <span class="keyword">void</span> <span class="title">Child::parent_info</span><span class="params">()</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    std::string username;</span><br><span class="line"><span class="keyword">private</span> :</span><br><span class="line">    <span class="keyword">int</span> age;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">Parent</span>(std::string username, <span class="keyword">int</span> age);</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">print_info</span><span class="params">()</span> <span class="keyword">const</span></span>;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">//CPPDEMO_PARENT_H</span></span></span><br></pre></td></tr></table></figure>
 
-<hr>
-<h1 id="Rebasing"><a href="#Rebasing" class="headerlink" title="Rebasing"></a>Rebasing</h1><p><code>git merge</code> 可以将一个分支的内容合并到另一个分支，除此之外还有另外一个命令 <code>git rebase</code> 也可以做到。不同的是 <code>git rebase</code> 会将当前分支的提交信息追加到目标分支之后（不像 <code>git merge</code> 会产生一个新的 commit 信息）。</p>
-<hr>
-<img src="/articles/2021/09/28/git/Git%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/05.gif" class="" width="600">
+<p><code>Child</code> 类新增 <code>all_parent_info</code> 方法：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;child.hpp&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;parent.hpp&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"></span><br><span class="line">Child::<span class="built_in">Child</span>(Parent *parent) : <span class="built_in">parent</span>(parent)</span><br><span class="line">&#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">Child::parent_info</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;child get the parent info username is : &quot;</span> &lt;&lt;</span><br><span class="line">              <span class="keyword">this</span>-&gt;parent-&gt;username &lt;&lt; <span class="string">&quot; age is : &quot;</span> &lt;&lt; <span class="keyword">this</span>-&gt;parent-&gt;age &lt;&lt; endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">Child::all_parent_info</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// 由于 all_parent_info 并不是友元方法，所以这里会提示：&#x27;age&#x27; is a private member of &#x27;Parent&#x27; declared private here </span></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;child get the parent info username is : &quot;</span> &lt;&lt;</span><br><span class="line">              <span class="keyword">this</span>-&gt;parent-&gt;username &lt;&lt; <span class="string">&quot; age is : &quot;</span> &lt;&lt; <span class="keyword">this</span>-&gt;parent-&gt;age &lt;&lt; endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<hr>
-<p>与 <code>git merge</code> 相比，当遇到冲突的时候，git 并不会检查哪些文件需要保留，哪些不需要保留。要 rebase 的分支（这里的 master）总是保留最新的更改，这会有什么问题呢？就是如果 dev 上有冲突产生，那么总会保留 master 而丢弃 dev 上的更新（所以在 rebase 之前，切记保持分支代码的更新，避免冲突出现）。该命令的好处就是可以让 git 的提交历史更线性。</p>
-<p><strong>📚 Tips</strong></p>
-<blockquote>
-<p>对于一些大型项目，rebase 并不是很推荐。本文里对 rebase 的说明过于浅显，也就造成有些陷阱的存在，但是作为命令讲解已经足够了。所以，我会单独开一篇文章详细讨论一下 rebase！</p>
-</blockquote>
-<h2 id="Interactive-Rebase"><a href="#Interactive-Rebase" class="headerlink" title="Interactive Rebase"></a>Interactive Rebase</h2><p>交互式的 rebase 可以让我们在 rebase 之前修改 commit 信息。以下有六种操作：</p>
-<ul>
-<li><p>reword<br>修改 commit 信息</p>
-</li>
-<li><p>edit<br>修正本次 commit</p>
-</li>
-<li><p>squash<br>将本次提交合并到上一次提交中</p>
-</li>
-<li><p>fixup<br>将本次提交合并到上一次提交中，丢弃 commit 信息</p>
-</li>
-<li><p>exec<br>在我们想要 rebase 的每次 commit 上执行一个命令</p>
-</li>
-<li><p>drop<br>丢弃本次提交</p>
-</li>
-</ul>
-<p>以上命令可以使我们完全掌握我们的提交记录。</p>
-<hr>
-<img src="/articles/2021/09/28/git/Git%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/06.gif" class="" width="600">
+<p>我们运行一下看看：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;parent.hpp&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;child.hpp&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">Parent <span class="title">p</span><span class="params">(<span class="string">&quot;father&quot;</span>, <span class="number">38</span>)</span></span>;</span><br><span class="line">    <span class="function">Child <span class="title">child</span><span class="params">(&amp;p)</span></span>;</span><br><span class="line">    child.<span class="built_in">parent_info</span>();</span><br><span class="line">    child.<span class="built_in">all_parent_info</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>得到以下输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># /Users/tubetrue01/CLionProjects/cppDemo/child.cpp:24:71: error: &#x27;age&#x27; is a private member of &#x27;Parent&#x27;</span><br><span class="line">              this-&gt;parent-&gt;username &lt;&lt; &quot; age is : &quot; &lt;&lt; this-&gt;parent-&gt;age &lt;&lt; endl;</span><br><span class="line">                                                                      ^</span><br><span class="line"># /Users/tubetrue01/CLionProjects/cppDemo/parent.hpp:19:9: note: declared private here</span><br><span class="line">    int age;</span><br></pre></td></tr></table></figure>
 
-<hr>
-<p><code>git rebase -i HEAD~3</code> 命令的意思是：以交互式（interactive）打开最近的 3 次提交记录。通过 <code>vim</code> 修改 commit 的前缀，这里是将提交记录 ec5bef2 的前缀改为 drop（即：删除当前提交）。随后的两个提交记录便会产生新的 hash 值。</p>
-<hr>
-<img src="/articles/2021/09/28/git/Git%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/07.gif" class="" width="600">
-
-<hr>
-<p>以上命令则是将 e45cb9e 合并到 ec5bef2 中.</p>
-<h1 id="Resetting"><a href="#Resetting" class="headerlink" title="Resetting"></a>Resetting</h1><p>如果我们想要丢弃已经提交的信息，那么 <code>git reset</code> 就派上用场了。<code>git reset</code> 用于将 head 指针指向我们期望的提交记录。reset 又分为 <code>soft reset</code> 跟 <code>hard reset</code>。</p>
-<h2 id="soft-reset"><a href="#soft-reset" class="headerlink" title="soft reset"></a>soft reset</h2><p>软重置将 head 指向我们期望的 commit 记录，此 commit 之后提交的信息并不会被删除。<br>如下图，我们并不想保留添加了一个 style.css 文件的提交记录 9378i 以及添加了一个 index.js 文件的 035cc 记录，但是我们想保留这两个文件，那么我们就可以使用软重置。</p>
-<hr>
-<img src="/articles/2021/09/28/git/Git%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/08.gif" class="" width="600">
-
-<hr>
-<p>通过 <code>git status</code>，我们仍然可以访问之前提交的所有信息，这样的好处就是我们可以修改这些内容以便之后再次提交。</p>
-<h2 id="hard-reset"><a href="#hard-reset" class="headerlink" title="hard reset"></a>hard reset</h2><p>有时你可能并不想保留之前所做的修改，而是完完全全删除它们。那么请使用硬重置。</p>
-<hr>
-<img src="/articles/2021/09/28/git/Git%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/09.gif" class="" width="600">
-
-<hr>
-<p>如上图所示，9e78i 跟 035cc 两次提交的信息就完全被丢弃了。</p>
-<h1 id="Reverting"><a href="#Reverting" class="headerlink" title="Reverting"></a>Reverting</h1><p>撤销提交的另一种方式是执行 <code>git revert</code>。与 <code>git rest</code> 不同地方是，它会产生一个新的 commit，该 commit 中包含了我们要撤销的内容。<br>比如下图，我们在 ec5b3 提交中添加了一个 index.js 文件，随后我们要撤销该文件。</p>
-<hr>
-<img src="/articles/2021/09/28/git/Git%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/10.gif" class="" width="600">
-
-<hr>
-<p>从图中我们可以看到，产生了一个新的提交记录 9e78i，而该记录就是将 index.js 文件进行删除，以达到撤销 ec5b3 提交的目的。</p>
-<p><strong>📚 Tips</strong></p>
-<blockquote>
-<p>这里有个地方需要特别注意，如果我们把之前 revert 过的记录再合并回来是比较困难的。因为此次被 revert 的内容以 commit 的方式保留在提交记录中。所以，如果只是暂时性的撤销，那么推荐 reset。revert 带来的好处就是保留了撤销内容的 commit 信息。</p>
-</blockquote>
-<h1 id="Cherry-picking"><a href="#Cherry-picking" class="headerlink" title="Cherry-picking"></a>Cherry-picking</h1><p>如果只是想把部分 commit 而不是整个分支合并到目标分支，我们可以使用 <code>cherry-pick</code>。<br>如下图，dev 分支的 76d12 提交中添加了一个 index.js 文件，以下操作只是把 76d12 合并到了 master 分支中。</p>
-<hr>
-<img src="/articles/2021/09/28/git/Git%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/11.gif" class="" width="600">
-
-<hr>
-<h1 id="Fetching"><a href="#Fetching" class="headerlink" title="Fetching"></a>Fetching</h1><p>如果远程分支已经被更新，我们只是想把它下载下来而不是合并到本地分支，可以使用 <code>git fetch</code> 命令。</p>
-<hr>
-<img src="/articles/2021/09/28/git/Git%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/12.gif" class="" width="600">
-
-<hr>
-<p>此时我们可以查看自上次 push 以来，该分支上所做的修改。同时我们注意到 head 指针的位置并没有发生变化，也就是当前下载下来的内容并没有合并到当前分支。如果想把更新的内容合并到当前分支，则需要执行 <code>git merge</code>。</p>
-<h1 id="Pulling"><a href="#Pulling" class="headerlink" title="Pulling"></a>Pulling</h1><p><code>git pull</code> 命令可能是我们最常用的命令，该命令可以理解为两个命令的组合：<code>git fetch</code>、<code>git merge</code>。也就是将远程的更新合并到当前分支中，同时我们注意到，下图的 head 指针已经发生了变化。</p>
-<hr>
-<img src="/articles/2021/09/28/git/Git%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/13.gif" class="" width="600">
-
-<hr>
-<h1 id="Reflog"><a href="#Reflog" class="headerlink" title="Reflog"></a>Reflog</h1><p><code>git reflog</code> 用于显示当前分支所做的所有操作，以便于我们进行回滚。</p>
-<hr>
-<img src="/articles/2021/09/28/git/Git%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/14.gif" class="" width="600">
-
-<hr>
-<p>通过 <code>git reflog</code> 显示当前分支最近的操作，假如我们想回滚到 HEAD@{1} 所对应的提交。我们可以执行 <code>git reset HEAD@&#123;1&#125;</code>。然后在通过 <code>git reflog</code> 查看，刚刚我们执行的 reset 操作已经记录下来了。</p>
-<hr>
-<img src="/articles/2021/09/28/git/Git%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/15.gif" class="" width="600">
-
-<hr>
-<p>以上只是对常用的命令进行了简单介绍，通过动图的方式让大家理解每个命令的区别以及背后的原理。后续的文章会对相关的命令进行深层的探讨，以防止大家在使用中遇到各种各样的问题。</p>
-<hr>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
-<li><a target="_blank" rel="noopener" href="https://dev.to/lydiahallie/cs-visualized-useful-git-commands-37p1">【🌳🚀 CS Visualized: Useful Git Commands】</a></li>
-</ul>
+<p>由此说明 <code>all_parent_info()</code> 方法并不具备访问私有属性的权限。</p>
 
     
 
@@ -345,7 +276,11 @@
 		<ul class="article-tag-list">
 			 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">Git</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color5">Mini</a>
+        		</li>
+      		 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">C++</a>
         		</li>
       		
 		</ul>
@@ -355,7 +290,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2021/09/28/git/Git%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2023/02/11/cpp_mini/c++%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%8F%8B%E5%85%83%E5%87%BD%E6%95%B0%E4%B8%8E%E5%8F%8B%E5%85%83%E7%B1%BB/">展开全文 >></a>
     </p>
     
 
@@ -389,7 +324,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/8/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/7/">7</a><a class="page-number" href="/articles/page/8/">8</a><span class="page-number current">9</span><a class="page-number" href="/articles/page/10/">10</a><a class="page-number" href="/articles/page/11/">11</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/45/">45</a><a class="extend next" rel="next" href="/articles/page/10/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/8/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/7/">7</a><a class="page-number" href="/articles/page/8/">8</a><span class="page-number current">9</span><a class="page-number" href="/articles/page/10/">10</a><a class="page-number" href="/articles/page/11/">11</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/65/">65</a><a class="extend next" rel="next" href="/articles/page/10/">下一页</a>
     </nav>
   
 
@@ -402,7 +337,7 @@
   <div class="outer">
     <div id="footer-info">
     	<div class="footer-left">
-    		&copy; 2018-2022 <a target="_blank">Tubetrue01</a>
+    		&copy; 2018-2023 <a target="_blank">Tubetrue01</a>
     	</div>
     </div>
   </div>
@@ -574,6 +509,38 @@
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">Docker</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">C++</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">MySQL</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">Redis</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">网络</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
               </li>
             
             <div class="clearfix"></div>
