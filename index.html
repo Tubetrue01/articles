@@ -245,7 +245,7 @@
 <img src="/articles/2023/07/16/entertainment/%E5%AE%B6%E5%BA%AD%E7%BD%91%E7%BB%9C%E7%8E%AF%E5%A2%83%E6%94%B9%E9%80%A0/04.jpg" class="" width="700">
 
 <p>为了避免缺少依赖，一定要下载 all.ipk 版。</p>
-<h1 id="DNS-分流"><a href="#DNS-分流" class="headerlink" title="DNS 分流!"></a>DNS 分流!</h1><p>目前的代理方案是使用 OpenClash 的 Fake-IP 增强模式，并开启【绕过中国大陆 ip】，这也是我一直以来常用的方式。那么这样有什么弊端呢？</p>
+<h1 id="DNS-分流"><a href="#DNS-分流" class="headerlink" title="DNS 分流"></a>DNS 分流</h1><p>目前的代理方案是使用 OpenClash 的 Fake-IP 增强模式，并开启【绕过中国大陆 ip】，这也是我一直以来常用的方式。那么这样有什么弊端呢？</p>
 <p>对于绝大多数的 DNS 分流程序而言其核心逻辑一般都是先进行国内域名判断，如果命中，那么使用国内公共 DNS 解析，根据解析到的 IP 地址的位置进行分流。如果 IP 地址属于中国大陆，则直接返回结果，相反，则用海外 DNS 再次解析得到结果。</p>
 <p>我们思考一下，如果目标域名是国内域名比较好说，但如果是海外的域名应该使用哪个 DNS 进行第一次解析呢？如果按照上述逻辑，首先会使用国内 DNS 完成第一次解析，速度最快。然而由于存在 DNS 污染，海外遭到污染的域名就会解析出海外的 IP。然后则使用海外 DNS 对该域名进行第二次 DNS 解析，拿到无污染的 IP。</p>
 <p>我们用两个例子对以上过程进行说明：<br>1、访问 <a target="_blank" rel="noopener" href="http://www.baidu.com,国内/">www.baidu.com，国内</a> DNS 进行首次解析，拿到 IP 为 110.242.68.66，然后根据 IP 判断位置为中国大陆，则直接返回结果。<br>2、访问 <a target="_blank" rel="noopener" href="http://www.google.com,国内/">www.google.com，国内</a> DNS 进行首次解析，拿到 IP 为 142.251.42.238，根据 IP 判断位置属于海外，那么再使用海外 DNS 对 <a target="_blank" rel="noopener" href="http://www.google.com/">www.google.com</a> 进行解析，拿到 IP 为 93.46.8.90。</p>
