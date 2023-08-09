@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-redis/Redis常用命令" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-mysql/MySQL页与行" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2023/01/26/redis/Redis%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/" target="_blank">Redis 常用命令</a>
+	  <a class="article-title" href="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/" target="_blank">MySQL 页与行</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2023/01/26/redis/Redis%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/" class="archive-article-date">
-        <time datetime="2023-01-26T09:14:05.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2023-01-26</time>
+<a href="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/" class="archive-article-date">
+        <time datetime="2023-01-09T06:37:05.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2023-01-09</time>
 </a>
 
   
@@ -216,453 +216,150 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>本文主要用于汇总 Redis 中常用的命令以及它们所对应的时间复杂度，有助于我们掌握不同命令的使用场景以及注意事项。</p>
+<p>【页】是 InnoDB 引擎管理内存的基本单元，也是内存与磁盘交互的基本单元。当 MySQL 检索或修改一条记录的时候，InnoDB 会将包含该记录的整页数据加载到内存中（缓存局部性原理）。如果是修改操作，则直接在内存中修改，然后标记当前页为<code>脏页</code>，由其他线程刷盘。</p>
 </blockquote>
-<h1 id="命令分类"><a href="#命令分类" class="headerlink" title="命令分类"></a>命令分类</h1><p>Redis 命令大致分为以下集中：</p>
+<h1 id="存储结构"><a href="#存储结构" class="headerlink" title="存储结构"></a>存储结构</h1><p>从 InnoDB 存储引擎的逻辑来看，所有的数据都存放在一个空间内，称为<code>表空间（tablespace）</code>，而表空间由<code>段（segment）</code>、<code>区（extent）</code>、<code>页（page）</code>组成。如下图所示：</p>
+<img src="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/01.jpg" class="" width="800">
+
+<h2 id="表空间"><a href="#表空间" class="headerlink" title="表空间"></a>表空间</h2><p>表空间是一个逻辑容器，它存储的对象是段，一个表空间可以存在一个或多个段，但是一个段只能属于一个表空间。数据库由一个或多个表空间组成，表空间从管理上可划分为系统表空间、用户表空间、撤销表空间、临时表空间等。</p>
+<p>表空间被分为共享表空间、独立表空间两种类型。共享表空间意味着多张表共用一个表空间，而独立表空间则意味着每张表有一个独立的表空间，换句话说就是数据和索引信息都会保存在自己的表空间中。独立的表空间可以在不同的数据库之间进行迁移。以下命令可以查看当前系统启用的表空间类型：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql <span class="operator">&gt;</span> <span class="keyword">SHOW</span> VARIABLES <span class="keyword">LIKE</span> <span class="string">&#x27;innodb_file_per_table&#x27;</span>;</span><br></pre></td></tr></table></figure>
+<p>可以把表空间看作是 InnoDB 存储引擎逻辑结构的最高层，它是由一个或多个磁盘文件组成的虚拟文件系统，它不仅存储表跟索引，还保留了回滚段、双写缓冲区等。</p>
+<h2 id="段"><a href="#段" class="headerlink" title="段"></a>段</h2><p>段是由一个或多个区组成，区在文件系统上是一个连续的空间，而在段中并不要求区与区之间是相邻的。</p>
+<p>段是数据库中的分配单位，不同类型的数据库对象以不同的段形式存在。当数据库表、索引被创建时，相应的段也会创建出来。</p>
+<h2 id="区"><a href="#区" class="headerlink" title="区"></a>区</h2><p>InnoDB 中，一个区会分配 64 个连续的页。由于 InnoDB 中页的大小默认为 16KB，所以一个区的大小为 64*16KB = 1M。</p>
+<h2 id="页"><a href="#页" class="headerlink" title="页"></a>页</h2><p>页是 InnoDB 管理的最小单位，默认大小为 16KB，可以通过 <code>innodb_page_size</code> 设置页的大小（数据库实例初始化之前），一旦设置完成之后，不能再次修改，除非通过 <code>mysqldump</code> 导入和导出来产生新的库。</p>
+<p>InnoDB 中常见的页类型为：</p>
 <ul>
-<li>服务端命令</li>
-<li>客户端命令</li>
-<li>键命令</li>
-<li>数据类型命令</li>
-<li>功能应用命令</li>
+<li>数据页（B-tree Node）</li>
+<li>undo 页（undo Log Page）</li>
+<li>系统页（System Page）</li>
+<li>事务数据页（Transaction System Page）</li>
+<li>插入缓冲位图页（Insert Buffer Bitamp）</li>
+<li>插入缓冲空闲列表页（Insert Buffer Free List）</li>
+<li>未压缩的二进制大对象页（Uncompressed BLOB Page）</li>
+<li>压缩的二进制大对象页（Commpressed BLOB Page）</li>
 </ul>
-<p>本文主要介绍键命令及数据类型命令。</p>
-<h1 id="时间复杂度"><a href="#时间复杂度" class="headerlink" title="时间复杂度"></a>时间复杂度</h1><p><code>O(1) &lt; O(log n) &lt; O(n) &lt; O(nlog n) &lt; O(n^2) &lt; O(n^3) &lt; O(n!) &lt; O(n^n)</code></p>
-<h1 id="键（Key）命令"><a href="#键（Key）命令" class="headerlink" title="键（Key）命令"></a>键（Key）命令</h1><blockquote>
-<p>Redis 采用 key-value 的基本数据结构，任何二进制序列都可以作为 Redis 的 key 使用。设计 key 时不应该过长，过长的 key 不仅会消耗更多的内存，还会导致查找的效率降低。另外，Redis 允许的最大 key 长度为 512MB（value 最大长度同为 512MB）。</p>
-</blockquote>
+<h2 id="行"><a href="#行" class="headerlink" title="行"></a>行</h2><p>InnoDB 将数据按行存放，每个页存放的行记录最多为 16KB/2-200 = 7992 行。</p>
+<h1 id="页-1"><a href="#页-1" class="headerlink" title="页"></a>页</h1><p>页的数据结构：</p>
+<img src="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/02.jpg" class="" width="600">
+
+<p>每部分的含义为：</p>
 <table>
 <thead>
 <tr>
-<th align="left">命令</th>
-<th align="left">时间复杂度</th>
+<th align="left">名称</th>
+<th align="left">大小</th>
 <th align="left">说明</th>
 </tr>
 </thead>
 <tbody><tr>
-<td align="left">DEL</td>
-<td align="left">O(N)</td>
-<td align="left">若键存在的情况下，该命令用于删除键</td>
+<td align="left">File Header</td>
+<td align="left">38B</td>
+<td align="left">文件头，描述页的信息</td>
 </tr>
 <tr>
-<td align="left">EXISTS</td>
-<td align="left">O(1)</td>
-<td align="left">用于检查键是否存在，若存在则返回 1，否则返回 0</td>
+<td align="left">Page Header</td>
+<td align="left">56B</td>
+<td align="left">页头，页的状态信息</td>
 </tr>
 <tr>
-<td align="left">EXPIRE</td>
-<td align="left">O(1)</td>
-<td align="left">设置键的过期时间，单位：秒</td>
+<td align="left">Infimum + Supremum</td>
+<td align="left">26B</td>
+<td align="left">最小和最大记录，这是两个虚拟的行记录</td>
 </tr>
 <tr>
-<td align="left">PEXPIRE</td>
-<td align="left">O(1)</td>
-<td align="left">设置键的过期时间，单位：毫秒</td>
+<td align="left">User Records</td>
+<td align="left"></td>
+<td align="left">用户记录，存储行记录内容</td>
 </tr>
 <tr>
-<td align="left">EXPIREAT</td>
-<td align="left">O(1)</td>
-<td align="left">与 EXPIRE 类似，不同在于它的时间参数值采用的是时间戳的格式</td>
+<td align="left">Free Space</td>
+<td align="left"></td>
+<td align="left">空闲空间，页中还未被使用的空间</td>
 </tr>
 <tr>
-<td align="left">KEYS</td>
-<td align="left">O(N)</td>
-<td align="left">用于查找与指定 pattern 匹配的 key</td>
+<td align="left">Page Directory</td>
+<td align="left"></td>
+<td align="left">页目录，存储用户记录的相对位置</td>
 </tr>
 <tr>
-<td align="left">MOVE</td>
-<td align="left">O(1)</td>
-<td align="left">将当前数据库中的 key 移动到指定的数据库中</td>
-</tr>
-<tr>
-<td align="left">PERSIST</td>
-<td align="left">O(1)</td>
-<td align="left">用于删除 key 的过期时间</td>
-</tr>
-<tr>
-<td align="left">RANDOMKEY</td>
-<td align="left">O(1)</td>
-<td align="left">从当前数据库中随机返回一个 key</td>
-</tr>
-<tr>
-<td align="left">RENAME</td>
-<td align="left">O(1)</td>
-<td align="left">修改 key 的名称</td>
-</tr>
-<tr>
-<td align="left">SCAN</td>
-<td align="left">增量式迭代命令每次执行的复杂度为 O(1) ， 对数据集进行一次完整迭代的复杂度为 O(N) ， 其中 N 为数据集中的元素数量</td>
-<td align="left">基于游标的迭代器，用于迭代数据库中存在的所有键</td>
-</tr>
-<tr>
-<td align="left">TTL</td>
-<td align="left">O(1)</td>
-<td align="left">用于检查 key 还剩多长时间过期，单位：秒。key 不存在时返回 -2；未设置过期时间时返回 -1</td>
-</tr>
-<tr>
-<td align="left">TYPE</td>
-<td align="left">O(1)</td>
-<td align="left">用于获取 value 的数据类型</td>
+<td align="left">File Trailer</td>
+<td align="left">8B</td>
+<td align="left">文件尾，校验页是否完整</td>
 </tr>
 </tbody></table>
-<h1 id="String"><a href="#String" class="headerlink" title="String"></a>String</h1><blockquote>
-<p>String 是 Redis 的基础数据类型，Redis 中没有 int、float、boolean 等数据类型，所有的基本数据类型都是以 String 体现的。</p>
+<h2 id="File-Header"><a href="#File-Header" class="headerlink" title="File Header"></a>File Header</h2><p>File Header 是所有页都有的一个通用结构，占用固定的 <code>38B</code>，它记录页的一些通用状态，如：页号、Checksum、把页串联成双向链表的指针、页的类型等等。</p>
+<ul>
+<li><h3 id="FIL-PAGE-SPACE-OR-CHECKSUM"><a href="#FIL-PAGE-SPACE-OR-CHECKSUM" class="headerlink" title="FIL_PAGE_SPACE_OR_CHECKSUM"></a>FIL_PAGE_SPACE_OR_CHECKSUM</h3>4B 大小，基于当前页计算出的校验和，校验和不同，两个页数据肯定不同。它的作用是 InnoDB 在脏页刷盘时，有可能会遇到页刷到一半断电的情况，页的头和尾部部分分别记录校验和，只有当两者的校验和一致时，才代表磁盘上的页是完整的，否则就是一个损坏的页。</li>
+<li><h3 id="FIL-PAGE-OFFSET"><a href="#FIL-PAGE-OFFSET" class="headerlink" title="FIL_PAGE_OFFSET"></a>FIL_PAGE_OFFSET</h3>4B 大小，页号，页的唯一标识，全局递增的数字，InnoDB 通过页号来定位唯一的一个页。由于 4B 大小，所以一个表空间可以有 2^32 个页，如果一个页 16KB，那么一个表空间最多支持 64TB 的数据。</li>
+<li><h3 id="FIL-PAGE-PREV-amp-FIL-PAGE-NEXT"><a href="#FIL-PAGE-PREV-amp-FIL-PAGE-NEXT" class="headerlink" title="FIL_PAGE_PREV &amp; FIL_PAGE_NEXT"></a>FIL_PAGE_PREV &amp; FIL_PAGE_NEXT</h3>各占 4B，一张表由多个页构成，页与页之间在物理上可以是不连续的，但是逻辑上要连续，而 FIL_PAGE_PREV 跟 FIL_PAGE_NEXT 则分别指向当前页的上一页和下一页的页号，通过这两个指针，将索引页串联成一个双向链表。记录之间虽然是单向的，但是页之间是双向的。</li>
+<li><h3 id="FIL-PAGE-LSN"><a href="#FIL-PAGE-LSN" class="headerlink" title="FIL_PAGE_LSN"></a>FIL_PAGE_LSN</h3>8B 大小，页最后被修改时所对应的 LSN值，全程为 Log Sequence Number，日志序列号。一个递增的数字，与事务相关。</li>
+<li><h3 id="FIL-PAGE-TYPE"><a href="#FIL-PAGE-TYPE" class="headerlink" title="FIL_PAGE_TYPE"></a>FIL_PAGE_TYPE</h3>2B 大小，代表当前页类型，其中索引页固定为：<code>0x45BF</code>。</li>
+<li><h3 id="FIL-PAGE-FILE-FLUSH-LSN"><a href="#FIL-PAGE-FILE-FLUSH-LSN" class="headerlink" title="FIL_PAGE_FILE_FLUSH_LSN"></a>FIL_PAGE_FILE_FLUSH_LSN</h3>8B 大小，仅在第 1 页中使用，用来判断数据库是正常关闭还是异常宕机。</li>
+<li><h3 id="FIL-PAGE-ARCH-LOG-NO-OR-SPACE-ID"><a href="#FIL-PAGE-ARCH-LOG-NO-OR-SPACE-ID" class="headerlink" title="FIL_PAGE_ARCH_LOG_NO_OR_SPACE_ID"></a>FIL_PAGE_ARCH_LOG_NO_OR_SPACE_ID</h3>4B 大小，表示当前页属于哪个表空间。</li>
+</ul>
+<h2 id="Page-Header"><a href="#Page-Header" class="headerlink" title="Page Header"></a>Page Header</h2><p>Page Header 是索引页特有的结构，占用固定的 56B 大小，记录索引页中记录相关的状态信息。字段比较多，我们关注一些比较重要的字段即可：</p>
+<ul>
+<li><h3 id="PAGE-N-DlR-SLOTS"><a href="#PAGE-N-DlR-SLOTS" class="headerlink" title="PAGE_N_DlR_SLOTS"></a>PAGE_N_DlR_SLOTS</h3>一个页可能含有上千条记录，如果挨个遍历，效率太低。为了提高页中记录的检索效率，InnoDB 将页内的记录划分为多个组，组里最大的那条记录相对于页的地址偏移量记录到 <code>Page Directory</code> 中，每个组都对应一个槽，槽的大小固定为 2B。该属性记录的就是页内槽的数量。</li>
+<li><h3 id="PAGE-HEAP-TOP"><a href="#PAGE-HEAP-TOP" class="headerlink" title="PAGE_HEAP_TOP"></a>PAGE_HEAP_TOP</h3>Free Space 的起始位置，它是 User Records 和 Free Space 的分界点。一个全新页一开始是没有 User Records 部分的，没插入一条记录，都要向 Free Space 申请空间，Free Space 耗尽则代表页满了。</li>
+<li><h3 id="PAGE-FREE"><a href="#PAGE-FREE" class="headerlink" title="PAGE_FREE"></a>PAGE_FREE</h3>DELETE 命令删除记录时，InnoDB 并不会真的将记录从磁盘中删除，而是在记录的头信息中打个标记，然后将其加入到删除链表中。PAGE_FREE 指向的就是删除链表的头节点。</li>
+<li><h3 id="PAGE-DIRECTION-amp-PAGE-N-DIRECTION"><a href="#PAGE-DIRECTION-amp-PAGE-N-DIRECTION" class="headerlink" title="PAGE_DIRECTION &amp; PAGE_N_DIRECTION"></a>PAGE_DIRECTION &amp; PAGE_N_DIRECTION</h3>PAGE_DIRECTION 表示最后一条数据插入的方向，比上一条记录值大则记为右边，反之则是左边。PAGE_N_DIRECTION 表示同一方向连续插入的记录数，方向变了该值就会重置。</li>
+<li><h3 id="PAGE-LEVEL"><a href="#PAGE-LEVEL" class="headerlink" title="PAGE_LEVEL"></a>PAGE_LEVEL</h3>InnoDB 组织数据的形式是 B+ 树，树中的节点就是索引页，PAGE_LEVEL 代表当前页在 B+ 树中所处的层级。InnoDB 规定，叶子节点层级为 0，然后向上递增。</li>
+</ul>
+<h2 id="User-Records"><a href="#User-Records" class="headerlink" title="User Records"></a>User Records</h2><p>用户的数据记录存放在 User Records 部分，一个全新的页一开始全是 Free Space。当有数据插入进来的时候需要向 Free Space 申请空间，当 Free Space 耗尽时，则代表当前页已经用完了。如果再有记录需要插入，则需要申请一个新的页了。</p>
+<h3 id="记录的格式"><a href="#记录的格式" class="headerlink" title="记录的格式"></a>记录的格式</h3><p>MySQL 目前有四种行记录格式：Redundant、Compact、Dynamic 和 Compressed。其中 Redundant 是以前使用的旧格式，为了兼容性还一直保留。自 MySQL 5.1 开始，默认的行记录格式为 Compact，而从 MySQL 5.7 开始，默认的行记录格式为 Dynamic。通过以下命令查看当前表的行格式：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql<span class="operator">&gt;</span> <span class="keyword">SHOW</span> <span class="keyword">TABLE</span> STATUS <span class="keyword">LIKE</span> <span class="string">&#x27;&lt;table name&gt;&#x27;</span>;</span><br></pre></td></tr></table></figure>
+
+<p>Compact 行格式在 MySQL 5.0 引入，设计的目标是高效的存储数据。简单来说就是：一个页中存放的行数据越多，其性能就越高。其结构如图所示：</p>
+<img src="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/03.jpg" class="" width="600">
+
+<p>记录跟记录之间是怎么连接的呢？其答案就在记录头里，我们把记录头信息拿出来看看它的结构：</p>
+<img src="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/04.jpg" class="" width="600">
+
+<p>记录头信息的最后 2B 用来连接下一条记录，将页内所有记录串联成一个单向链表。如下图：</p>
+<img src="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/05.jpg" class="" width="600">
+
+<p>大家不妨想一想，数据是按照什么顺序排序的？</p>
+<h2 id="Infimum-amp-Supremum"><a href="#Infimum-amp-Supremum" class="headerlink" title="Infimum &amp; Supremum"></a>Infimum &amp; Supremum</h2><p>试想一下，InnoDB 如何知道当前页中是否含有目标数据？需要把整页的数据都遍历一遍吗？那效率太低了。为了解决这个问题，在页中划分出了一块区域 <code>The Infimum and Supremum Records</code>，代表了当前页中的最大和最小记录。</p>
+<img src="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/06.jpg" class="" width="400">
+
+<p>有了 Infimum Record 和 Supremum Record，现在查询不需要将某一页的 User Records 全部遍历完，只需要将这两个记录和待查询的目标记录进行比较即可。比如我们要查询的数 id = 200，那么很明显不在当前页。接下来就可以通过下一页指针跳到下一页进行检索。</p>
+<h2 id="Page-Directory"><a href="#Page-Directory" class="headerlink" title="Page Directory"></a>Page Directory</h2><p>通过 Infimum Record 和 Supremum Record 可以判断出目标数据是否在当前页中，避免了页遍历。但是如果目标数据在当前页中，也不可避免需要遍历 User Records，由于 User Records 是单链表，效率并不是很高。那么如何提高这部分效率呢？此时就需要 <code>Page Directory</code>。</p>
+<p>介绍 PAGE_N_DlR_SLOTS 时提到过，为了提高遍历效率，InnoDB 将记录划分到多个组中，每个组对应一个槽。而 Page Directory 是一个目录，里边有很懂槽位，每个槽位都指向了一条 User Records 中的记录。按照官方设定，在一个完整的页中，每个 6 条数据就会有一个槽。</p>
+<p>MySQL 在新增数据的时候就会将对应的槽创建好，有了 Page Directory，就可以对一张页的数据进行粗略的二分查找，确定出大概的位置，找到大概的位置之后，需要回到 User Record 中继续挨个遍历匹配。</p>
+<img src="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/07.jpg" class="" width="600">
+
+<h2 id="File-Trailer"><a href="#File-Trailer" class="headerlink" title="File Trailer"></a>File Trailer</h2><p>File Trailer 是所有页都有的通用结构，占用固定的 8B，它主要作用就是为了校验页的完整性。由于磁盘的速度较慢，InnoDB 不会每次更新数据就直接刷盘。而是将页作为刷盘的基本单位，数据更新时，先对内存中的页进行修改，稍后再将整个页的数据一次性刷到磁盘里。但是刷盘的途中难免会遇到断电等一系列的故障，造成页的数据不完整。InnoDB 再刷盘前根据页数据计算出一个 Checksum，在页头跟页尾都写一份。刷盘的时候，先刷页头再刷页尾，当头尾两个 Checksum 一致时，说明磁盘是完整的，否则，说明出错了。</p>
+<h1 id="行-1"><a href="#行-1" class="headerlink" title="行"></a>行</h1><p>InnoDB 中最小的存储单元是页，默认每页的大小为 16KB。页中的数据是按行进行存放的，每页中存放的行记录最少为 2 行，最多为 16KB /2 - 200 行，也就是 7992 行。</p>
+<p>以 Compact 格式为例，介绍一下行的存储结构：</p>
+<img src="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/08.jpg" class="" width="800">
+
+<ul>
+<li><p><strong>变长字段长度列表</strong><br>MySQL 支持一些变长的数据类型，如: VARCHAR(n)、TEXT、BLOB 等，使用这些数类型的列称为变长字段。由于变长字段存储多少字节的数据是不固定的，因此我们需要在存储真实数据的时候顺便将这些数据占用的字节数页存储起来。在 Compact 行格式中，会把所有的边长字段的真实数据（非 NULL）占用的字节长度都存放在记录开头，从而形成一个长度列表，各个变长字段的长度按照列的顺序逆序存放。至于变长字段长度列表中每个列长度使用多少字节来表示是有一套规则的。</p>
+<p>首先需要说明 W、M、L 的含义：W 为某个字符集中表示一个字符最多需要使用的字节数，这个值可以通过 <code>SHOW charset</code> 命令查看，对应 <code>Maxlen</code> 列的值。比如 <code>UTF8</code> 字符集中 W 就是 3，<code>ASCII</code> 字符集中的 W 就是 1。对于变长类型 <code>VARCHAR(n)</code> 来说，M 代表该类型能够最多存储的字符个数，再结合使用的字符集，可以得出该类型最多占用的字节数为 <code>W * M</code>。而 L 代表的是该类型实际存储的字符串占用的字节数。因此有以下规则：</p>
+<ol>
+<li>如果 W * M &lt;= 255，则使用 1 个字节来表示长度。</li>
+<li>如果 W * M &gt; 255，并且 L &lt;= 127，那么使用 1 个字节来表示长度。</li>
+<li>如果 W * M &gt; 255，并且 L &gt; 127，那么使用 2 个字节来表示长度。</li>
+</ol>
+</li>
+</ul>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>变长字段的长度最大不会使用超过 2 个字节来表示是因为在 MySQL 中，对于一条记录占用的最大存储空间是有限制的，除了 BLOB、TEXT 类型之外，其他所有的列（不包括隐藏列和记录头信息）占用的字节长度加起来不能超过65535 个字节。如果表只有一列，那么这也就意味着该列最多占用 65535 个字节，那么此长度使用 2 个字节表示即可。</p>
 </blockquote>
-<table>
-<thead>
-<tr>
-<th align="left">命令</th>
-<th align="left">时间复杂度</th>
-<th align="left">说明</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="left">APPEND</td>
-<td align="left">O(1)</td>
-<td align="left">用于将 value 追加到 key 所存储值的末尾</td>
-</tr>
-<tr>
-<td align="left">BITCOUNT</td>
-<td align="left">O(N)</td>
-<td align="left">用于计算字符串中，被设置为 1 的比特位的数量</td>
-</tr>
-<tr>
-<td align="left">DECR</td>
-<td align="left">O(1)</td>
-<td align="left">将 key 所存储的整数值减 1</td>
-</tr>
-<tr>
-<td align="left">DECRBY</td>
-<td align="left">O(1)</td>
-<td align="left">将 key 所存储的值减去给定的递减值</td>
-</tr>
-<tr>
-<td align="left">GET</td>
-<td align="left">O(1)</td>
-<td align="left">用于检索指定的值</td>
-</tr>
-<tr>
-<td align="left">GETBIT</td>
-<td align="left">O(1)</td>
-<td align="left">对 key 所存储的字符串值，获取其指定偏移量上的位（bit）</td>
-</tr>
-<tr>
-<td align="left">GETRANGE</td>
-<td align="left">O(N)</td>
-<td align="left">返回 key 中字符串值的子字符</td>
-</tr>
-<tr>
-<td align="left">GETSET</td>
-<td align="left">O(1)</td>
-<td align="left">将给定 key 的值设置为 value，并返回 key 的旧值</td>
-</tr>
-<tr>
-<td align="left">INCR</td>
-<td align="left">O(1)</td>
-<td align="left">将 key 所存储的值加 1</td>
-</tr>
-<tr>
-<td align="left">INCRBY</td>
-<td align="left">O(1)</td>
-<td align="left">将 key 所存储的值加上给定的递增值</td>
-</tr>
-<tr>
-<td align="left">INCRBYFLOAT</td>
-<td align="left">O(1)</td>
-<td align="left">将 key 所存储的值加上指定的浮点递增值</td>
-</tr>
-<tr>
-<td align="left">MGET</td>
-<td align="left">O(N)</td>
-<td align="left">一次性获取一个或者多个 key 所存储的值</td>
-</tr>
-<tr>
-<td align="left">MSET</td>
-<td align="left">O(N)</td>
-<td align="left">用于同时设置多个键值对</td>
-</tr>
-<tr>
-<td align="left">MSETNX</td>
-<td align="left">O(N)</td>
-<td align="left">当指定的 key 都不存在时，用于设置多个键值对</td>
-</tr>
-<tr>
-<td align="left">SET</td>
-<td align="left">O(1)</td>
-<td align="left">用于设定指定 key 的值</td>
-</tr>
-<tr>
-<td align="left">SETBIT</td>
-<td align="left">O(1)</td>
-<td align="left">对 key 所存储的字符串值，设置或清除指定偏移量上的位（bit）</td>
-</tr>
-<tr>
-<td align="left">SETEX</td>
-<td align="left">O(1)</td>
-<td align="left">将 value 存储到 key 中，并将 key 的过期时间设置为指定的值，单位：秒</td>
-</tr>
-<tr>
-<td align="left">STRLEN</td>
-<td align="left">O(1)</td>
-<td align="left">返回 key 所存储的字符串值的长度</td>
-</tr>
-<tr>
-<td align="left">SETNX</td>
-<td align="left">O(1)</td>
-<td align="left">当 key 不存在时，设置 key 的值</td>
-</tr>
-<tr>
-<td align="left">SETRANGE</td>
-<td align="left">O(1)</td>
-<td align="left">从偏移量 offset 开始，使用指定的 value 覆盖 key 所存储的部分字符串的值</td>
-</tr>
-</tbody></table>
-<h1 id="List"><a href="#List" class="headerlink" title="List"></a>List</h1><blockquote>
-<p>List 是 Redis 中最常用数据类型之一。Redis 提供了诸多用于操作列表类型的命令，通过这些命令你可以实现将一个元素添加到列表的头部，或者尾部等诸多操作。</p>
-</blockquote>
-<table>
-<thead>
-<tr>
-<th align="left">命令</th>
-<th align="left">时间复杂度</th>
-<th align="left">说明</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="left">BLPOP</td>
-<td align="left">O(1)</td>
-<td align="left">用于删除并返回列表中的第一个元素（头部操作），如果列表中没有元素，就会发生阻塞，直到列表等待超时或发现可弹出元素为止</td>
-</tr>
-<tr>
-<td align="left">BRPOP</td>
-<td align="left">O(1)</td>
-<td align="left">用于删除并返回列表中的最后一个元素（尾部操作），如果列表中没有元素，就会发生阻塞，直到列表等待超时或发现可弹出元素为止</td>
-</tr>
-<tr>
-<td align="left">BRPOPLPUSH</td>
-<td align="left">O(1)</td>
-<td align="left">从列表中取出最后一个元素，并插入到另一个列表的头部。如果列表中没有元素，就会发生阻塞，直到等待超时或发现可弹出元素时为止</td>
-</tr>
-<tr>
-<td align="left">LINDEX</td>
-<td align="left">O(N)</td>
-<td align="left">通过索引获取列表中的元素</td>
-</tr>
-<tr>
-<td align="left">LINSERT</td>
-<td align="left">O(N)</td>
-<td align="left">指定列表中一个元素在它之前或之后插入另外一个元素</td>
-</tr>
-<tr>
-<td align="left">LLEN</td>
-<td align="left">O(1)</td>
-<td align="left">用于获取列表的长度</td>
-</tr>
-<tr>
-<td align="left">LPOP</td>
-<td align="left">O(1)</td>
-<td align="left">从列表的头部弹出元素，默认为第一个元素</td>
-</tr>
-<tr>
-<td align="left">LPUSH</td>
-<td align="left">O(1)</td>
-<td align="left">在列表头部插入一个或者多个值</td>
-</tr>
-<tr>
-<td align="left">LPUSHX</td>
-<td align="left">O(1)</td>
-<td align="left">当储存列表的 key 存在时，用于将值插入到列表头部</td>
-</tr>
-<tr>
-<td align="left">LRANGE</td>
-<td align="left">O(S+N)， S 为偏移量 start ， N 为指定区间内元素的数量</td>
-<td align="left">获取列表指定范围内的元素</td>
-</tr>
-<tr>
-<td align="left">LREM</td>
-<td align="left">O(N)</td>
-<td align="left">用于从列表中删除元素与 value 相等的元素。count 表示删除的数量，为 0 表示全部移除</td>
-</tr>
-<tr>
-<td align="left">LSET</td>
-<td align="left">对头元素或尾元素进行 LSET 操作，复杂度为 O(1)。其他情况下，为 O(N)， N 为列表的长度</td>
-<td align="left">表示通过其索引设置列表中元素的值</td>
-</tr>
-<tr>
-<td align="left">LTRIM</td>
-<td align="left">O(N)</td>
-<td align="left">保留列表中指定范围内的元素值</td>
-</tr>
-</tbody></table>
-<h1 id="Set"><a href="#Set" class="headerlink" title="Set"></a>Set</h1><blockquote>
-<p>Redis set 数据类型由键值对组成，这些键值对具有无序、唯一的性质。</p>
-</blockquote>
-<table>
-<thead>
-<tr>
-<th align="left">命令</th>
-<th align="left">时间复杂度</th>
-<th align="left">说明</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="left">SADD</td>
-<td align="left">O(N)</td>
-<td align="left">向集合中添加一个或者多个元素，并且自动去重</td>
-</tr>
-<tr>
-<td align="left">SCARD</td>
-<td align="left">O(1)</td>
-<td align="left">返回集合中元素的个数</td>
-</tr>
-<tr>
-<td align="left">SDIFF</td>
-<td align="left">O(N)</td>
-<td align="left">求两个或对多个集合的差集</td>
-</tr>
-<tr>
-<td align="left">SDIFFSTORE</td>
-<td align="left">O(N)</td>
-<td align="left">求两个集合或多个集合的差集，并将结果保存到指定的集合（key）中</td>
-</tr>
-<tr>
-<td align="left">SINTER</td>
-<td align="left">O(N * M)， N 为给定集合当中基数最小的集合， M 为给定集合的个数</td>
-<td align="left">求两个或多个集合的交集</td>
-</tr>
-<tr>
-<td align="left">SINTERSTORE</td>
-<td align="left">O(N * M)， N 为给定集合当中基数最小的集合， M 为给定集合的个数</td>
-<td align="left">求两个或多个集合的交集，并将结果保存到指定的集合（key）中</td>
-</tr>
-<tr>
-<td align="left">SMEMBERS</td>
-<td align="left">O(N)</td>
-<td align="left">查看集合中所有元素</td>
-</tr>
-<tr>
-<td align="left">SMOVE</td>
-<td align="left">O(1)</td>
-<td align="left">将集合中的元素移动到指定的集合中</td>
-</tr>
-<tr>
-<td align="left">SPOP</td>
-<td align="left">O(1)</td>
-<td align="left">移除并返回集合中的一个随机元素</td>
-</tr>
-<tr>
-<td align="left">SRANDMEMBER</td>
-<td align="left">只提供 key 参数时为 O(1) 。如果提供了 count 参数，那么为 O(N) ，N 为返回数组的元素个数</td>
-<td align="left">随机从集合中返回指定数量的元素，默认返回 1 个</td>
-</tr>
-<tr>
-<td align="left">SREM</td>
-<td align="left">O(N)</td>
-<td align="left">删除一个或者多个元素，若元素不存在则自动忽略</td>
-</tr>
-<tr>
-<td align="left">SUNION</td>
-<td align="left">O(N)，N 是所有给定集合的成员数量之和</td>
-<td align="left">求两个或者多个集合的并集</td>
-</tr>
-<tr>
-<td align="left">SUNIONSTORE</td>
-<td align="left">O(N)， N 是所有给定集合的成员数量之和</td>
-<td align="left">求两个或者多个集合的并集，并将结果保存到指定的集合（key）中</td>
-</tr>
-</tbody></table>
-<h1 id="Zset"><a href="#Zset" class="headerlink" title="Zset"></a>Zset</h1><blockquote>
-<p>zset 是 Redis 提供的最具特色的数据类型之一，首先它是一个 set，这保证了内部 value 值的唯一性，其次它给每个 value 添加了一个 score（分值）属性，通过对分值的排序实现了有序化。</p>
-</blockquote>
-<table>
-<thead>
-<tr>
-<th align="left">命令</th>
-<th align="left">时间复杂度</th>
-<th align="left">说明</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="left">ZADD</td>
-<td align="left">O(M*log(N))， N 是有序集的基数， M 为成功添加的新成员的数量</td>
-<td align="left">用于将一个或多个成员添加到有序集合中，或者更新已存在成员的 score 值</td>
-</tr>
-<tr>
-<td align="left">ZCARD</td>
-<td align="left">O(1)</td>
-<td align="left">获取有序集合中成员的数量</td>
-</tr>
-<tr>
-<td align="left">ZCOUNT</td>
-<td align="left">O(log(N))， N 为有序集的基数</td>
-<td align="left">用于统计有序集合中指定 score 值范围内的元素个数</td>
-</tr>
-<tr>
-<td align="left">ZINCRBY</td>
-<td align="left">O(log(N)) 为有序集 key 的成员 member 的 score 值加上增量 increment</td>
-<td align="left">用于增加有序集合中成员的分值</td>
-</tr>
-<tr>
-<td align="left">ZINTERSTORE</td>
-<td align="left">O(N<em>K)+O(M</em>log(M))， N 为给定 key 中基数最小的有序集， K 为给定有序集的数量， M 为结果集的基数</td>
-<td align="left">求两个或者多个有序集合的交集，并将所得结果存储在新的 key 中</td>
-</tr>
-<tr>
-<td align="left">ZRANGE</td>
-<td align="left">O(log(N)+M)</td>
-<td align="left">返回有序集合中指定索引区间内的成员数量</td>
-</tr>
-<tr>
-<td align="left">ZRANGEBYLEX</td>
-<td align="left">O(log(N)+M)</td>
-<td align="left">返回有序集中指定字典区间内的成员数量</td>
-</tr>
-<tr>
-<td align="left">ZRANGEBYSCORE</td>
-<td align="left">O(log(N)+M)， N 为有序集的基数， M 为被结果集的基数</td>
-<td align="left">返回有序集合中指定分数区间内的成员</td>
-</tr>
-<tr>
-<td align="left">ZRANK</td>
-<td align="left">O(log(N)) 返回有序集 key 中成员 member 的排名</td>
-<td align="left">返回有序集合中指定成员的排名</td>
-</tr>
-<tr>
-<td align="left">ZREM</td>
-<td align="left">O(M*log(N))， N 为有序集的基数， M 为被成功移除的成员的数量</td>
-<td align="left">移除有序集合中的一个或多个成员</td>
-</tr>
-<tr>
-<td align="left">ZREMRANGEBYRANK</td>
-<td align="left">O(log(N)+M)， N 为有序集的基数，而 M 为被移除成员的数量</td>
-<td align="left">移除有序集合中指定排名区间内的所有成员</td>
-</tr>
-<tr>
-<td align="left">ZREMRANGEBYSCORE</td>
-<td align="left">O(log(N)+M)， N 为有序集的基数，而 M 为被移除成员的数量</td>
-<td align="left">移除有序集合中指定分数区间内的所有成员</td>
-</tr>
-<tr>
-<td align="left">ZREVRANGE</td>
-<td align="left">O(log(N)+M)， N 为有序集的基数，而 M 为结果集的基数</td>
-<td align="left">返回有序集中指定区间内的成员，通过索引，分数从高到低</td>
-</tr>
-<tr>
-<td align="left">ZREVRANK</td>
-<td align="left">O(log(N)) 返回有序集 key 中成员 member 的排名</td>
-<td align="left">返回有序集合中指定成员的排名，有序集成员按分数值递减（从大到小）排序</td>
-</tr>
-<tr>
-<td align="left">ZSCORE</td>
-<td align="left">O(1)</td>
-<td align="left">返回有序集中，指定成员的分数值</td>
-</tr>
-<tr>
-<td align="left">ZUNIONSTORE</td>
-<td align="left">O(N)+O(M log(M))， N 为给定有序集基数的总和， M 为结果集的基数</td>
-<td align="left">求两个或多个有序集合的并集，并将返回结果存储在新的 key 中</td>
-</tr>
-</tbody></table>
+<p>另外，如果使用定长字符集，如：<code>ASCII</code> 字符集，那么 <code>CHAR(N)</code> 这中类型占用的字节数就是固定的；如果是变长字符集，如：<code>UTF8</code>，那么 <code>CHAR(n)</code> 这种类型所占用的字节数也是不确定的，只不过该列的长度也会被存储到变长字段长度列表中。</p>
+<ul>
+<li>NULL 标记<br>NULL 标志位将每个允许为 NULL 的列都对应一个二进制位，二进制位同样按照列的顺序逆序存放，二进制位为 1 表示该列的值为 NULL；为 0 表示该列的值不为 NULL。该部分一般占用 1 个字节，如果允许为 NULL 的字段超过 8 个，那么需要 2 个字节表示。</li>
+</ul>
+<h2 id="行溢出"><a href="#行溢出" class="headerlink" title="行溢出"></a>行溢出</h2><p>我们知道行记录占用的空间最多为 65535B（包括隐藏列）。但是一个数据页的大小默认为 16KB，也就是 16384B，并且还有一个限制就是每页最少存储 2 行记录（否则就变成链表了，也就失去了 B+Tree 的意义），因此很有可能出现一页中连一条记录都存不下的情况。</p>
+<p>对于这种情况，InnoDB 会将占用的存储空间非常大的列拆开，在当前列中只存储该列的前 768 个字节的数据和一个指向溢出页（Uncompressed BLOB Page 类型）的地址。</p>
+<img src="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/09.jpg" class="" width="800">
+
+<p>如果可以在一页中至少存放两行记录，那么 VARCHAR 等类型（TEXT、BLOB）的列数据就不会放到 BLOB 页中。</p>
+<p>最后，我们需要知道如果一条记录占用的字节数过多时，可能发生行溢出。</p>
+<h2 id="Dynamic-和-Compressed-行格式"><a href="#Dynamic-和-Compressed-行格式" class="headerlink" title="Dynamic 和 Compressed 行格式"></a>Dynamic 和 Compressed 行格式</h2><p>Dynamic 和 Compressed 是 InnoDB 1.0.x 版本开始引入的新格式。新的格式对于存放 BLOB 中的数据采用了完全行溢出的方式，也就是连 768B 的数据也被移到了溢出页中，数据页中只存放了 20B 的溢出页地址。同时Compressed 行记录格式会对行数据进行 zlib 算法压缩，因此在存储 BLOB、TEXT、VARCHAR 这类大长度类型的数据时比较有优势。</p>
 
     
 
@@ -679,7 +376,7 @@
 		<ul class="article-tag-list">
 			 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">Redis</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">MySQL</a>
         		</li>
       		
 		</ul>
@@ -689,7 +386,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2023/01/26/redis/Redis%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/">展开全文 >></a>
     </p>
     
 
@@ -723,7 +420,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/10/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/9/">9</a><a class="page-number" href="/articles/page/10/">10</a><span class="page-number current">11</span><a class="page-number" href="/articles/page/12/">12</a><a class="page-number" href="/articles/page/13/">13</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/65/">65</a><a class="extend next" rel="next" href="/articles/page/12/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/10/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/9/">9</a><a class="page-number" href="/articles/page/10/">10</a><span class="page-number current">11</span><a class="page-number" href="/articles/page/12/">12</a><a class="page-number" href="/articles/page/13/">13</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/64/">64</a><a class="extend next" rel="next" href="/articles/page/12/">下一页</a>
     </nav>
   
 
@@ -932,10 +629,6 @@
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">网络</a>
               </li>
              
               <li class="article-tag-list-item">

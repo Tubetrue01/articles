@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-dsaa/从TreeMap源码剖析红黑树(上)概念" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-cpp_mini/c++迷你系列(二)链式调用" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2023/03/08/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8A)%E6%A6%82%E5%BF%B5/" target="_blank">从 TreeMap 源码剖析红黑树（上）概念</a>
+	  <a class="article-title" href="/articles/2023/02/11/cpp_mini/c++%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%BA%8C)%E9%93%BE%E5%BC%8F%E8%B0%83%E7%94%A8/" target="_blank">C++ 迷你系列（二）链式调用</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2023/03/08/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8A)%E6%A6%82%E5%BF%B5/" class="archive-article-date">
-        <time datetime="2023-03-08T08:08:17.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2023-03-08</time>
+<a href="/articles/2023/02/11/cpp_mini/c++%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%BA%8C)%E9%93%BE%E5%BC%8F%E8%B0%83%E7%94%A8/" class="archive-article-date">
+        <time datetime="2023-02-11T09:59:17.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2023-02-11</time>
 </a>
 
   
@@ -216,89 +216,53 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p> 红黑树是一种弱平衡的二叉树，相比 AVL 这种严格平衡的二叉树来说，红黑树的这种弱平衡使得它在插入、删除元素的时候比 AVL 树更高效。所以即使在最坏情况下，它也可以保证查询、插入、删除在 O(logN) 的时间复杂度。</p>
+<p>大部分语言支持链式调用，但是在 C++ 中，链式调用有几个坑需要我们注意。本篇文章就是介绍一下 C++ 中链式调用的注意事项。</p>
 </blockquote>
-<p>红黑树在实际中的应用也十分广泛，如：JDK1.8 中的 HashMap、TreeMap、ConcurrentHashMap 等底层实现、Linux 底层的 CFS 进程调度算法中，vruntime 的存储、多路复用 Epoll 的核心结构等。为了将专注点放在红黑树上，本文将以 JDK1.8 的 TreeMap 源码实现为基础进行介绍。希望本篇文章能让你彻底掌握红黑树。</p>
-<h1 id="2-3-4-树"><a href="#2-3-4-树" class="headerlink" title="2-3-4 树"></a>2-3-4 树</h1><blockquote>
-<p>要想搞懂红黑树，首先必须要知道红黑树的本质，它其实是 2-3-4 树的一种实现。所以我们先看看什么是 2-3-4 树。</p>
+<p>本次例子中，我们把链式调用分为三类：普通对象的链式调用、对象引用的链式调用、指针的链式调用！</p>
+<h1 id="普通对象的链式调用"><a href="#普通对象的链式调用" class="headerlink" title="普通对象的链式调用"></a>普通对象的链式调用</h1><blockquote>
+<p>为了将焦点放到链式调用上，这里所有的代码全部放到 <code>main.cpp</code> 文件中，就不分割文件了。</p>
 </blockquote>
-<p>2-3-4 树是阶数为 4 的 B 树（BalanceTree，即平衡树）。所谓树的阶数是指节点中子节点的最大值，阶数为 4 也就是节点最大含有 4 个子节点。如下图所示：</p>
-<img src="/articles/2023/03/08/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8A)%E6%A6%82%E5%BF%B5/01.jpg" class="" width="500">
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Person</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    <span class="keyword">int</span> age;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="comment">// 这里未加 explicit 关键字，为了简化，我们需要隐式转换</span></span><br><span class="line">    <span class="built_in">Person</span>(<span class="keyword">int</span> age) : <span class="built_in">age</span>(age)</span><br><span class="line">    &#123;&#125;;</span><br><span class="line"></span><br><span class="line">    <span class="function">Person <span class="title">incr_age_val</span><span class="params">(<span class="keyword">const</span> Person &amp;person)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>-&gt;age += person.age;</span><br><span class="line">        <span class="keyword">return</span> *<span class="keyword">this</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="function">Person &amp;<span class="title">incr_age_ref</span><span class="params">(<span class="keyword">const</span> Person &amp;person)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>-&gt;age += person.age;</span><br><span class="line">        <span class="keyword">return</span> *<span class="keyword">this</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function">Person *<span class="title">incr_age_ptr</span><span class="params">(<span class="keyword">const</span> Person &amp;person)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>-&gt;age += person.age;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">print_age</span><span class="params">()</span> <span class="keyword">const</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        cout &lt;&lt; <span class="string">&quot;age is : &quot;</span> &lt;&lt; <span class="keyword">this</span>-&gt;age &lt;&lt; endl;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h3 id="场景一"><a href="#场景一" class="headerlink" title="场景一"></a>场景一</h3><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">Person <span class="title">p</span><span class="params">(<span class="number">10</span>)</span></span>;</span><br><span class="line">    <span class="comment">// 这里用了隐式转换，将 1、2、3 分别转换为对应 age 的 Person 对象</span></span><br><span class="line">    p.<span class="built_in">incr_age_val</span>(<span class="number">1</span>).<span class="built_in">incr_age_val</span>(<span class="number">2</span>).<span class="built_in">incr_age_val</span>(<span class="number">3</span>);</span><br><span class="line">    p.<span class="built_in">print_age</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>图中则是一个简单的 2-3-4 树，既然叫 2-3-4 树，说明树由 2 节点、3 节点、4 节点组成。其中节点 P 为 3 节点、L 跟 M 为 2 节点，R 为 4 节点。</p>
-<h2 id="树的增长"><a href="#树的增长" class="headerlink" title="树的增长"></a>树的增长</h2><p>2-3-4 树的增长是自下而上的，如果满足条件的节点会先考虑合并，如果不满足的节点则分裂。我们以插入 1、2、3、4、5、6、7 元素为例，进行说明：</p>
-<img src="/articles/2023/03/08/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8A)%E6%A6%82%E5%BF%B5/02.jpg" class="" width="600">
+<p><code>incr_age_val</code> 方法中，在更新了当前对象的 <code>age</code> 字段之后，返回了 <code>*this</code>，也就是 <code>person</code> 对象。</p>
+<p>我们创建 <code>Person p(10)</code> 对象，然后链式调用之后，获取 <code>age</code> 属性。大家不妨猜一猜此时 <code>age</code> 为多少？</p>
+<p><strong>答案：11。</strong></p>
+<p>为什么是 11 而不是 16 呢？关键在于 <code>incr_age_val</code> 方法的返回值为 <code>Person</code> 对象，也就是 p 的副本。我们看下图：</p>
+<img src="/articles/2023/02/11/cpp_mini/c++%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%BA%8C)%E9%93%BE%E5%BC%8F%E8%B0%83%E7%94%A8/01.jpg" class="" width="600">
 
-<ul>
-<li><strong>步骤一</strong><br>插入 1、2、3 个元素后，由于满足最大节点为 4 的条件，所以三者会合并。接下来插入 4 的时候，发现已经超过最大节点为 4 的限制了。</li>
-<li><strong>步骤二</strong><br>由于 4 的插入不满足条件，所以需要对原有 1、2、3 这个节点进行分裂，分裂是以中间元素为增长点，向上增长，也就是说 2 要往上提。然后 4 跟 3 进行合并为 3 节点。</li>
-<li><strong>步骤三</strong><br>当插入到 6 时，发现不满足条件。</li>
-<li><strong>步骤四</strong><br>同步骤二，4 要向上增长，6 则跟 5 进行合并。</li>
-<li><strong>步骤五</strong><br>当增长的 4 发现，跟它同一级的还有一个 2 元素，所以 4 就会跟 2 进行合并，形成 3 节点</li>
-<li><strong>步骤六</strong><br>接下来的 7 由于满足条件，所以会与 5、6 进行合并，形成最终的形态。</li>
-</ul>
-<h2 id="红黑树与-2-3-4-树的等价关系"><a href="#红黑树与-2-3-4-树的等价关系" class="headerlink" title="红黑树与 2-3-4 树的等价关系"></a>红黑树与 2-3-4 树的等价关系</h2><blockquote>
-<p>明白了树的增长，我们接下就要看一下红黑树与 2-3-4 树的等价关系了。</p>
+<p><code>incr_age_val</code> 三次调用分别返回了三个不同的 <code>Person</code> 实例。我们输出 <code>age</code> 时，输出的只是 <code>p</code> 实例对应的 <code>age</code>。所以结果为 11。</p>
+<p>如果想得出 <code>age = 16</code> 的结果，只需要获取它的返回值即可：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">Person <span class="title">p</span><span class="params">(<span class="number">10</span>)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">const</span> Person p2 = p.<span class="built_in">incr_age_val</span>(<span class="number">1</span>).<span class="built_in">incr_age_val</span>(<span class="number">2</span>).<span class="built_in">incr_age_val</span>(<span class="number">3</span>);</span><br><span class="line">    p2.<span class="built_in">print_age</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="场景二"><a href="#场景二" class="headerlink" title="场景二"></a>场景二</h3><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">Person <span class="title">p</span><span class="params">(<span class="number">10</span>)</span></span>;</span><br><span class="line">    <span class="function">Person <span class="title">p1</span><span class="params">(<span class="number">20</span>)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">const</span> Person p2 = p.<span class="built_in">incr_age_val</span>(p1).<span class="built_in">incr_age_val</span>(p1).<span class="built_in">incr_age_val</span>(p);</span><br><span class="line">    p.<span class="built_in">print_age</span>();</span><br><span class="line">    p2.<span class="built_in">print_age</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>以上代码创建两个对象 <code>p</code> 跟 <code>p1</code>，然后在获取对象 <code>p</code> 跟 <code>p2</code> 的 <code>age</code>。猜一猜它们的结果是什么？</p>
+<p><strong>答案是：30、80。</strong></p>
+<p>我们继续看图，看一看整个调用过程：</p>
+<img src="/articles/2023/02/11/cpp_mini/c++%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%BA%8C)%E9%93%BE%E5%BC%8F%E8%B0%83%E7%94%A8/02.jpg" class="" width="600">
+
+<p>每次函数调用之后都会发生值复制，所以第一次调用之后返回的 person 对象值为 30 也就是对象 p 的值。第二次调用 age 此时为 30 然后加上 p1 的 20 结果为 50 生成副本对象参与第三次调用，但是此时的 p 为 30，所以 50 + 30 得到最后的结果 80。</p>
+<h1 id="对象引用的链式调用"><a href="#对象引用的链式调用" class="headerlink" title="对象引用的链式调用"></a>对象引用的链式调用</h1><h3 id="场景一-1"><a href="#场景一-1" class="headerlink" title="场景一"></a>场景一</h3><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">Person <span class="title">p</span><span class="params">(<span class="number">10</span>)</span></span>;</span><br><span class="line">    p.<span class="built_in">incr_age_ref</span>(<span class="number">1</span>).<span class="built_in">incr_age_ref</span>(<span class="number">2</span>).<span class="built_in">incr_age_ref</span>(<span class="number">3</span>);</span><br><span class="line">    p.<span class="built_in">print_age</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>换成引用之后，结果为我们期待的结果 16 了。因为函数调用之后返回的不再是副本，而是第一个对象的引用。也就是说三次调用递增的都是同一个对象。</p>
+<h3 id="场景二-1"><a href="#场景二-1" class="headerlink" title="场景二"></a>场景二</h3><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">Person <span class="title">p</span><span class="params">(<span class="number">10</span>)</span></span>;</span><br><span class="line">    <span class="function">Person <span class="title">p1</span><span class="params">(<span class="number">20</span>)</span></span>;</span><br><span class="line"></span><br><span class="line">    p.<span class="built_in">incr_age_ref</span>(p1).<span class="built_in">incr_age_ref</span>(p1).<span class="built_in">incr_age_ref</span>(p);</span><br><span class="line">    p.<span class="built_in">print_age</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>猜一猜结果是多少？我们来分析一下：</p>
+<ol>
+<li>由于返回的是引用，所以 <code>p.incr_age_ref(p1)</code> 之后，p 为 30。</li>
+<li>再次调用 <code>p.incr_age_ref(p1)</code> 之后，p 为 50。</li>
+<li>最后调用 <code>incr_age_ref(p)</code> 时，p 为 50，所以两者相加之后为 100。</li>
+</ol>
+<p><strong>最终答案：100。</strong></p>
+<h1 id="对象指针的链式调用"><a href="#对象指针的链式调用" class="headerlink" title="对象指针的链式调用"></a>对象指针的链式调用</h1><blockquote>
+<p>由于引用的本质就是指针，所以指针的行为跟引用应该一致，不过我们依然测试一下。</p>
 </blockquote>
-<h3 id="2-节点"><a href="#2-节点" class="headerlink" title="2 节点"></a>2 节点</h3><img src="/articles/2023/03/08/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8A)%E6%A6%82%E5%BF%B5/03.jpg" class="" width="300">
+<h3 id="场景一-2"><a href="#场景一-2" class="headerlink" title="场景一"></a>场景一</h3><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">Person <span class="title">p</span><span class="params">(<span class="number">10</span>)</span></span>;</span><br><span class="line">    p.<span class="built_in">incr_age_ptr</span>(<span class="number">1</span>)-&gt;<span class="built_in">incr_age_ptr</span>(<span class="number">2</span>)-&gt;<span class="built_in">incr_age_ptr</span>(<span class="number">3</span>);</span><br><span class="line">    p.<span class="built_in">print_age</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们得到的结果与预期的一直为 16。引用返回的是对象的假名，而指针返回的是对象的地址，所以二者可以等价。结果自然而然一样。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">Person <span class="title">p</span><span class="params">(<span class="number">10</span>)</span></span>;</span><br><span class="line">    <span class="function">Person <span class="title">p1</span><span class="params">(<span class="number">20</span>)</span></span>;</span><br><span class="line"></span><br><span class="line">    p.<span class="built_in">incr_age_ptr</span>(p1)-&gt;<span class="built_in">incr_age_ptr</span>(p1)-&gt;<span class="built_in">incr_age_ptr</span>(p);</span><br><span class="line">    p.<span class="built_in">print_age</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>2-3-4 树的 2 节点对应红黑树的黑色节点。</p>
-<h3 id="3-节点"><a href="#3-节点" class="headerlink" title="3 节点"></a>3 节点</h3><img src="/articles/2023/03/08/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8A)%E6%A6%82%E5%BF%B5/04.jpg" class="" width="500">
-
-<p>2-3-4 树的 3 节点对应与红黑树的两种状态，分别为左倾与右倾（<strong>注意：一定是黑上红下，并且都是双向指针</strong>）。</p>
-<h3 id="4-节点"><a href="#4-节点" class="headerlink" title="4 节点"></a>4 节点</h3><img src="/articles/2023/03/08/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8A)%E6%A6%82%E5%BF%B5/05.jpg" class="" width="500">
-
-<p>红黑树需要平衡，所以不可能出现两个连续的红色节点（<strong>注意：黑上红下</strong>）。</p>
-<h3 id="分裂"><a href="#分裂" class="headerlink" title="分裂"></a>分裂</h3><img src="/articles/2023/03/08/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8A)%E6%A6%82%E5%BF%B5/06.jpg" class="" width="500">
-
-<p>当发生分裂时，由于不能有连续的红色节点，所以原有的 5、7 红色节点需要变黑，同时它们的父节点变红（如果父节点为根节点，那么还要变黑）。</p>
-<h2 id="红黑树转-2-3-4-树"><a href="#红黑树转-2-3-4-树" class="headerlink" title="红黑树转 2-3-4 树"></a>红黑树转 2-3-4 树</h2><blockquote>
-<p>有了以上的等价关系后，我们就可以通过红黑树得到 2-3-4 树。</p>
-</blockquote>
-<img src="/articles/2023/03/08/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8A)%E6%A6%82%E5%BF%B5/07.jpg" class="" width="500">
-
-<p>如图所示，将红黑树中红色节点经过 45° 旋转之后，就会得到 2-3-4 树。</p>
-<h1 id="红黑树的性质"><a href="#红黑树的性质" class="headerlink" title="红黑树的性质"></a>红黑树的性质</h1><blockquote>
-<p>这里我们先列举下红黑树的五大性质以及倒推下五大性质的由来。</p>
-</blockquote>
-<h2 id="性质"><a href="#性质" class="headerlink" title="性质"></a>性质</h2><ul>
-<li>节点是红色或者黑色。</li>
-<li>根节点是黑色。</li>
-<li>所有叶子节点都是黑色（注意：叶子都是 NIL 节点）。</li>
-<li>每个红色节点必须有两个黑色的子节点（也就是说，从每个叶子到根的所有路径上不能有连续的红色节点）。</li>
-<li>从任一节点到其每个叶子的所有简单路径都包含相同数量的黑色节点（黑色平衡）。</li>
-</ul>
-<h2 id="由来"><a href="#由来" class="headerlink" title="由来"></a>由来</h2><ul>
-<li><h3 id="节点是红色或者黑色"><a href="#节点是红色或者黑色" class="headerlink" title="节点是红色或者黑色"></a>节点是红色或者黑色</h3><p>我们知道，2-3-4 树包括三类节点，分别为 2 节点、3 节点、4 节点。红黑树为了实现以上功能同时降低复杂度，通过两种颜色即可表示出以上三种节点。</p>
-</li>
-<li><h3 id="根节点是黑色"><a href="#根节点是黑色" class="headerlink" title="根节点是黑色"></a>根节点是黑色</h3><p>为了说明这个问题，我们先看下 2-3-4 树有几种情况：<br><strong>情况一</strong></p>
-<img src="/articles/2023/03/08/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8A)%E6%A6%82%E5%BF%B5/08.jpg" class="" width="400">
-<p>2-3-4 树的根节点为 2 节点时，由于 2 节点对应红黑树的黑节点。所以红黑树的根节点为黑色。</p>
-<p><strong>情况二</strong></p>
-<img src="/articles/2023/03/08/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8A)%E6%A6%82%E5%BF%B5/09.jpg" class="" width="400">
-
-<p>当 2-3-4 树的根节点为 3 节点时，对应于红黑树的右图状态，根节点 2 依然是黑色。</p>
-<p><strong>情况三</strong></p>
-<img src="/articles/2023/03/08/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8A)%E6%A6%82%E5%BF%B5/10.jpg" class="" width="400">
-
-<p>当 2-3-4 树的根节点为 4 节点时，我们发现红黑树的根节点 4 依然为黑色。所以，红黑树的根节点总为黑色。</p>
-</li>
-<li><h3 id="所有的叶子都是黑色"><a href="#所有的叶子都是黑色" class="headerlink" title="所有的叶子都是黑色"></a>所有的叶子都是黑色</h3><img src="/articles/2023/03/08/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8A)%E6%A6%82%E5%BF%B5/11.jpg" class="" width="300">
-
-<p>其实每棵红黑树的叶子节点都挂了一个 Nil 的节点，如图所示。只不过该节点属于隐藏节点。</p>
-</li>
-<li><h3 id="每个红色节点必须有两个黑色的子节点"><a href="#每个红色节点必须有两个黑色的子节点" class="headerlink" title="每个红色节点必须有两个黑色的子节点"></a>每个红色节点必须有两个黑色的子节点</h3><p>该性质的另外一个意思是，两个红色节点不能同时相连，这怎么推导呢？我们看下图：</p>
-<img src="/articles/2023/03/08/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8A)%E6%A6%82%E5%BF%B5/12.jpg" class="" width="400">
-
-<p>我们把红黑树转换成 2-3-4 树之后，发现（2，4）组成的 3 节点包含了 3 跟（5，6，7）两个节点。其中 3 为 2 节点，（5，6，7）为 4 节点。我们回想一下，无论是 2 节点、3 节点还是 4 节点。黑色节点都在红色节点上边，所以并不会出现红色节点挂载红色节点的场景。</p>
-</li>
-<li><h3 id="从任一节点到其每个叶子的所有简单路径都包含相同数量的黑色节点"><a href="#从任一节点到其每个叶子的所有简单路径都包含相同数量的黑色节点" class="headerlink" title="从任一节点到其每个叶子的所有简单路径都包含相同数量的黑色节点"></a>从任一节点到其每个叶子的所有简单路径都包含相同数量的黑色节点</h3><img src="/articles/2023/03/08/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8A)%E6%A6%82%E5%BF%B5/13.jpg" class="" width="400">
-
-<p>如图所示，2-3-4 树有一个特性就是从根到每一个叶子的路径都相等。从 2-3-4 树节点与红黑树的对应关系来看，2-3-4 树的每一个节点都包含一个黑色节点，所以自然而然每条路径的黑色节点数量也就相等了。这也是红黑树的弱平衡——黑色平衡。</p>
-</li>
-</ul>
+<p>由于指针获取的都是当前的最新值，所以跟引用一致，答案为 100！</p>
 <hr>
-<h1 id="尾声"><a href="#尾声" class="headerlink" title="尾声"></a>尾声</h1><p>当文章内容篇幅较大时，尤其是这种比较烧脑的数据结构类文章，我相信很多人是不情愿看的，所以我打算将该系列文章分为【概念】、【插入】、【删除】三部分。首先从第一篇文章中认识什么是红黑树以及它的性质由来，让大家能够了解红黑树的本质，这样对于后续的插入以及删除就简单明了了。</p>
+<h1 id="尾声"><a href="#尾声" class="headerlink" title="尾声"></a>尾声</h1><p>链式调用虽然好用，但是我们一定要清楚，函数返回的值是什么以及每次调用中，入参的当前值又是什么？</p>
 
     
 
@@ -315,7 +279,11 @@
 		<ul class="article-tag-list">
 			 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color3">数据结构与算法</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color5">Mini</a>
+        		</li>
+      		 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">C++</a>
         		</li>
       		
 		</ul>
@@ -325,7 +293,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2023/03/08/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8A)%E6%A6%82%E5%BF%B5/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2023/02/11/cpp_mini/c++%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%BA%8C)%E9%93%BE%E5%BC%8F%E8%B0%83%E7%94%A8/">展开全文 >></a>
     </p>
     
 
@@ -359,7 +327,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/6/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/5/">5</a><a class="page-number" href="/articles/page/6/">6</a><span class="page-number current">7</span><a class="page-number" href="/articles/page/8/">8</a><a class="page-number" href="/articles/page/9/">9</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/65/">65</a><a class="extend next" rel="next" href="/articles/page/8/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/6/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/5/">5</a><a class="page-number" href="/articles/page/6/">6</a><span class="page-number current">7</span><a class="page-number" href="/articles/page/8/">8</a><a class="page-number" href="/articles/page/9/">9</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/64/">64</a><a class="extend next" rel="next" href="/articles/page/8/">下一页</a>
     </nav>
   
 
@@ -568,10 +536,6 @@
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">网络</a>
               </li>
              
               <li class="article-tag-list-item">
