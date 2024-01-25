@@ -17,21 +17,11 @@
 <meta property="og:site_name" content="Tubetrue01">
 <meta property="og:description" content="引言 【页】是 InnoDB 引擎管理内存的基本单元，也是内存与磁盘交互的基本单元。当 MySQL 检索或修改一条记录的时候，InnoDB 会将包含该记录的整页数据加载到内存中（缓存局部性原理）。如果是修改操作，则直接在内存中修改，然后标记当前页为脏页，由其他线程刷盘。  存储结构从 InnoDB 存储引擎的逻辑来看，所有的数据都存放在一个空间内，称为表空间（tablespace），而表空间由段（">
 <meta property="og:locale" content="en_US">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/01.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/02.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/03.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/04.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/05.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/06.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/07.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/08.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/09.jpg">
 <meta property="article:published_time" content="2023-01-09T06:37:05.000Z">
-<meta property="article:modified_time" content="2023-07-20T07:40:14.359Z">
+<meta property="article:modified_time" content="2024-01-25T01:19:41.015Z">
 <meta property="article:author" content="Tubetrue01">
 <meta property="article:tag" content="MySQL">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://tubetrue01.github.io/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/01.jpg">
   
     <link rel="alternative" href="/articles/atom.xml" title="Tubetrue01" type="application/atom+xml">
   
@@ -251,7 +241,7 @@
 <p>【页】是 InnoDB 引擎管理内存的基本单元，也是内存与磁盘交互的基本单元。当 MySQL 检索或修改一条记录的时候，InnoDB 会将包含该记录的整页数据加载到内存中（缓存局部性原理）。如果是修改操作，则直接在内存中修改，然后标记当前页为<code>脏页</code>，由其他线程刷盘。</p>
 </blockquote>
 <h1 id="存储结构"><a href="#存储结构" class="headerlink" title="存储结构"></a>存储结构</h1><p>从 InnoDB 存储引擎的逻辑来看，所有的数据都存放在一个空间内，称为<code>表空间（tablespace）</code>，而表空间由<code>段（segment）</code>、<code>区（extent）</code>、<code>页（page）</code>组成。如下图所示：</p>
-<img src="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/01.jpg" class="" width="800">
+
 
 <h2 id="表空间"><a href="#表空间" class="headerlink" title="表空间"></a>表空间</h2><p>表空间是一个逻辑容器，它存储的对象是段，一个表空间可以存在一个或多个段，但是一个段只能属于一个表空间。数据库由一个或多个表空间组成，表空间从管理上可划分为系统表空间、用户表空间、撤销表空间、临时表空间等。</p>
 <p>表空间被分为共享表空间、独立表空间两种类型。共享表空间意味着多张表共用一个表空间，而独立表空间则意味着每张表有一个独立的表空间，换句话说就是数据和索引信息都会保存在自己的表空间中。独立的表空间可以在不同的数据库之间进行迁移。以下命令可以查看当前系统启用的表空间类型：</p>
@@ -274,7 +264,7 @@
 </ul>
 <h2 id="行"><a href="#行" class="headerlink" title="行"></a>行</h2><p>InnoDB 将数据按行存放，每个页存放的行记录最多为 16KB/2-200 = 7992 行。</p>
 <h1 id="页-1"><a href="#页-1" class="headerlink" title="页"></a>页</h1><p>页的数据结构：</p>
-<img src="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/02.jpg" class="" width="600">
+
 
 <p>每部分的含义为：</p>
 <table>
@@ -344,28 +334,28 @@
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql<span class="operator">&gt;</span> <span class="keyword">SHOW</span> <span class="keyword">TABLE</span> STATUS <span class="keyword">LIKE</span> <span class="string">&#x27;&lt;table name&gt;&#x27;</span>;</span><br></pre></td></tr></table></figure>
 
 <p>Compact 行格式在 MySQL 5.0 引入，设计的目标是高效的存储数据。简单来说就是：一个页中存放的行数据越多，其性能就越高。其结构如图所示：</p>
-<img src="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/03.jpg" class="" width="600">
+
 
 <p>记录跟记录之间是怎么连接的呢？其答案就在记录头里，我们把记录头信息拿出来看看它的结构：</p>
-<img src="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/04.jpg" class="" width="600">
+
 
 <p>记录头信息的最后 2B 用来连接下一条记录，将页内所有记录串联成一个单向链表。如下图：</p>
-<img src="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/05.jpg" class="" width="600">
+
 
 <p>大家不妨想一想，数据是按照什么顺序排序的？</p>
 <h2 id="Infimum-amp-Supremum"><a href="#Infimum-amp-Supremum" class="headerlink" title="Infimum &amp; Supremum"></a>Infimum &amp; Supremum</h2><p>试想一下，InnoDB 如何知道当前页中是否含有目标数据？需要把整页的数据都遍历一遍吗？那效率太低了。为了解决这个问题，在页中划分出了一块区域 <code>The Infimum and Supremum Records</code>，代表了当前页中的最大和最小记录。</p>
-<img src="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/06.jpg" class="" width="400">
+
 
 <p>有了 Infimum Record 和 Supremum Record，现在查询不需要将某一页的 User Records 全部遍历完，只需要将这两个记录和待查询的目标记录进行比较即可。比如我们要查询的数 id = 200，那么很明显不在当前页。接下来就可以通过下一页指针跳到下一页进行检索。</p>
 <h2 id="Page-Directory"><a href="#Page-Directory" class="headerlink" title="Page Directory"></a>Page Directory</h2><p>通过 Infimum Record 和 Supremum Record 可以判断出目标数据是否在当前页中，避免了页遍历。但是如果目标数据在当前页中，也不可避免需要遍历 User Records，由于 User Records 是单链表，效率并不是很高。那么如何提高这部分效率呢？此时就需要 <code>Page Directory</code>。</p>
 <p>介绍 PAGE_N_DlR_SLOTS 时提到过，为了提高遍历效率，InnoDB 将记录划分到多个组中，每个组对应一个槽。而 Page Directory 是一个目录，里边有很懂槽位，每个槽位都指向了一条 User Records 中的记录。按照官方设定，在一个完整的页中，每个 6 条数据就会有一个槽。</p>
 <p>MySQL 在新增数据的时候就会将对应的槽创建好，有了 Page Directory，就可以对一张页的数据进行粗略的二分查找，确定出大概的位置，找到大概的位置之后，需要回到 User Record 中继续挨个遍历匹配。</p>
-<img src="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/07.jpg" class="" width="600">
+
 
 <h2 id="File-Trailer"><a href="#File-Trailer" class="headerlink" title="File Trailer"></a>File Trailer</h2><p>File Trailer 是所有页都有的通用结构，占用固定的 8B，它主要作用就是为了校验页的完整性。由于磁盘的速度较慢，InnoDB 不会每次更新数据就直接刷盘。而是将页作为刷盘的基本单位，数据更新时，先对内存中的页进行修改，稍后再将整个页的数据一次性刷到磁盘里。但是刷盘的途中难免会遇到断电等一系列的故障，造成页的数据不完整。InnoDB 再刷盘前根据页数据计算出一个 Checksum，在页头跟页尾都写一份。刷盘的时候，先刷页头再刷页尾，当头尾两个 Checksum 一致时，说明磁盘是完整的，否则，说明出错了。</p>
 <h1 id="行-1"><a href="#行-1" class="headerlink" title="行"></a>行</h1><p>InnoDB 中最小的存储单元是页，默认每页的大小为 16KB。页中的数据是按行进行存放的，每页中存放的行记录最少为 2 行，最多为 16KB /2 - 200 行，也就是 7992 行。</p>
 <p>以 Compact 格式为例，介绍一下行的存储结构：</p>
-<img src="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/08.jpg" class="" width="800">
+
 
 <ul>
 <li><p><strong>变长字段长度列表</strong><br>MySQL 支持一些变长的数据类型，如: VARCHAR(n)、TEXT、BLOB 等，使用这些数类型的列称为变长字段。由于变长字段存储多少字节的数据是不固定的，因此我们需要在存储真实数据的时候顺便将这些数据占用的字节数页存储起来。在 Compact 行格式中，会把所有的边长字段的真实数据（非 NULL）占用的字节长度都存放在记录开头，从而形成一个长度列表，各个变长字段的长度按照列的顺序逆序存放。至于变长字段长度列表中每个列长度使用多少字节来表示是有一套规则的。</p>
@@ -387,7 +377,7 @@
 </ul>
 <h2 id="行溢出"><a href="#行溢出" class="headerlink" title="行溢出"></a>行溢出</h2><p>我们知道行记录占用的空间最多为 65535B（包括隐藏列）。但是一个数据页的大小默认为 16KB，也就是 16384B，并且还有一个限制就是每页最少存储 2 行记录（否则就变成链表了，也就失去了 B+Tree 的意义），因此很有可能出现一页中连一条记录都存不下的情况。</p>
 <p>对于这种情况，InnoDB 会将占用的存储空间非常大的列拆开，在当前列中只存储该列的前 768 个字节的数据和一个指向溢出页（Uncompressed BLOB Page 类型）的地址。</p>
-<img src="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/09.jpg" class="" width="800">
+
 
 <p>如果可以在一页中至少存放两行记录，那么 VARCHAR 等类型（TEXT、BLOB）的列数据就不会放到 BLOB 页中。</p>
 <p>最后，我们需要知道如果一条记录占用的字节数过多时，可能发生行溢出。</p>
@@ -591,7 +581,7 @@ gitalk.render('gitalk-container')
   <div class="outer">
     <div id="footer-info">
     	<div class="footer-left">
-    		&copy; 2018-2023 <a target="_blank">Tubetrue01</a>
+    		&copy; 2018-2024 <a target="_blank">Tubetrue01</a>
     	</div>
     </div>
   </div>
@@ -702,6 +692,14 @@ gitalk.render('gitalk-container')
           <ul class="article-tag-list" q-show="showTags">
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">CMake</a>
               </li>
              
@@ -718,7 +716,35 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color5">Unix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">TCP</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">K8s</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">C++</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">网络</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -727,14 +753,6 @@ gitalk.render('gitalk-container')
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">git</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color5">Unix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">TCP</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -750,31 +768,7 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">redis</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">jvm</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">C++</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -782,19 +776,15 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">Redis</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">网络</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
+                <a href="javascript:void(0)" class="js-tag color1">redis</a>
               </li>
             
             <div class="clearfix"></div>

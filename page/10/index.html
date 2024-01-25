@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-mysql/MySQLInnoDB存储引擎" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-cpp_mini/c++迷你系列(一)友元函数与友元类" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/" target="_blank">MySQL InnoDB 存储引擎</a>
+	  <a class="article-title" href="/articles/2023/02/11/cpp_mini/c++%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%8F%8B%E5%85%83%E5%87%BD%E6%95%B0%E4%B8%8E%E5%8F%8B%E5%85%83%E7%B1%BB/" target="_blank">C++ 迷你系列（一）友元函数与友元类</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/" class="archive-article-date">
-        <time datetime="2023-01-27T03:37:05.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2023-01-27</time>
+<a href="/articles/2023/02/11/cpp_mini/c++%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%8F%8B%E5%85%83%E5%87%BD%E6%95%B0%E4%B8%8E%E5%8F%8B%E5%85%83%E7%B1%BB/" class="archive-article-date">
+        <time datetime="2023-02-11T06:59:17.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2023-02-11</time>
 </a>
 
   
@@ -216,393 +216,50 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>InnoDB 引擎从 MySQL 5.5.5 起取代了 MyISAM，成为默认的存储引擎。它提供了对 MySQL 对 ACID 事务的支持，并且实现了 SQL 标准的四种隔离级别。提供行级锁和外键约束，它的设计目标就是处理大容量数据库系统，在运行时在内存中建立缓冲池，用于缓冲数据与索引。</p>
+<p>封装是对象的一大特征，它可以选择性的对外暴露属性和方法。但是有没有一种方式可以把自己的内部属性暴露给指定的函数、方法或者类呢？答案是肯定的，那就是友元。网络上大部分文章介绍的都是在同一个文件中使用友元，而本文章将示例分在不同文件中进行介绍。</p>
 </blockquote>
-<h1 id="架构图"><a href="#架构图" class="headerlink" title="架构图"></a>架构图</h1><img src="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/01.jpg" class="" width="600">
+<h1 id="友元函数"><a href="#友元函数" class="headerlink" title="友元函数"></a>友元函数</h1><p><code>parent.hpp</code> 头文件中声明了类 <code>Parent</code>，它有两个属性，分别是公开的 <code>username</code> 及私有的 <code>age</code>。同时声明了带参构造函数及打印基础信息的成员方法。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> CPPDEMO_PARENT_H</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> CPPDEMO_PARENT_H</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Parent</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    std::string username;</span><br><span class="line"><span class="keyword">private</span> :</span><br><span class="line">    <span class="keyword">int</span> age;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">Parent</span>(std::string username, <span class="keyword">int</span> age);</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">print_info</span><span class="params">()</span> <span class="keyword">const</span></span>;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">//CPPDEMO_PARENT_H</span></span></span><br></pre></td></tr></table></figure>
+<p>以下 <code>parent.cpp</code> 是具体的实现代码：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;utility&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;parent.hpp&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"></span><br><span class="line">Parent::<span class="built_in">Parent</span>(std::string username, <span class="keyword">int</span> age)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">this</span>-&gt;username = std::<span class="built_in">move</span>(username);</span><br><span class="line">    <span class="keyword">this</span>-&gt;age = age;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">Parent::print_info</span><span class="params">()</span> <span class="keyword">const</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;username is : &quot;</span> &lt;&lt; <span class="keyword">this</span>-&gt;username &lt;&lt; <span class="string">&quot; age is : &quot;</span> &lt;&lt; <span class="keyword">this</span>-&gt;age &lt;&lt; endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>以上取自于 MySQL 官网，描述了 InnoDB 的整体架构，本文会对其中各个部分进行详细介绍。</p>
-<h2 id="结构划分"><a href="#结构划分" class="headerlink" title="结构划分"></a>结构划分</h2><p>InnoDB 将整个结构分为内存与磁盘两个部分，其中在内存结构中包括了以下组件：</p>
-<ul>
-<li>Buffer Pool</li>
-<li>Change Buffer</li>
-<li>Adaptive Hash Index</li>
-<li>Log Buffer</li>
-</ul>
-<p>而在磁盘上的组件包括：</p>
-<ul>
-<li>Tables</li>
-<li>Indexes</li>
-<li>Tablespaces</li>
-<li>InnoDB Data Dictionary</li>
-<li>Doublewrite Buffer</li>
-<li>Redo Log</li>
-<li>Undo Logs</li>
-</ul>
-<p>内存中的组件既可以直接访问磁盘上的文件（O_DIRECT）也可以通过操作系统缓存接口访问。</p>
-<h1 id="内存组件"><a href="#内存组件" class="headerlink" title="内存组件"></a>内存组件</h1><h2 id="Buffer-Pool"><a href="#Buffer-Pool" class="headerlink" title="Buffer Pool"></a>Buffer Pool</h2><p>InnoDB 是基于磁盘存储的，为了提高查询、读写性能，在内存中做了一个磁盘映射，将磁盘上使用频率最高的数据页预读一部分到内存的缓冲池中，即：Buffer Pool。为了提高缓存的管理效率，Buffer Pool 是作为一个基于页的链表实现的。</p>
-<p>Buffer Pool 的大小直接影响了数据库的整体性能，所以如果需要变更大小可以通过参数 <code>innodb_buffer_pool_size</code> 进行配置。</p>
-<p>InnoDB 是如何使用 Buffer Pool 的呢？比如当我们执行一条很简单的 sql 语句 <code>SELECT * FROM table WHERE id = 1</code>。InnoDB 会将该条记录对应的一页数据从磁盘中读取到 buffer pool 中，如果后续有相同的查询，直接将该数据返回。</p>
-<p>对于数据的更新操作类似，如：<code>UPDATE table SET name = &#39;&#39; WHERE id = 1</code>，InnoDB 将 id = 1 的一页数据加载到 Buffer Pool 中，在内存中对其进行修改，然后将该页标记为<strong>脏页</strong>，由后续的线程完成刷盘。</p>
-<img src="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.jpg" class="" width="400">
+<p>以下的 <code>main.cpp</code> 是我们的测试类：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;parent.hpp&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">Parent <span class="title">p</span><span class="params">(<span class="string">&quot;father&quot;</span>, <span class="number">38</span>)</span></span>;</span><br><span class="line">    p.<span class="built_in">print_info</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>控制台输出本对象的基础信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># username is : father age is : 38</span><br></pre></td></tr></table></figure>
+<p>我们知道，<code>age</code> 是 <code>Parent</code> 比较私密的属性，毕竟谁也不想把自己的年龄告诉其他人，除非把自己的信息通过某种特殊的途径对外告知，比如：资料卡。</p>
+<p>我们在类 <code>Parent</code> 中添加传递信息的资料卡函数：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> CPPDEMO_PARENT_H</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> CPPDEMO_PARENT_H</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Parent</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="comment">// 将 card 函数声明为友元函数</span></span><br><span class="line">    <span class="function"><span class="keyword">friend</span> <span class="keyword">void</span> <span class="title">card</span><span class="params">(Parent &amp;)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    std::string username;</span><br><span class="line"><span class="keyword">private</span> :</span><br><span class="line">    <span class="keyword">int</span> age;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">Parent</span>(std::string username, <span class="keyword">int</span> age);</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">print_info</span><span class="params">()</span> <span class="keyword">const</span></span>;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">//CPPDEMO_PARENT_H</span></span></span><br></pre></td></tr></table></figure>
+<p>我们在 <code>main.cpp</code> 中添加对 <code>void card(Parent &amp;)</code> 函数的实现：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;parent.hpp&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">card</span><span class="params">(Parent &amp;parent)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;others get the username: &quot;</span> &lt;&lt; parent.username &lt;&lt; <span class="string">&quot; and age is : &quot;</span> &lt;&lt; parent.age &lt;&lt; endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">Parent <span class="title">p</span><span class="params">(<span class="string">&quot;father&quot;</span>, <span class="number">38</span>)</span></span>;</span><br><span class="line">    <span class="built_in">card</span>(p);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>控制台得到以下输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># others get the username: father and age is : 38</span><br></pre></td></tr></table></figure>
+<p>外部通过 <code>card</code> 方法拿到了 <code>Parent</code> 类中的私有字段 <code>age</code>。</p>
+<h1 id="友元类"><a href="#友元类" class="headerlink" title="友元类"></a>友元类</h1><p>作为父母，肯定愿意把自己的“一切”告诉孩子！所以我们改造类 <code>Parent</code>：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> CPPDEMO_PARENT_H</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> CPPDEMO_PARENT_H</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Parent</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="comment">// 将 child 类声明为友元类</span></span><br><span class="line">    <span class="keyword">friend</span> <span class="class"><span class="keyword">class</span> <span class="title">Child</span>;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    std::string username;</span><br><span class="line"><span class="keyword">private</span> :</span><br><span class="line">    <span class="keyword">int</span> age;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">Parent</span>(std::string username, <span class="keyword">int</span> age);</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">print_info</span><span class="params">()</span> <span class="keyword">const</span></span>;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">//CPPDEMO_PARENT_H</span></span></span><br></pre></td></tr></table></figure>
+<p>接着我们定义 <code>Child</code> 类：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> CPPDEMO_CHILD_H</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> CPPDEMO_CHILD_H</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 提前告诉编译器，Parent 是类，所以 Child 类定义中，别着急报错</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Parent</span>;</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Child</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">    Parent *parent;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="comment">// 由于是单参数构造器，需要显示的声明，避免隐式转换</span></span><br><span class="line">    <span class="function"><span class="keyword">explicit</span> <span class="title">Child</span><span class="params">(Parent *parent)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">parent_info</span><span class="params">()</span></span>;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">//CPPDEMO_CHILD_H</span></span></span><br></pre></td></tr></table></figure>
+<p><code>Child</code> 类的实现为：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;child.hpp&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;parent.hpp&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 初始化列表方式</span></span><br><span class="line">Child::<span class="built_in">Child</span>(Parent *parent) : <span class="built_in">parent</span>(parent)</span><br><span class="line">&#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 访问 Parent 的私有属性</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">Child::parent_info</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;child get the parent info username is : &quot;</span> &lt;&lt;</span><br><span class="line">              <span class="keyword">this</span>-&gt;parent-&gt;username &lt;&lt; <span class="string">&quot; age is : &quot;</span> &lt;&lt; <span class="keyword">this</span>-&gt;parent-&gt;age &lt;&lt; endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<h3 id="Buffer-Pool-与查询缓存"><a href="#Buffer-Pool-与查询缓存" class="headerlink" title="Buffer Pool 与查询缓存"></a>Buffer Pool 与查询缓存</h3><p>我们知道 MySQL 分为 【Server 层】与【存储引擎层】，如果开启了查询缓存的功能，当你执行一条 SQL 的时候，Server 层先从查询缓存中查看是否曾经执行过这条 SQL，如果执行过，那么之前的查询结果会以 key-value 的形式保存在查询缓存中。其中，key 是 SQL 语句，value 是查询结果。记住，这个查询是发生在服务层的，称为查询缓存。</p>
-<p>如果查询缓存中没有目标数据，MySQL 则通过存储引擎将数据检索出来，返回给 Buffer Pool，然后进而返回给服务层，供查询缓存使用。而该查询缓存好是 Session 共享的。</p>
-<p>当然，查询缓存由于其自身的缺点，MySQL 8.0 中，已被移除。</p>
-<h3 id="Buffer-Pool-配置"><a href="#Buffer-Pool-配置" class="headerlink" title="Buffer Pool 配置"></a>Buffer Pool 配置</h3><p>Buffer Pool 通常由数个内存块加上一组控制结构体对象组成。为了支持 Buffer Pool 的动态调整，MySQL 5.7 开始，默认以 128M（可配置）的 chunk 单位分配内存块。</p>
-<p>对于 Buffer Pool 大小，有几个参数需要我们了解：</p>
-<ul>
-<li><strong>innodb_buffer_pool_size</strong><br>InnoDB Buffer Pool 的总大小</li>
-<li><strong>innodb_buffer_pool_chunk_size</strong><br>当增加或减小 innodb_buffer_pool_size 时，实际是以 chunk  为单位执行的，而 chunk 大小则由 innodb_buffer_pool_chunk_size 定义。</li>
-<li><strong>innodb_buffer_pool_instances</strong><br>设置 Buffer Pool 实例个数，每个实例都有自己独立的 list 管理 Buffer Pool。<br>如果 Buffer Pool 设置的比较大，InnoDB 会把 Buffer Pool 划分成几个 instances，这样可以提高读写操作的并发，减少竞争。每当读写 page 时都 hash 到一个 instance。</li>
-</ul>
-<p><strong>📚 Tips</strong></p>
-<blockquote>
-<p>所以最终的 Buffer Pool 大小 innodb_buffer_pool_size = innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances</p>
-</blockquote>
-<h3 id="内存管理"><a href="#内存管理" class="headerlink" title="内存管理"></a>内存管理</h3><p>为了提高的性能，将 Buffer Pool 划分为热数据区、冷数据区两部分。数据页第一次被加载到缓冲池时，先将其存放到冷数据区的链表头部，1s（由 innodb_old_block_time）后该缓存页被访问了再将其转移至热数据区的链表头位置。</p>
-<img src="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/03.jpg" class="" width="600">
+<p><code>main.cpp</code> 进行测试：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;parent.hpp&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;child.hpp&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">Parent <span class="title">p</span><span class="params">(<span class="string">&quot;father&quot;</span>, <span class="number">38</span>)</span></span>;</span><br><span class="line">    <span class="function">Child <span class="title">child</span><span class="params">(&amp;p)</span></span>;</span><br><span class="line">    child.<span class="built_in">parent_info</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># child get the parent info username is : father age is : 38</span><br></pre></td></tr></table></figure>
 
-<p>热数据区与冷数据区的比例默认为 5:3，可以通过 <code>innodb_old_blocks_pct</code> 来指定冷数据的占比。</p>
-<h3 id="预读机制"><a href="#预读机制" class="headerlink" title="预读机制"></a>预读机制</h3><p>为了提高性能，MySQL 提供了预读的特性。什么是预读呢？就是 IO 异步读取多个页数据到 Buffer Pool，并且这些页被认为是很快就被读取到的。InnoDB 使用两种预读算法来提高 IO 性能：线性预读（linear read-ahead）和随机预读（random read-ahead）。</p>
-<p>为了区分两种预读方式，我们可以把线性预读以 extent 为单位，随机预读以 extent 中的 page 为单位进行区分。线性预读着眼于将下一个 extent 提前读取到 buffer pool 中，随机预读着眼于将当前 extent 中的剩余 page 提前读取到 buffer pool 中。</p>
-<ul>
-<li><h4 id="Linear-线性预读"><a href="#Linear-线性预读" class="headerlink" title="Linear 线性预读"></a>Linear 线性预读</h4><p>线性预读的单位是 extent，一个 extent 中有 64 个 page。线性预读中的一个重要参数为 <code>innodb_read_ahead_threshold</code>，是指连续访问多少页面之后，把下一个 extent 读入到 buffer pool 中（预读是一个异步操作）。注意，该参数不能超过 64，毕竟一个 extent 最多含有 64 个页。</p>
-</li>
-<li><h4 id="Random-随机预读"><a href="#Random-随机预读" class="headerlink" title="Random 随机预读"></a>Random 随机预读</h4><p>随机预读则表示当同一个 extent 中的一些 page 在 buffer pool 中发现时，InnoDB 会将 extent 中的剩余 page 一并读取到 buffer pool 中。由于随机预读带来了不必要的复杂性以及性能稳定问题，已在 5.5 中废弃。</p>
-</li>
-</ul>
-<h3 id="页管理"><a href="#页管理" class="headerlink" title="页管理"></a>页管理</h3><p>Buffer Pool 是 InnoDB 内存中占比比较大的一块区域，为了提高数据的读取速度，Buffer Pool 通过三种类型的 page 和对应的链表来管理这些数据。</p>
-<ul>
-<li><h4 id="三种类型的页"><a href="#三种类型的页" class="headerlink" title="三种类型的页"></a>三种类型的页</h4><ul>
-<li><strong>Free Page</strong><br>表示空闲页，也就是 buffer pool 中未被使用的页，位于 Free 链表。</li>
-<li><strong>Clean Page</strong><br>表示次页已经被使用（干净页），但是页未被修改，位于 LRU 链表。</li>
-<li><strong>Dirty Page</strong><br>表示此页已经修改（脏页），其数据与磁盘上的数据已经不一致。当脏页上的数据写入磁盘后，即：内存与磁盘数据一致，那么该页又变更为干净页。脏页同时存在于 LRU 链表和 Flush 链表。</li>
-</ul>
-</li>
-</ul>
-<img src="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/04.jpg" class="" width="400">
+<h1 id="成员友元函数"><a href="#成员友元函数" class="headerlink" title="成员友元函数"></a>成员友元函数</h1><p>如果把类变成友元类，那么友元类中的所有方法都能访问私有属性了。那么如何限制指定的方法访问呢？此时就需要成员友元函数了。</p>
+<p>改造 <code>Parent</code> 类：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> CPPDEMO_PARENT_H</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> CPPDEMO_PARENT_H</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;child.hpp&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Parent</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="comment">// 改为成员友元函数</span></span><br><span class="line">    <span class="function"><span class="keyword">friend</span> <span class="keyword">void</span> <span class="title">Child::parent_info</span><span class="params">()</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    std::string username;</span><br><span class="line"><span class="keyword">private</span> :</span><br><span class="line">    <span class="keyword">int</span> age;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="built_in">Parent</span>(std::string username, <span class="keyword">int</span> age);</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">print_info</span><span class="params">()</span> <span class="keyword">const</span></span>;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">//CPPDEMO_PARENT_H</span></span></span><br></pre></td></tr></table></figure>
 
-<img src="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/05.jpg" class="" width="400">
+<p><code>Child</code> 类新增 <code>all_parent_info</code> 方法：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;child.hpp&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;parent.hpp&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"></span><br><span class="line">Child::<span class="built_in">Child</span>(Parent *parent) : <span class="built_in">parent</span>(parent)</span><br><span class="line">&#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">Child::parent_info</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;child get the parent info username is : &quot;</span> &lt;&lt;</span><br><span class="line">              <span class="keyword">this</span>-&gt;parent-&gt;username &lt;&lt; <span class="string">&quot; age is : &quot;</span> &lt;&lt; <span class="keyword">this</span>-&gt;parent-&gt;age &lt;&lt; endl;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">Child::all_parent_info</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// 由于 all_parent_info 并不是友元方法，所以这里会提示：&#x27;age&#x27; is a private member of &#x27;Parent&#x27; declared private here </span></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;child get the parent info username is : &quot;</span> &lt;&lt;</span><br><span class="line">              <span class="keyword">this</span>-&gt;parent-&gt;username &lt;&lt; <span class="string">&quot; age is : &quot;</span> &lt;&lt; <span class="keyword">this</span>-&gt;parent-&gt;age &lt;&lt; endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<ul>
-<li><h4 id="三种链表"><a href="#三种链表" class="headerlink" title="三种链表"></a>三种链表</h4><ul>
-<li><p><strong>LRU 链表</strong><br>在内存管理开头部分有介绍 Buffer Pool 分为热数据区和冷数据区，它由 LRU 链表管理。热数据区部分又称为 New Sublist（Young 链表），冷数据区部分又称为 Old Sublist（Old 链表）。其结构如下图所示：</p>
-<img src="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/06.jpg" class="" width="400">
+<p>我们运行一下看看：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;parent.hpp&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;child.hpp&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="function">Parent <span class="title">p</span><span class="params">(<span class="string">&quot;father&quot;</span>, <span class="number">38</span>)</span></span>;</span><br><span class="line">    <span class="function">Child <span class="title">child</span><span class="params">(&amp;p)</span></span>;</span><br><span class="line">    child.<span class="built_in">parent_info</span>();</span><br><span class="line">    child.<span class="built_in">all_parent_info</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>得到以下输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># /Users/tubetrue01/CLionProjects/cppDemo/child.cpp:24:71: error: &#x27;age&#x27; is a private member of &#x27;Parent&#x27;</span><br><span class="line">              this-&gt;parent-&gt;username &lt;&lt; &quot; age is : &quot; &lt;&lt; this-&gt;parent-&gt;age &lt;&lt; endl;</span><br><span class="line">                                                                      ^</span><br><span class="line"># /Users/tubetrue01/CLionProjects/cppDemo/parent.hpp:19:9: note: declared private here</span><br><span class="line">    int age;</span><br></pre></td></tr></table></figure>
 
-<p>默认情况下：</p>
-<ul>
-<li>Young 与 Old 的比例为 5:3，由 <code>innodb_old_blocks_pct</code> 控制，默认值 37。取值范围为 5~95，为全局动态变量。</li>
-<li>当新的页被读取到 Buffer Pool 时，InnoDB 将该页插入到 Yong 尾与 Old 头称为 Mid Point 的中间区域。</li>
-<li>当一个页被频繁访问时，该页会往 Young 链表头部移动。相反，如果该页长时间没有被访问，那么就会向着 Old 尾部移动，直至被驱逐。</li>
-</ul>
-<p>如果一个页已经处于 Young 链表，当它再次被访问时，为了减少对 LRU 链表的修改，只有当其处于 Young 链表长度的 1/4 之后，才会被移动到 Young 的头部。</p>
-<p><code>innodb_old_blocks_time</code> 控制的 Old 链表头部页的转移策略，该页需要在 Old 表中停留超过 <code>innodb_old_blocks_time</code> 时间之后且再被访问才会转移至 Young 表。该操作是避免 Young 表被那些只在 <code>innodb_old_blocks_time</code> 时间间隔内频繁访问，之后不被访问的页塞满，从而有效的保护 Young 表。</p>
-<p>在全表扫描或者全索引扫描的时候，InnoDB 会将大量的页写入 LRU 表的 Mid Point 位置，并且只在短时间内访问几次之后就不再访问了。设置 <code>innodb_old_blocks_time</code> 的时间窗口可以有效的保护 Young 表，保证了真正的热点页不被驱逐。</p>
-<p><code>innodb_old_blocks_time</code> 单位是毫秒，默认值为 1000。调大该值提高了 Old 晋升到 Young 的门槛，同时页促使很多页被转移到 Old 表，从而被驱逐。</p>
-<p><code>SHOW ENGINE INNODB STATUS</code> 提供了 Buffer Pool 的一些指标，我们需要关注的是以下两个：</p>
-<ul>
-<li><p>young/s：该指标表示的是每秒访问 Old 表中的页，导致晋升到 Young 表中的次数。如果 MySQL 实例都是一些小事务，没有大表扫描，且该指标很小时，就需要调大 <code>innodb_old_block_pct</code> 或者减小 <code>innodb_old_blocks_time</code>，使得 Old 表的长度变长且 Old 页转移到 Old 页被转移到 Old 尾部的时间变长，间接提升了下次访问 Old 表中页的可能性。相反，如果该指标很大，可以调小 <code>innodb_old_blocks_pct</code>，同时调大 <code>innodb_old_blocks_time</code> 以保护热数据。</p>
-</li>
-<li><p>non-young/s：该指标表示每秒访问 Old 页没有晋升到 Young 的次数。因为其不符合 <code>innodb_old_blocks_time</code>。如果该指标很大，一般是存在大量的全表扫描。当然，如果 MySQL 存在大量全表扫描，而这个指标又不大时，需要调大 <code>innodb_old_blocks_time</code>，这是因为页已经移到 Young 表了，调大晋升时间使得这些短时间频繁访问的页继续留在 Old 表中。</p>
-</li>
-</ul>
-</li>
-<li><p><strong>Flush 链表</strong><br>每隔 1s，Page Cleaner 线程执行 LRU List Flush 操作，用以释放足够的 Free Page。<code>innodb_lru_scan_depth</code> 变量控制每个 Buffer Pool 实例每次扫描 LRU List 的长度来寻找对应的脏页，执行 Flush 操作。</p>
-<ul>
-<li>Flush 链表中保存的都是脏页（LRU 表中也会存在脏页）。</li>
-<li>Flush 链表按照 oldest_modification 排序，值大的在头部，小的在尾部。</li>
-<li>当页被修改时，使用 mini-transaction，对应的 page 进入 Flush 表。</li>
-<li>如果当前页已经是脏页，就不需要再次加入到 Flush 表。</li>
-<li>当 Page Cleaner 线程执行 flush 操作时，先从尾部开始检索，将一定的脏页写入磁盘，推进检查点，减少 recover 时间。</li>
-</ul>
-</li>
-<li><p><strong>Free 链表</strong><br>InnoDB 如何知道 Buffer Pool 哪些页是空闲可用的呢？这就需要 Free 链表，它是一个双向链表，链表的每个节点就是一个个空闲的缓存页对应的描述数据块。</p>
-<p>InnoDB 如何标记一个页是否是空闲的呢？那就需要引申出另一个概念——数据页缓存哈希表。缓存哈希表用来判断指定的数据是否已经被缓存，它的 key 由 表空间 + 数据页号组成，value 则是缓存页的地址。</p>
-<p>当 SQL 查询进来的时候，先从数据页缓存哈希表里查找，如果找了了，直接从 Buffer Pool 中进行查询；如果找不到，则从 free 链表中找到一个空闲的缓存页，然后从磁盘文件中读取对应的数据页到缓存页中，并将数据页的信息和缓存地址写入到对应的描述数据块中，最后将该页从 free 链表中删除。</p>
-</li>
-</ul>
-<h4 id="LRU-链表与-Flush-链表的异同"><a href="#LRU-链表与-Flush-链表的异同" class="headerlink" title="LRU 链表与 Flush 链表的异同"></a>LRU 链表与 Flush 链表的异同</h4><ul>
-<li>LRU 链表与 Flush 链表在 MySQL 5.6.2 之后统一由 Page Cleaner 线程处理。</li>
-<li>LRU 链表的 flush 目的是写出 LRU 链表尾部的脏页，释放足够的空闲页。当 Buffer Pool 满的时候，用户可以立即获得空闲页，而不需要长时间等待。Flush 链表的 flush 目的是推进 Checkpoint LSN，使得 InnoDB 系统崩溃之后能够快速恢复。</li>
-<li>LRU 链表的 flush 在写出的脏页，需要从 LRU 链表中删除，移动到 Free 链表。Flush 链表的 flush 不需要移动页在 LRU 链表中的位置。</li>
-<li>LRU 链表的 flush 每次 flush 的脏页数量较少，基本固定，只是释放一定的空闲页即可；Flush 链表的 flush 则是根据当前系统的更新繁忙度，动态调整一次 flush 的脏页数量，量较大。</li>
-<li>Flush 链表上的页一定在 LRU 链表上，反之则不成立。</li>
-</ul>
-<h4 id="脏页刷盘的时机"><a href="#脏页刷盘的时机" class="headerlink" title="脏页刷盘的时机"></a>脏页刷盘的时机</h4><ol>
-<li>Redo Log 快满的时候触发。由于 MySQL 先更新 Redo Log 然后刷盘，如果 Redo Log 还没来得及刷盘就被覆盖的话，容易出现不一致的问题。所以会先从 Flush 表中选取脏页，进行刷盘。</li>
-<li>为了保证 MySQL 空闲页的数量，Page Cleaner 线程会从 LRU 链表尾部淘汰一部分页作为空闲页。如果对应的页是脏页，则先进行刷盘。</li>
-<li>MySQL 中脏页太多时触发。当脏页比例大于 <code>innodb_max_dirty_pages_pct</code> 表示的最大脏页比例（默认 75%）时，会强制进行刷盘，用以保证足够可用的空闲页。<code>innodb_max_dirty_pages_pct_lwm</code> 控制脏页的低水位，当达到该值时，会进行 preflush，避免比例达到 <code>innodb_max_dirty_pages_pct</code> 而触发强制刷盘，从而对 MySQL 实例产生影响。</li>
-<li>MySQL 实例正常关闭时，也会触发脏页的刷盘。</li>
-</ol>
-</li>
-</ul>
-<p>InnoDB 是在运行过程中尽可能多的占用内存，因此未被使用的页很小。当读取的数据不在 Buffer Pool 中时，就需要申请一个空闲页来存放。如果没有足够的空闲页时，就必须从 LRU 链表的尾部淘汰页。如果该页是干净的，可以直接拿来用，如果是脏页，就需要进行刷盘。</p>
-<h2 id="Change-Buffer"><a href="#Change-Buffer" class="headerlink" title="Change Buffer"></a>Change Buffer</h2><p>我们更新一条记录时，该记录对应的辅助索引也需要更新（如果存在）。如果两者放到一起势必降低更新性能。对于辅助索引的更新，用另外一种基于内存的数据结构 Change Buffer 来完成，以此提升数据更新的性能。</p>
-<img src="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/07.jpg" class="" width="400">
-
-<h3 id="写操作亦能减少-IO"><a href="#写操作亦能减少-IO" class="headerlink" title="写操作亦能减少 IO"></a>写操作亦能减少 IO</h3><blockquote>
-<p>对于读请求，Buffer Pool 能够减少磁盘的 IO 次数，那么写操作可不可以利用相同的机制来减少磁盘 IO 呢？</p>
-</blockquote>
-<p>对于写操作可能遇到的两种情况：</p>
-<ul>
-<li><p><strong>写操作对应的页存在于 Buffer Pool 中</strong></p>
-<ol>
-<li>直接修改 Buffer Pool 中的页，此时发生一次内存操作。</li>
-<li>写入 Redo Log，一次磁盘的顺序写操作。</li>
-</ol>
-<p>以上并不会产生数据一致性问题，主要有以下几点：</p>
-<ul>
-<li>读取时，会命中 Buffer Pool 中的页。</li>
-<li>Buffer Pool 有 LRU 淘汰机制，脏页会被刷盘。</li>
-<li>数据库崩溃又有 Redo Log。</li>
-</ul>
-</li>
-<li><p><strong>写操作对应的页不在 Buffer Pool 中</strong></p>
-<ol>
-<li>先把目标数据所对应的页从磁盘加载到 Buffer Pool 中，产生一次磁盘随机读操作。</li>
-<li>修改 Buffer Pool 中的该页数据，一次内存操作。</li>
-<li>写入 Redo Log 日志，产生一次磁盘顺序写操作。</li>
-</ol>
-<p>从以上过程，我们可以看出，产生了一次磁盘的 IO。如果业务是写多读少的场景，那么如果优化呢？那就是 Change Buffer 需要做的事了。</p>
-</li>
-</ul>
-<p>Change Buffer 应用在<strong>非唯一普通索引页</strong>，并且该索引页不在 Buffer Pool 中时，对页进行了写操作。此时 InnoDB 并不会立刻将磁盘中该页数据加载到 Buffer Pool 中，而是仅仅记录该变更，直到将来某个时刻该数据被读取到 Buffer Pool 中时将数据合并。以达到降低写操作产生的磁盘 IO 次数。</p>
-<p>由此，我们再来看下加入此功能后，上述情况二的流程有何变化：</p>
-<ol>
-<li>将修改的内容记录到 Change Buffer 中，产生一次内存操作。</li>
-<li>写入 Redo Log，产生一次磁盘的顺序写操作。</li>
-</ol>
-<p>我们发现其流程产生的影响与情况一中类似，都是一次内存操作，一次磁盘的顺序写操作。那么两者的性能应该相近。当然，此时会有数据一致性的问题吗？我们分析一下：</p>
-<ol>
-<li>数据库异常是，借助 Redo Log 进行恢复。</li>
-<li>Change Buffer 中的数据也会定期的刷盘到磁盘的系统表空间 Change Buffer 中。</li>
-<li>读取数据时，页被加载到 Buffer Pool 时会进行合并。</li>
-</ol>
-<h3 id="补充"><a href="#补充" class="headerlink" title="补充"></a>补充</h3><ul>
-<li><h4 id="为什么只适用于非唯一普通索引"><a href="#为什么只适用于非唯一普通索引" class="headerlink" title="为什么只适用于非唯一普通索引"></a>为什么只适用于非唯一普通索引</h4><p>首先，InnoDB 中，聚簇索引与普通索引存在异同。如果索引设置了唯一属性，在进行修改操作时，InnoDB 必须进行唯一性检查。也就是说，索引页即使不在 Buffer Pool 中，磁盘上的页也需要读取以校验唯一性。因此，对于唯一索引，Change Buffer 也就无任何意义了。</p>
-</li>
-<li><h4 id="触发时机"><a href="#触发时机" class="headerlink" title="触发时机"></a>触发时机</h4><p>数据库空闲、数据库缓冲池不够用、数据的正常关闭或者 Redo Log 写满（一般不会出现此场景，否则整个数据库都无法写入数据）时，Change Buffer 中的数据都会被刷盘。</p>
-</li>
-<li><h4 id="适用场景"><a href="#适用场景" class="headerlink" title="适用场景"></a>适用场景</h4><p>通过以上的介绍，我们应该可以得出哪些场景可以从 Change Buffer 中受益，哪些场景根本不适合 Change Buffer。</p>
-<p>如果数据库都是唯一索引、数据更新即读取的场景由于都需要进行数据到 Buffer Pool 中的加载，所以也就没必要先写一遍 Change Buffer 了。</p>
-<p>如果数据库大部分都是非唯一索引、业务是写多读少或者更新后不是立即读取的则适合使用 Change Buffer。</p>
-</li>
-<li><h4 id="重要参数"><a href="#重要参数" class="headerlink" title="重要参数"></a>重要参数</h4><p><code>innodb_change_buffer_max_size</code> 可以配置 Change Buffer 的大小，默认值为 25%，最大值为 50%。</p>
-<p><code>innodb_change_buffering</code> 对哪些操作开启 Change Buffer，可能的值为：none/inserts/deletes/changes/purges/all 等。</p>
-</li>
-</ul>
-<h2 id="Adaptive-Hash-Index"><a href="#Adaptive-Hash-Index" class="headerlink" title="Adaptive Hash Index"></a>Adaptive Hash Index</h2><p>哈希查找非常快，一般情况下时间复杂度为 O(1)。对于 B+ 树的查找次数，取决于 B+ 树的高度。为了提升查询效率，InnoDB 存储引擎通过观察表上索引页的查询，如果发现建立哈希索引可以提高查询效率，则会自动建立哈希索引，也就是自适应哈希索引。</p>
-<p>自适应哈希索引简称 AHI，它是基于缓冲池 Buffer Pool 的 B+ 树构造出来的索引，因此速度非常快。InnoDB 存储引擎会根据访问的频率和模式自动为某些热点页建立哈希索引。</p>
-<p>为什么叫自适应哈希索引呢？是因为哈希表不能太大（哈希表维护本身就有成本，太大的话成本高于收益），又不能太小（太小缓存命中的概率又太低，也没有实质性的收益）。“自适应” 是建立一个不大不小刚刚好的哈希表。</p>
-<h3 id="建立-AHI-有哪些条件呢？"><a href="#建立-AHI-有哪些条件呢？" class="headerlink" title="建立 AHI 有哪些条件呢？"></a>建立 AHI 有哪些条件呢？</h3><ol>
-<li><p><strong>索引树要被使用足够多次</strong><br>AHI 是为某个索引树建立的，如果某个索引只被使用一两次就建立 AHI，会导致 AHI 太多，维护成本大于实际收益。因此，只有频繁访问的索引树才会建立 AHI。</p>
-</li>
-<li><p><strong>索引树上的某个检索条件要被经常使用</strong><br>如果为一个很少出现的检索条件建立 AHI，肯定是入不敷出的。AHI 使用 Hash Info 来描述一次检索与索引匹配程度（此次检索是如何使用索引的）。建立 AHI 时，就可以根据匹配程度，抽取数据中匹配的部分作为 AHI 的键。</p>
-<p>Hash Info 包括三项内容：</p>
-<ul>
-<li>检索条件与索引匹配的列数</li>
-<li>第一个不匹配的列中，两者匹配的字节数</li>
-<li>匹配的方式是否是从左往右进行</li>
-</ul>
-<p>例如，表 student 中的联合索引为（username,class_id），那么有以下两个情况：</p>
-<ul>
-<li>如果检索条件是（username = “xxx” AND class_id = xxx），那么此时检索使用了索引的最左两列，对应的 Hash Info 为（2,0,true）</li>
-<li>如果检索条件是（username = “xxx”），那么此次检索使用了该索引的最左一列，Hash Info 为（1,0,true）。</li>
-</ul>
-</li>
-<li><p><strong>该索引树上的某个数据页要经常被使用</strong><br>如果数据访问的频率比较低，那么建立 AHI 索引也就没什么意义了。</p>
-</li>
-</ol>
-<h3 id="建立-AHI"><a href="#建立-AHI" class="headerlink" title="建立 AHI"></a>建立 AHI</h3><p>如何建立 AHI 呢？我们以一个简单的例子进行说明：<br>student 表有 username、class_id、age、sex 四个字段，我们创建两个索引：idx_1(username、class_id、age)、idx_2(sex)。</p>
-<p>通过条件一选择出的索引是 idx_1，通过条件二选出的 Hash Info 为（2,0,true）（即查询多次命中 idx_1 的前两列），条件三选出的数据页为 P，其中包括（”test”,101,18,1）、（”demo”,102,17,0）等。 两条记录。那么在内存中开始为数据页 P 中的每行记录建立索引：</p>
-<ul>
-<li>为数据（”test”,101,18,1），根据 Hash Info 选取前两列计算哈希值 Hash(“test”,101) = H1 为 AHI 的 Key，Value 为所在的数据页 P。</li>
-<li>为数据（”demo”,102,17,0），根据 Hash Info 选取前两列计算哈希值 Hash(“demo”,102) = H2 为 AHI 的 Key，Value 为所在的数据页 P。</li>
-<li>以此类推。</li>
-</ul>
-<h3 id="使用-AHI"><a href="#使用-AHI" class="headerlink" title="使用 AHI"></a>使用 AHI</h3><p>如果对 student 表的查询条件为 username = “test” AND class_id = 101，它满足以下条件：</p>
-<ul>
-<li>命中索引 idx_1。</li>
-<li>索引 idx_1 上的 Hash Info 是（2,0,true），查询条件转换成（”test”,101）的哈希值。</li>
-<li>根据次哈希值在 AHI 中查询，得到所在数据页为 P。</li>
-</ul>
-<p>对于 AHI 的使用，比较重要的一个参数为 <code>innodb_adaptive_hash_index_parts</code>，表示 AHI 的分区数据。既然是缓存，必然涉及到锁竞争问题，而每个分区使用独立的锁，可以减少竞争。</p>
-<p>通过 <code>SHOW ENGINE INNODB STATUS</code> 可以查看 AHI 中每个分区的使用率和命中率。如果命中率低，可以通过 AHI 的建立原理来推断出业务设计是否合理，是否需要改变访问模式以及是否需要冷热数据隔离，或者考虑关闭 AHI，减少维护成本。</p>
-<p>通过 <code>innodb_adaptive_hash_index</code> 参数来开启或者禁用该功能，默认开启。</p>
-<p>最后，根据 InnoDB 存储引擎官方文档，启用 AHI 后，读取和写入的速度可以提高 2 倍，辅助索引的连续操作性能可以提高 5 倍。所以，AHI 是非常好的数据库自优化模式！</p>
-<h2 id="Log-Buffer"><a href="#Log-Buffer" class="headerlink" title="Log Buffer"></a>Log Buffer</h2><p>在内存区还有另外一个缓冲区 Log Buffer，又叫重做日志缓冲区。InnoDB 存储引擎首先将重做日志 Redo Log 先放到这个缓冲区中，然后按照一定频率将其刷盘到日志文件中。</p>
-<p>Redo Log 是一个顺序写的日志文件，比随机写效率高很多。Redo Log 暂存已经提交成功的数据，若系统发生崩溃，可以使用 Redo Log 恢复。默认 1s 保存一次，在执行 commit 操作之前刷新 Redo Log Buffer。</p>
-<blockquote>
-<p>InnDB 在 Buffer Pool 中有数据变更时，首先将相关变更写入 Log Buffer 中，然后再按时或者当事务提交时写入磁盘，即 Force-log-at-commit 原则。</p>
-<p>当 Redo Log 写入磁盘后，Buffer Pool 中的变更数据才会依据 checkpoint 机制择时写入到磁盘中。</p>
-</blockquote>
-<p>在 checkpoint 择时机制汇总，就有 Redo Log 写满的判断，所以如果 Redo Log 文件太小就会经常写满，也就会频繁导致 checkpoint 将更改的数据写入磁盘，导致性能抖动。</p>
-<p>操作性通的文件系统带有缓存机制，当 InnoDB 向磁盘写入数据时，有可能只是写到了文件系统的缓存中，没有真正的落到磁盘文件上。</p>
-<h3 id="参数"><a href="#参数" class="headerlink" title="参数"></a>参数</h3><ul>
-<li><p><strong>innodb_log_buffer_size</strong><br>调整 Log Buffer 的大小。</p>
-</li>
-<li><p><strong>innodb_flush_log_at_trx_commit</strong><br>控制每次事务提交是 InnoDB 的行为：</p>
-<ol>
-<li>如果为 0，事务提交时不会对 Redo Log 做写入操作，而是等待主线程按时写入（1s/次）。</li>
-<li>如果为 1（默认值），事务提交时，Redo Log 会写入文件系统缓存，并且调用文件系统的 fsync 函数将数据真正的写入磁盘，确保数据不会丢失。</li>
-<li>如果为 2，事务提交时，Redo Log 会写入文件系统缓存，但不会调用 fsync 函数，而是让文件系统决定何时写入磁盘。</li>
-</ol>
-</li>
-</ul>
-<h2 id="数据落盘"><a href="#数据落盘" class="headerlink" title="数据落盘"></a>数据落盘</h2><blockquote>
-<p>介绍完内存中的相关组件，接下来需介绍数据的落盘机制。</p>
-</blockquote>
-<p>InnoDB 中 Buffer Pool 的数据页要完成持久化需要两部分，一是脏页的落盘；二是预写日志 Redo Log 的落盘。</p>
-<p>当 Buffer Pool 中的页比磁盘要新时，数据库需要将新版本的页刷新到磁盘上。但是如果每当一个页发生变化时就刷新，那么性能影响是非常大的。于是 InnoDB 采用了 Write Ahead Log（WAL） 策略和 Force Log at Commit 机制实现事务级别下数据的持久化。</p>
-<ul>
-<li>WAL 要求数据的变更写入磁盘前，首先必须将内存中的日志写入到磁盘。</li>
-<li>Force Log at Commit 要求当一个事务提交时，所有产生的日志都必须刷新到磁盘上。如果日志刷新成功后，缓冲池中的数据刷盘前，即使数据库发生宕机，在重启后，可以利用日志进行恢复。</li>
-</ul>
-<h3 id="CheckPoint-机制"><a href="#CheckPoint-机制" class="headerlink" title="CheckPoint 机制"></a>CheckPoint 机制</h3><p>试想一下，如果 Buffer Pool 、Log Buffer 可以无限的增大，那么是不是可以不需要将内存中的数据刷回到磁盘上，因为当发生宕机时，完全可以通过 Redo Log 来恢复数据。</p>
-<p>要满足以上想法，我们需要两个先决条件：</p>
-<ol>
-<li>Buffer Pool 可以缓存数据库中所有的数据。</li>
-<li>Log Buffer 可以无限增大。</li>
-</ol>
-<p>因此 Checkpoint 技术诞生了，它主要解决以下几个问题：</p>
-<ul>
-<li><p><strong>缩短数据库的恢复时间</strong><br>当数据库发生宕机时，数据库不需要重做所有的日志，因为 Checkpoint 之前的页已经刷新到磁盘上了。数据库只需要对 Checkpoint 后的 Redo Log 进行恢复即可，大大缩短恢复时间。</p>
-</li>
-<li><p><strong>Buffer Pool 不够时，将脏页刷新到磁盘上</strong><br>LRU 算法会溢出最近最少使用的页，如果此页为脏页，那么需要强制执行 Checkpoint，将脏页刷回到磁盘上。</p>
-</li>
-<li><p><strong>Log Buffer 不可用时，刷新脏页</strong><br>由于当前事务数据库系统对 Redo Log 的设计都是循环使用的，并不是让其无限增大。Redo Log 可以被重用的部分是指这些内容已经不再需要，因此这部分数据可以被覆盖。如果 Redo Log 还需要使用，那么必须强制 Checkpoint，将 Buffer Pool 中的页至少刷新到当前重做日志的部分。</p>
-</li>
-</ul>
-<p>InnoDB 通过 LSN（Log Sequence Number）标记版本。LSN 由 8 字节数字组成，页、Redo Log、Checkpoint 都利用 LSN 标记其版本信息。</p>
-<p><strong>📚 Tips</strong></p>
-<blockquote>
-<p>Checkpoint 发生的时间、条件、脏页的选择都非常复杂，但是 Checkpoint 所做的事无非就是将 Buffer Pool 中的脏页刷回到磁盘上，不同之处在于刷新多少页、每次从哪里取脏页以及什么时间触发 Checkpoint。</p>
-</blockquote>
-<h4 id="Checkpoint-分类"><a href="#Checkpoint-分类" class="headerlink" title="Checkpoint 分类"></a>Checkpoint 分类</h4><p>在 InnoDB 存储引擎内部，有两种 Checkpoint，分别为：Sharp Checkpoint，Fuzzy Checkpoint。</p>
-<blockquote>
-<p>Sharp Checkpoint 在关闭数据库的时候，将 Buffer Pool 中的脏页全部刷新到磁盘中。Fuzzy Checkpoint 则是在数据库正常运行时，根据不同的时机，将部分脏页刷新到磁盘上。仅刷新部分脏页到磁盘也是为了避免刷新全部页造成性能问题。</p>
-</blockquote>
-<p>Fuzzy Checkpoint 有四种：</p>
-<ul>
-<li><p><strong>Master Thread Checkpoint</strong><br>在 Master Thread 中，会以 10s/次的频率，将部分脏页从内存刷新到磁盘上，这个过程是异步的，正常的用户线程对数据的操作不会被阻塞。</p>
-</li>
-<li><p><strong>FLUSH_LRU_LIST Checkpoint</strong><br>FLUSH_LRU_LIST Checkpoint 是在单独的 page cleaner 线程中执行的。<br>MySQL 对缓存的管理是通过 Buffer Pool 中的 LRU 链表实现的，LRU 空闲链表中要保留一定数据量的空闲页，以保证 Buffer Pool 中有足够的空闲页面来响应外界对数据库的请求。</p>
-<p>当这个空间页数量不足时，将会发生 FLUSH_LRU_LIST Checkpoint。空闲页的数量由 <code>innodb_lru_scan_depth</code> 参数控制（默认 1024），因此在空闲链表页数量少于该参数指定的值时，会发生 Checkpoint，剔除部分 LRU 链表尾端的页（MySQL 5.6 之后，由单独的 page cleaner 线程执行）。</p>
-</li>
-<li><p><strong>Async/Sync Flush Checkpoint</strong><br>Async/Sync Flush Checkpoint 在单独的 page cleaner 线程中执行。该 Checkpoint 发生在重做日志不可用的时候，将 Buffer Pool 中的一部分脏页刷新到磁盘中，在脏页刷新到磁盘后，事务对应的重做日志也就可以释放了。</p>
-<p>对于是执行 Async 还是 Sync 则是由 checkpoint_age（最新的 LSN - 已经刷新到磁盘的 LSN 值）以及 async_water_mark 和 sync_water_mark 共同决定。</p>
-<p>checkpoint_age = redo_lsn - checkpoint_lsn<br>async_water_mark = 75% * innodb_log_file_size（剩余 25%）<br>sync_water_mark = 90% * innodb_log_file_size（剩余 10%）</p>
-<p>当 Redo Log 剩余超过 25% 的空间时（checkpoint_age &lt; async_water_mark），不执行任何 Checkpoint。如果 10% &lt; 剩余空间 &lt; 25% 时，执行 Async Flush Checkpoint。如果剩余空间不足 10% 时，则执行 Sync Flush Checkpoint（无论不同刷新还是异步刷新，MySQL 5.6 之后都不阻塞用户的查询线程）。</p>
-</li>
-<li><p><strong>Dirty Page too much Checkpoint</strong><br>Master Thread 线程 1s/次的频率执行的。由 <code>innodb_max_dirty_pages_pct</code> 配置，默认值 75%。</p>
-</li>
-</ul>
-<h3 id="Double-Write-双写落盘"><a href="#Double-Write-双写落盘" class="headerlink" title="Double Write 双写落盘"></a>Double Write 双写落盘</h3><p>如果说 Change Buffer 为 InnoDB 带来了性能上的提升，那么 Double Write 则是给 InnoDB 提供了数据页可靠性的保障。</p>
-<h4 id="刷盘风险"><a href="#刷盘风险" class="headerlink" title="刷盘风险"></a>刷盘风险</h4><p>IO 的最小单位：<br>    1. MySQL I/O 的最小单位是 16K。<br>    2. 文件系统 I/O 的最小单位是 4K。<br>    3. 磁盘 I/O 的最小单位是 512B。</p>
-<p>因此，存在 IO 写入导致页损坏的风险：</p>
-<img src="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/08.jpg" class="" width="400">
-
-<p>一个数据页的大小是 16K，假设在脏页刷新到磁盘过程中，写了 8K 突然掉电，也就是说前 8K 数据是新的，后 8K 是旧的，那么磁盘数据库这个数据页就是不完整的，是一个坏掉的数据页。也无法通过 Redo Log 恢复，因为 Redo Log 记录的是对页的物理修改，如果页本身已经损坏，Redo Log 也无能为力。所以此时就需要 double write。</p>
-<img src="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/09.jpg" class="" width="400">
-
-<p>如图所示，Double Write 由两部分组成，一部分是内存中的 double write buffer，大小为 2MB；另一部分是磁盘上共享表空间连续的 128 个页（2MB）。</p>
-<p>在对 Buffer Pool 中的脏页进行刷新时，并不是直接写盘，而是执行以下步骤：</p>
-<ol>
-<li>通过 memcpy 函数将脏页先复制到内存中的 double write buffer（2M）区域。</li>
-<li>通过 double write buffer 再分两次，每次 1MB 顺序地写入共享表空间的物理磁盘上（连续存储，顺序写，性能高）。</li>
-<li>然后马上调用 fsync 函数，把双写缓冲区的数据写入实际的各个表空间文件（离散写，脏页持久化后，即标记对应的 doubelwrite 数据可覆盖）。</li>
-</ol>
-<p>如果操作系统在将页写入磁盘的过程中发生了崩溃，在恢复过程中，InnoDB 存储引擎可以从共享表空间中的 double write 找到该页的一个副本，将其复制到表空间文件中，再应用 Redo Log。</p>
-<p><strong>📚 Tips</strong></p>
-<blockquote>
-<p>由于 Redo Log 写入的单位是 512 字节，也就是磁盘 IO 的最小单位，所以不需要 doublewrite 的支持了。</p>
-</blockquote>
-<h4 id="副作用"><a href="#副作用" class="headerlink" title="副作用"></a>副作用</h4><ol>
-<li>double write 是一个 buffer，本质上是物理文件上的一个 buffer（也就是 file），所以它会导致系统有更多的 fsync 操作，而磁盘的 fsync 性能很慢，所以会降低 MySQL 的整体性能。</li>
-<li>double write 写入磁盘共享表空间这个过程是连续存储，是顺序写，性能非常高（约占写的 10%），牺牲一点写的性能保证数据页的完整性还是很有必要的。</li>
-</ol>
-<p>可以通过以下命令查看 double write 的工作负载：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mysql<span class="operator">&gt;</span> <span class="keyword">SHOW</span> <span class="keyword">GLOBAL</span> STATUS <span class="keyword">LIKE</span> <span class="string">&#x27;%dblwr%&#x27;</span>;</span><br><span class="line"><span class="operator">+</span><span class="comment">----------------------------+-------+</span></span><br><span class="line"><span class="operator">|</span> Variable_name              <span class="operator">|</span> <span class="keyword">Value</span> <span class="operator">|</span></span><br><span class="line"><span class="operator">+</span><span class="comment">----------------------------+-------+</span></span><br><span class="line"><span class="operator">|</span> Innodb_dblwr_pages_written <span class="operator">|</span> <span class="number">62</span>    <span class="operator">|</span></span><br><span class="line"><span class="operator">|</span> Innodb_dblwr_writes        <span class="operator">|</span> <span class="number">17</span>    <span class="operator">|</span></span><br><span class="line"><span class="operator">+</span><span class="comment">----------------------------+-------+</span></span><br><span class="line"><span class="number">2</span> <span class="keyword">rows</span> <span class="keyword">in</span> <span class="keyword">set</span> (<span class="number">0.00</span> sec)</span><br></pre></td></tr></table></figure>
-<p>我们要关注 <strong>Innodb_dblwr_pages_writte</strong> / <strong>Innodb_dblwr_writes</strong>。</p>
-<p>开启 doublewrite 之后，每次脏页刷新时都必须要先写 doublewrite，而 doublewrite 存在与磁盘上的两个连续区，每个区有连续的页组成，一般情况下一个区最多 64 个页，所以一次 IO 写入可以最多写 64 个页。</p>
-<p><code>Innodb_dblwr_pages_written</code> 代表已经写入到 doublewrite buffer 的页的数量，<code>Innodb_dblwr_writes</code> 代表 doublewrite 写的次数，两者的比值表示一次写了多少页。两者的比值在 1 ~ 64 之间，越大说明写的压力很大，有大量的脏页要往磁盘上写。</p>
-<p>作为 InnoDB 的一个关键特性，默认开启，如果发现业务属于海量 DML、不惧怕数据损坏与丢失、系统写负载成为主要负载时，可以通过 <code>innodb_doublewrite</code> 参数关闭 doublewrite 功能。</p>
-<h1 id="磁盘文件"><a href="#磁盘文件" class="headerlink" title="磁盘文件"></a>磁盘文件</h1><blockquote>
-<p>InnoDB 磁盘文件主要分为三个部分：系统表空间、用户表空间、Redo 日志文件及归档文件。对于 binlog 二进制文件属于 MySQL 服务层维护的，所以不属于 InnoDB。</p>
-</blockquote>
-<h2 id="Redo-Log-File"><a href="#Redo-Log-File" class="headerlink" title="Redo Log File"></a>Redo Log File</h2><p>我们知道 redo log 记录了事务执行过程中的修改情况，保证了事务的持久性。redo log 由两部分组成，即前文中我们介绍过的 <strong>redo log buffer</strong> 以及我们将要介绍的 <strong>redo log file</strong>。</p>
-<p>redo log buffer 是内存型的数据结构，那么必然容易丢失，所以需要对其进行持久化。而持久化到磁盘的文件就是 redo log file。</p>
-<img src="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/10.jpg" class="" width="400">
-
-<p>为了保证每次日志都能持久化到磁盘上，每次将 log buffer 中的日志写入到日志文件时都会调用一次系统的 <code>fsync()</code> 函数。</p>
-<p>为了得到更高的可靠性，用户可以设置多个镜像日志组，将不同的文件组放到不同的磁盘上，以此来提高重做日志的高可用性。</p>
-<p>每个 InnoDB 存储引擎至少有一个重做日志组，每个文件组下至少有两个重做日志文件，即默认的 <strong>ib_logfile0</strong> 和 <strong>ib_logfile1</strong>。可以通过以下参数设置文件的数量：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql<span class="operator">&gt;</span> <span class="keyword">SHOW</span> VARIABLES <span class="keyword">LIKE</span> <span class="string">&#x27;innodb_log_files_in_group&#x27;</span>;</span><br><span class="line"><span class="operator">+</span><span class="comment">---------------------------+-------+</span></span><br><span class="line"><span class="operator">|</span> Variable_name             <span class="operator">|</span> <span class="keyword">Value</span> <span class="operator">|</span></span><br><span class="line"><span class="operator">+</span><span class="comment">---------------------------+-------+</span></span><br><span class="line"><span class="operator">|</span> innodb_log_files_in_group <span class="operator">|</span> <span class="number">2</span>     <span class="operator">|</span></span><br><span class="line"><span class="operator">+</span><span class="comment">---------------------------+-------+</span></span><br><span class="line"><span class="number">1</span> <span class="type">row</span> <span class="keyword">in</span> <span class="keyword">set</span> (<span class="number">0.00</span> sec)</span><br></pre></td></tr></table></figure>
-
-<p><strong>📚 Tips</strong></p>
-<blockquote>
-<p>在日志组中，每个重做日志文件的大小一致，并以循环的方式进行写入。存储引擎先写入文件 0，当写满之后，会切换到文件 1。当文件 1 写满之后，再切换到文件 0，以此类推。</p>
-</blockquote>
-<p>重做日志文件的大小默认为 50M，可以通过以下参数配置：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql<span class="operator">&gt;</span> <span class="keyword">SHOW</span> VARIABLES <span class="keyword">LIKE</span> <span class="string">&#x27;innodb_log_file_size&#x27;</span>;</span><br><span class="line"><span class="operator">+</span><span class="comment">----------------------+----------+</span></span><br><span class="line"><span class="operator">|</span> Variable_name        <span class="operator">|</span> <span class="keyword">Value</span>    <span class="operator">|</span></span><br><span class="line"><span class="operator">+</span><span class="comment">----------------------+----------+</span></span><br><span class="line"><span class="operator">|</span> innodb_log_file_size <span class="operator">|</span> <span class="number">50331648</span> <span class="operator">|</span></span><br><span class="line"><span class="operator">+</span><span class="comment">----------------------+----------+</span></span><br><span class="line"><span class="number">1</span> <span class="type">row</span> <span class="keyword">in</span> <span class="keyword">set</span> (<span class="number">0.00</span> sec)</span><br></pre></td></tr></table></figure>
-
-<p><strong>💡 Warning</strong></p>
-<blockquote>
-<p>如果重做日志文件设置的过大，数据丢试时，恢复的时间可能会很长；如果设置的过小，就会导致由于 checkpoint 的检查需要频繁刷新脏页到磁盘而产生性能抖动。</p>
-</blockquote>
-<h2 id="系统表空间及用户表空间"><a href="#系统表空间及用户表空间" class="headerlink" title="系统表空间及用户表空间"></a>系统表空间及用户表空间</h2><blockquote>
-<p>在 innoDB 存储引擎中，数据是按照表空间来组织存储的。换句话说，也就是表空间是表空间文件实际存在的物理文件。</p>
-</blockquote>
-<h3 id="系统表空间"><a href="#系统表空间" class="headerlink" title="系统表空间"></a>系统表空间</h3><p>通过以下命令查看系统表空间：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql<span class="operator">&gt;</span> <span class="keyword">SHOW</span> VARIABLES <span class="keyword">LIKE</span> <span class="string">&#x27;%innodb_data_file_path%&#x27;</span>;</span><br><span class="line"><span class="operator">+</span><span class="comment">-----------------------+-----------------------+</span></span><br><span class="line"><span class="operator">|</span> Variable_name         <span class="operator">|</span> <span class="keyword">Value</span>                 <span class="operator">|</span></span><br><span class="line"><span class="operator">+</span><span class="comment">-----------------------+-----------------------+</span></span><br><span class="line"><span class="operator">|</span> innodb_data_file_path <span class="operator">|</span> ibdata1:<span class="number">12</span>M:autoextend<span class="operator">|</span></span><br><span class="line"><span class="operator">+</span><span class="comment">-----------------------+-----------------------+</span></span><br><span class="line"><span class="number">1</span> <span class="type">row</span> <span class="keyword">in</span> <span class="keyword">set</span> (<span class="number">0.00</span> sec)</span><br></pre></td></tr></table></figure>
-<p>值的组成为：<code>name:size:attributes</code>。</p>
-<p>默认情况下下，MySQL会初始化一个大小为 12MB，名为 ibdata1 文件，并且随着数据的增多，它会自动扩容。ibdata1 就是系统表空间的物理文件。</p>
-<p>可以通过以下参数配置系统表空间的数据及大小：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># my.cnf</span><br><span class="line">[mysqld]</span><br><span class="line">innodb_data_file_path=/dir1/ibdata1:2000M;/dir2/ibdata2:2000M:autoextend</span><br></pre></td></tr></table></figure>
-
-<h3 id="undo-表空间"><a href="#undo-表空间" class="headerlink" title="undo 表空间"></a>undo 表空间</h3><p>当事务需要回滚时，实际上是通过 undo log 来实现的。在 MySQL 中，undo 表空间可以用来专门存放 undo log 日志文件。但是实际上，undo log 默认会放置到系统表空间中。</p>
-<p>通过以下命令查看 undo 表空间信息：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql<span class="operator">&gt;</span> <span class="keyword">SHOW</span> VARIABLES <span class="keyword">LIKE</span> <span class="string">&#x27;%innodb_undo_tablespaces%&#x27;</span>;</span><br><span class="line"><span class="operator">+</span><span class="comment">-------------------------+----------+</span></span><br><span class="line"><span class="operator">|</span> Variable_name           <span class="operator">|</span> <span class="keyword">Value</span>    <span class="operator">|</span></span><br><span class="line"><span class="operator">+</span><span class="comment">-------------------------+----------+</span></span><br><span class="line"><span class="operator">|</span> innodb_undo_tablespaces <span class="operator">|</span>   <span class="number">2</span>      <span class="operator">|</span></span><br><span class="line"><span class="operator">+</span><span class="comment">-------------------------+----------+</span></span><br><span class="line"><span class="number">1</span> <span class="type">row</span> <span class="keyword">in</span> <span class="keyword">set</span> (<span class="number">0.00</span> sec)</span><br></pre></td></tr></table></figure>
-<p>如果是新安装的 MySQL，value 为 0。而以上为 2，说明 undo 从默认的系统表空间转移到了 undo log 专属的表空间中了。</p>
-<p>undo log 到底是使用默认的系统表空间还是 undo 表空间主要取决于服务器使用的存储卷类型（如果是 SSD 存储，推荐使用 undo 表空间）。</p>
-<h3 id="File-Per-Table-表空间"><a href="#File-Per-Table-表空间" class="headerlink" title="File-Per-Table 表空间"></a>File-Per-Table 表空间</h3><p>如果让每个数据库表都有一个单独的表空间文件的话，可以通过配置 <code>innodb_file_per_table</code> 参数为 <code>ON</code>（默认为：ON）。</p>
-<p>独立的表空间文件命名规则为：表名.ibd。</p>
-<p><strong>💡 Warning</strong></p>
-<blockquote>
-<p>独立表空间文件中仅存放该表对应数据、索引、insert buffer bitmap。其余的诸如：undo 信息、insert buffer 索引页、doublewrite buffer 等信息依然存放在系统表空间中。</p>
-</blockquote>
-<h4 id="File-Per-Table-优缺点："><a href="#File-Per-Table-优缺点：" class="headerlink" title="File-Per-Table 优缺点："></a>File-Per-Table 优缺点：</h4><ul>
-<li>优点<ul>
-<li>提升容错率，表的损坏不影响其他表。</li>
-<li>使用 MySQL Enterprise Backup 快速备份或还原表空间文件不会中断其他 innoDB 表的使用。</li>
-</ul>
-</li>
-<li>缺点<ul>
-<li>对 fsync() 调用不友好，如果使用一个表空间文件的话，单次系统调用可以完成数据落盘，但是如果表空间文件拆分成多个，原来的一次 fsync() 操作会变成针对涉及到的所有表空间文件分别执行一次，增加了 fsync() 调用次数。</li>
-</ul>
-</li>
-</ul>
-<h3 id="通用表空间"><a href="#通用表空间" class="headerlink" title="通用表空间"></a>通用表空间</h3><p>通用表空间（General tablespaces）为共享表空间的扩展（只针对于业务表）。独立于 MySQL数据目录的目录中，可以在共享表空间、独立表空间、通用表空间间进行数据转移。</p>
-<p>通用表空间的位置不是随意放的，只能在配置的目录下，由 <code>innodb_directories</code>参数指定，注意 read only 属性：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span>SPACE tablespace_name [<span class="keyword">ADD</span> DATAFILE <span class="string">&#x27;file_name&#x27;</span>] [FILE_BLOCK_SIZE <span class="operator">=</span> <span class="keyword">value</span>] [ENGINE [<span class="operator">=</span>] engine_name]</span><br></pre></td></tr></table></figure>
-
-<p><strong>📚 Tips</strong></p>
-<blockquote>
-<ol>
-<li>目前只支持 innodb 引擎。</li>
-<li>file_block_size 基于 innodb_page_size 指定默认，无特殊需求无需指定。</li>
-</ol>
-</blockquote>
-<h3 id="临时表空间"><a href="#临时表空间" class="headerlink" title="临时表空间"></a>临时表空间</h3><p>临时表空间用于存放用户创建的临时表和磁盘内部临时表。通过以下参数差查看配置表信息：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql<span class="operator">&gt;</span> <span class="keyword">SHOW</span> VARIABLES <span class="keyword">LIKE</span> <span class="string">&#x27;%innodb_temp_data_file_path%&#x27;</span>;</span><br><span class="line"><span class="operator">+</span><span class="comment">----------------------------+-----------------------+</span></span><br><span class="line"><span class="operator">|</span> Variable_name              <span class="operator">|</span> <span class="keyword">Value</span>                 <span class="operator">|</span></span><br><span class="line"><span class="operator">+</span><span class="comment">----------------------------+-----------------------+</span></span><br><span class="line"><span class="operator">|</span> innodb_temp_data_file_path <span class="operator">|</span> ibtmp1:<span class="number">12</span>M:autoextend <span class="operator">|</span></span><br><span class="line"><span class="operator">+</span><span class="comment">----------------------------+-----------------------+</span></span><br><span class="line"><span class="number">1</span> <span class="type">row</span> <span class="keyword">in</span> <span class="keyword">set</span> (<span class="number">0.00</span> sec)</span><br></pre></td></tr></table></figure>
-<p>当 innoDB 被配置为磁盘内部临时表的存储引擎时，会话临时表空间存储了用户创建的临时表和优化器创建的内部临时表（从 MySQL 8.0.16 开始，临时表的存储引擎是 innoDB，并且由 <code>internal_tmp_disk_storage_engine</code> 指定）。</p>
-<p><strong>注意：</strong></p>
-<ul>
-<li>每个会话临时表空间最多 2 个表空间：一个用于用户创建的临时表，另一个用于优化器创建的内部临时表。</li>
-<li>当会话断开连接时，它的临时表空间将被截断并释放回池中。</li>
-<li>当服务器启动时，将创建一个包含 10 个临时表空间的池。池的大小永远不会缩小，并且表空间会根据需要自动添加到池中。临时表空间池在正常关闭或终止初始化时被删除。其大小为 5 个页大小，扩展名为 .ibt。</li>
-<li>会话临时表空间保留了 40 万个空间 id。由于每次服务器启动时都会重新创建会话临时表空间，因此在服务器关闭时，会话临时表空间的空间 id 不会持久存在，可能会被重用。可以通过 <code>innodb_temp_tablespaces_dir</code> 指定临时表空间的位置。</li>
-</ul>
+<p>由此说明 <code>all_parent_info()</code> 方法并不具备访问私有属性的权限。</p>
 
     
 
@@ -619,7 +276,11 @@
 		<ul class="article-tag-list">
 			 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">MySQL</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color5">Mini</a>
+        		</li>
+      		 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">C++</a>
         		</li>
       		
 		</ul>
@@ -629,7 +290,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2023/02/11/cpp_mini/c++%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%8F%8B%E5%85%83%E5%87%BD%E6%95%B0%E4%B8%8E%E5%8F%8B%E5%85%83%E7%B1%BB/">展开全文 >></a>
     </p>
     
 
@@ -663,7 +324,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/9/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/8/">8</a><a class="page-number" href="/articles/page/9/">9</a><span class="page-number current">10</span><a class="page-number" href="/articles/page/11/">11</a><a class="page-number" href="/articles/page/12/">12</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/65/">65</a><a class="extend next" rel="next" href="/articles/page/11/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/9/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/8/">8</a><a class="page-number" href="/articles/page/9/">9</a><span class="page-number current">10</span><a class="page-number" href="/articles/page/11/">11</a><a class="page-number" href="/articles/page/12/">12</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/66/">66</a><a class="extend next" rel="next" href="/articles/page/11/">下一页</a>
     </nav>
   
 
@@ -676,7 +337,7 @@
   <div class="outer">
     <div id="footer-info">
     	<div class="footer-left">
-    		&copy; 2018-2023 <a target="_blank">Tubetrue01</a>
+    		&copy; 2018-2024 <a target="_blank">Tubetrue01</a>
     	</div>
     </div>
   </div>
@@ -787,6 +448,14 @@
           <ul class="article-tag-list" q-show="showTags">
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">CMake</a>
               </li>
              
@@ -803,7 +472,35 @@
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color5">Unix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">TCP</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">K8s</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">C++</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">网络</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -812,14 +509,6 @@
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">git</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color5">Unix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">TCP</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -835,31 +524,7 @@
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">redis</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">jvm</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">C++</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -867,19 +532,15 @@
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">Redis</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">网络</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
+                <a href="javascript:void(0)" class="js-tag color1">redis</a>
               </li>
             
             <div class="clearfix"></div>

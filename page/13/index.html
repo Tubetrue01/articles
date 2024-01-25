@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-mysql/MySQLEXPLAIN系列(一)usingindex,usingwhere区别" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-mysql/MySQL页与行" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/" target="_blank">MySQL EXPLAIN 系列（一）using index、using where 区别</a>
+	  <a class="article-title" href="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/" target="_blank">MySQL 页与行</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/" class="archive-article-date">
-        <time datetime="2023-01-06T12:12:05.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2023-01-06</time>
+<a href="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/" class="archive-article-date">
+        <time datetime="2023-01-09T06:37:05.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2023-01-09</time>
 </a>
 
   
@@ -216,147 +216,150 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>开发中，为了查看 SQL 的执行计划，通常都会 Explain 一下，对 SQL 进行分析，以查看索引的使用情况。Extra 内容比较多，本文着重介绍一下 Using index、Using where Using index、Using index condition、Using where 的几种情况。</p>
+<p>【页】是 InnoDB 引擎管理内存的基本单元，也是内存与磁盘交互的基本单元。当 MySQL 检索或修改一条记录的时候，InnoDB 会将包含该记录的整页数据加载到内存中（缓存局部性原理）。如果是修改操作，则直接在内存中修改，然后标记当前页为<code>脏页</code>，由其他线程刷盘。</p>
 </blockquote>
-<h1 id="准备工作"><a href="#准备工作" class="headerlink" title="准备工作"></a>准备工作</h1><p>我们以一个简单的学生表为例进行说明（MySQL 的版本为 <strong>8.0.31</strong>）。先看一下表结构：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> `student_info` (</span><br><span class="line">  `id` <span class="type">int</span> unsigned <span class="keyword">NOT</span> <span class="keyword">NULL</span> AUTO_INCREMENT COMMENT <span class="string">&#x27;自增主键&#x27;</span>,</span><br><span class="line">  `user_id` <span class="type">int</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;学生编号&#x27;</span>,</span><br><span class="line">  `username` <span class="type">varchar</span>(<span class="number">8</span>) <span class="keyword">COLLATE</span> utf8mb4_0900_as_ci <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;姓名&#x27;</span>,</span><br><span class="line">  `class_id` <span class="type">int</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;班级编号&#x27;</span>,</span><br><span class="line">  `age` <span class="type">int</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;年龄&#x27;</span>,</span><br><span class="line">  `create_date` datetime <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="built_in">CURRENT_TIMESTAMP</span> COMMENT <span class="string">&#x27;创建时间&#x27;</span>,</span><br><span class="line">  <span class="keyword">PRIMARY</span> KEY (`id`)</span><br><span class="line">) ENGINE<span class="operator">=</span>InnoDB <span class="keyword">DEFAULT</span> CHARSET<span class="operator">=</span>utf8mb4 <span class="keyword">COLLATE</span><span class="operator">=</span>utf8mb4_0900_as_ci</span><br></pre></td></tr></table></figure>
-<p>为了进行演示，我们创建一个辅助索引：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> index union_idx <span class="keyword">on</span> student_info(user_id,username,class_id)</span><br></pre></td></tr></table></figure>
+<h1 id="存储结构"><a href="#存储结构" class="headerlink" title="存储结构"></a>存储结构</h1><p>从 InnoDB 存储引擎的逻辑来看，所有的数据都存放在一个空间内，称为<code>表空间（tablespace）</code>，而表空间由<code>段（segment）</code>、<code>区（extent）</code>、<code>页（page）</code>组成。如下图所示：</p>
 
-<p>批量生成测试数据：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 开启允许创建函数</span></span><br><span class="line"><span class="keyword">SET</span> <span class="keyword">GLOBAL</span> log_bin_trust_function_creators <span class="operator">=</span> <span class="number">1</span>;</span><br><span class="line"><span class="keyword">DROP</span> <span class="keyword">FUNCTION</span> IF <span class="keyword">EXISTS</span> rand_name;    </span><br><span class="line"><span class="comment">-- 创建随机生成姓名函数 rand_name</span></span><br><span class="line">delimiter $$</span><br><span class="line"></span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">FUNCTION</span> rand_name(n <span class="type">int</span>) <span class="keyword">RETURNS</span> <span class="type">varchar</span>(<span class="number">16</span>)</span><br><span class="line"><span class="keyword">BEGIN</span></span><br><span class="line">    <span class="keyword">DECLARE</span> family_str <span class="type">varchar</span> (<span class="number">128</span>) <span class="keyword">default</span> <span class="string">&#x27;张王孙李周吴赵董郑尹刘孟&#x27;</span>;</span><br><span class="line">    <span class="keyword">DECLARE</span> name_str <span class="type">varchar</span> (<span class="number">128</span>) <span class="keyword">default</span> <span class="string">&#x27;平书丽颜莹佳若山向秋凡白斌绮源鹏雯奇润语芯烟蕾天曼绮彤文宇紫星飞玉凡梅敏&#x27;</span>;</span><br><span class="line">    <span class="keyword">DECLARE</span> i <span class="type">int</span> <span class="keyword">default</span> <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">DECLARE</span> full_name <span class="type">varchar</span>(<span class="number">16</span>) <span class="keyword">default</span> <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">    <span class="keyword">DECLARE</span> rand_num <span class="type">int</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    WHILE i <span class="operator">&lt;</span> n DO</span><br><span class="line">        <span class="keyword">SET</span> full_name <span class="operator">=</span> IF(i <span class="operator">&gt;</span> <span class="number">0</span>, concat(full_name, <span class="string">&#x27;,&#x27;</span>), full_name);</span><br><span class="line">        <span class="keyword">SET</span> full_name <span class="operator">=</span> concat(full_name, SUBSTR(family_str, <span class="built_in">floor</span>(<span class="number">1</span><span class="operator">+</span>rand()<span class="operator">*</span><span class="number">16</span>), <span class="number">1</span>));</span><br><span class="line">        <span class="keyword">SET</span> full_name <span class="operator">=</span> concat(full_name, SUBSTR(name_str, <span class="built_in">floor</span>(<span class="number">1</span><span class="operator">+</span>rand()<span class="operator">*</span><span class="number">16</span>), <span class="number">1</span>));</span><br><span class="line">        <span class="keyword">SET</span> rand_num <span class="operator">=</span> rand()<span class="operator">*</span><span class="number">10</span>;</span><br><span class="line">        <span class="keyword">SET</span> full_name <span class="operator">=</span> IF(rand_num <span class="operator">&gt;</span> <span class="number">5</span>, concat(full_name, SUBSTR(name_str, <span class="built_in">floor</span>(<span class="number">1</span><span class="operator">+</span>rand()<span class="operator">*</span><span class="number">16</span>), <span class="number">1</span>)), full_name);</span><br><span class="line">        <span class="keyword">SET</span> i <span class="operator">=</span> i <span class="operator">+</span> <span class="number">1</span>;</span><br><span class="line">    <span class="keyword">END</span> WHILE;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">RETURN</span> full_name;</span><br><span class="line"></span><br><span class="line"><span class="keyword">END</span>$$ </span><br><span class="line">delimiter ; </span><br><span class="line"></span><br><span class="line"><span class="comment">-- 创建存储过程</span></span><br><span class="line"><span class="keyword">DROP</span> <span class="keyword">PROCEDURE</span> IF <span class="keyword">EXISTS</span> insert_student;</span><br><span class="line">delimiter $$</span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">PROCEDURE</span> insert_student(<span class="keyword">in</span> num <span class="type">int</span>)</span><br><span class="line"><span class="keyword">BEGIN</span></span><br><span class="line">    <span class="comment">-- 记录循环次数</span></span><br><span class="line">    <span class="keyword">DECLARE</span> i <span class="type">int</span> <span class="keyword">default</span> <span class="number">0</span>;</span><br><span class="line">    <span class="comment">-- 关闭自动提交</span></span><br><span class="line">    <span class="keyword">SET</span> autocommit <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line">    <span class="comment">-- 循环 insert</span></span><br><span class="line">    WHILE i <span class="operator">&lt;</span> num do</span><br><span class="line">        <span class="keyword">INSERT</span> <span class="keyword">INTO</span> student_info(username, class_id, user_id, age) <span class="keyword">VALUES</span> </span><br><span class="line">        (rand_name(<span class="number">1</span>), <span class="built_in">floor</span>(<span class="number">15</span> <span class="operator">+</span> rand()<span class="operator">*</span><span class="number">10</span>), <span class="built_in">floor</span>(rand()<span class="operator">*</span><span class="number">10000</span> <span class="operator">+</span> rand()<span class="operator">*</span><span class="number">1000</span>), <span class="built_in">floor</span>(<span class="number">10</span> <span class="operator">+</span> rand()<span class="operator">*</span><span class="number">10</span>));</span><br><span class="line">        <span class="keyword">SET</span> i <span class="operator">=</span> i <span class="operator">+</span> <span class="number">1</span>;</span><br><span class="line">    <span class="keyword">END</span> WHILE;</span><br><span class="line">    <span class="keyword">COMMIT</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">END</span>$$</span><br><span class="line">delimiter ;</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 生成测试数据</span></span><br><span class="line"><span class="keyword">CALL</span> insert_student(<span class="number">1000000</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 对 user_id 去重</span></span><br><span class="line"><span class="keyword">DELETE</span> </span><br><span class="line"><span class="keyword">FROM</span></span><br><span class="line">    student_info</span><br><span class="line"><span class="keyword">WHERE</span></span><br><span class="line">    id <span class="keyword">NOT</span> <span class="keyword">IN</span> ( <span class="keyword">SELECT</span> tmp.minid <span class="keyword">FROM</span> ( <span class="keyword">SELECT</span> <span class="built_in">MIN</span>( id ) <span class="keyword">AS</span> minid <span class="keyword">FROM</span> student_info <span class="keyword">GROUP</span> <span class="keyword">BY</span> user_id ) tmp )</span><br></pre></td></tr></table></figure>
-<h1 id="Extra"><a href="#Extra" class="headerlink" title="Extra"></a>Extra</h1><p>我们以一个简单的 SQL 开始：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> id <span class="operator">=</span> <span class="number">1</span>;</span><br></pre></td></tr></table></figure>
-<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/01.jpg" class="" width="800">
 
-<p><code>id</code> 为表的自增主键，也是 <code>Innodb</code> 的聚簇索引，所以通过 <code>id</code> 进行查询，它的 <code>Explain</code> 如上图所示，其中我们需要关注以下几个字段：</p>
+<h2 id="表空间"><a href="#表空间" class="headerlink" title="表空间"></a>表空间</h2><p>表空间是一个逻辑容器，它存储的对象是段，一个表空间可以存在一个或多个段，但是一个段只能属于一个表空间。数据库由一个或多个表空间组成，表空间从管理上可划分为系统表空间、用户表空间、撤销表空间、临时表空间等。</p>
+<p>表空间被分为共享表空间、独立表空间两种类型。共享表空间意味着多张表共用一个表空间，而独立表空间则意味着每张表有一个独立的表空间，换句话说就是数据和索引信息都会保存在自己的表空间中。独立的表空间可以在不同的数据库之间进行迁移。以下命令可以查看当前系统启用的表空间类型：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql <span class="operator">&gt;</span> <span class="keyword">SHOW</span> VARIABLES <span class="keyword">LIKE</span> <span class="string">&#x27;innodb_file_per_table&#x27;</span>;</span><br></pre></td></tr></table></figure>
+<p>可以把表空间看作是 InnoDB 存储引擎逻辑结构的最高层，它是由一个或多个磁盘文件组成的虚拟文件系统，它不仅存储表跟索引，还保留了回滚段、双写缓冲区等。</p>
+<h2 id="段"><a href="#段" class="headerlink" title="段"></a>段</h2><p>段是由一个或多个区组成，区在文件系统上是一个连续的空间，而在段中并不要求区与区之间是相邻的。</p>
+<p>段是数据库中的分配单位，不同类型的数据库对象以不同的段形式存在。当数据库表、索引被创建时，相应的段也会创建出来。</p>
+<h2 id="区"><a href="#区" class="headerlink" title="区"></a>区</h2><p>InnoDB 中，一个区会分配 64 个连续的页。由于 InnoDB 中页的大小默认为 16KB，所以一个区的大小为 64*16KB = 1M。</p>
+<h2 id="页"><a href="#页" class="headerlink" title="页"></a>页</h2><p>页是 InnoDB 管理的最小单位，默认大小为 16KB，可以通过 <code>innodb_page_size</code> 设置页的大小（数据库实例初始化之前），一旦设置完成之后，不能再次修改，除非通过 <code>mysqldump</code> 导入和导出来产生新的库。</p>
+<p>InnoDB 中常见的页类型为：</p>
 <ul>
-<li><strong>type</strong><br>type 表示了当前的扫描类型，按照执行效率从低到高按照如下顺序排列：<ul>
-<li>ALL（全表扫描）</li>
-<li>index（全索引扫描）</li>
-<li>range（索引范围扫描）</li>
-<li>ref（非唯一索引扫描）</li>
-<li>eq_ref（唯一索引扫描）</li>
-<li>const（结果只有一条的主键或唯一索引扫描）</li>
+<li>数据页（B-tree Node）</li>
+<li>undo 页（undo Log Page）</li>
+<li>系统页（System Page）</li>
+<li>事务数据页（Transaction System Page）</li>
+<li>插入缓冲位图页（Insert Buffer Bitamp）</li>
+<li>插入缓冲空闲列表页（Insert Buffer Free List）</li>
+<li>未压缩的二进制大对象页（Uncompressed BLOB Page）</li>
+<li>压缩的二进制大对象页（Commpressed BLOB Page）</li>
 </ul>
+<h2 id="行"><a href="#行" class="headerlink" title="行"></a>行</h2><p>InnoDB 将数据按行存放，每个页存放的行记录最多为 16KB/2-200 = 7992 行。</p>
+<h1 id="页-1"><a href="#页-1" class="headerlink" title="页"></a>页</h1><p>页的数据结构：</p>
+
+
+<p>每部分的含义为：</p>
+<table>
+<thead>
+<tr>
+<th align="left">名称</th>
+<th align="left">大小</th>
+<th align="left">说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">File Header</td>
+<td align="left">38B</td>
+<td align="left">文件头，描述页的信息</td>
+</tr>
+<tr>
+<td align="left">Page Header</td>
+<td align="left">56B</td>
+<td align="left">页头，页的状态信息</td>
+</tr>
+<tr>
+<td align="left">Infimum + Supremum</td>
+<td align="left">26B</td>
+<td align="left">最小和最大记录，这是两个虚拟的行记录</td>
+</tr>
+<tr>
+<td align="left">User Records</td>
+<td align="left"></td>
+<td align="left">用户记录，存储行记录内容</td>
+</tr>
+<tr>
+<td align="left">Free Space</td>
+<td align="left"></td>
+<td align="left">空闲空间，页中还未被使用的空间</td>
+</tr>
+<tr>
+<td align="left">Page Directory</td>
+<td align="left"></td>
+<td align="left">页目录，存储用户记录的相对位置</td>
+</tr>
+<tr>
+<td align="left">File Trailer</td>
+<td align="left">8B</td>
+<td align="left">文件尾，校验页是否完整</td>
+</tr>
+</tbody></table>
+<h2 id="File-Header"><a href="#File-Header" class="headerlink" title="File Header"></a>File Header</h2><p>File Header 是所有页都有的一个通用结构，占用固定的 <code>38B</code>，它记录页的一些通用状态，如：页号、Checksum、把页串联成双向链表的指针、页的类型等等。</p>
+<ul>
+<li><h3 id="FIL-PAGE-SPACE-OR-CHECKSUM"><a href="#FIL-PAGE-SPACE-OR-CHECKSUM" class="headerlink" title="FIL_PAGE_SPACE_OR_CHECKSUM"></a>FIL_PAGE_SPACE_OR_CHECKSUM</h3>4B 大小，基于当前页计算出的校验和，校验和不同，两个页数据肯定不同。它的作用是 InnoDB 在脏页刷盘时，有可能会遇到页刷到一半断电的情况，页的头和尾部部分分别记录校验和，只有当两者的校验和一致时，才代表磁盘上的页是完整的，否则就是一个损坏的页。</li>
+<li><h3 id="FIL-PAGE-OFFSET"><a href="#FIL-PAGE-OFFSET" class="headerlink" title="FIL_PAGE_OFFSET"></a>FIL_PAGE_OFFSET</h3>4B 大小，页号，页的唯一标识，全局递增的数字，InnoDB 通过页号来定位唯一的一个页。由于 4B 大小，所以一个表空间可以有 2^32 个页，如果一个页 16KB，那么一个表空间最多支持 64TB 的数据。</li>
+<li><h3 id="FIL-PAGE-PREV-amp-FIL-PAGE-NEXT"><a href="#FIL-PAGE-PREV-amp-FIL-PAGE-NEXT" class="headerlink" title="FIL_PAGE_PREV &amp; FIL_PAGE_NEXT"></a>FIL_PAGE_PREV &amp; FIL_PAGE_NEXT</h3>各占 4B，一张表由多个页构成，页与页之间在物理上可以是不连续的，但是逻辑上要连续，而 FIL_PAGE_PREV 跟 FIL_PAGE_NEXT 则分别指向当前页的上一页和下一页的页号，通过这两个指针，将索引页串联成一个双向链表。记录之间虽然是单向的，但是页之间是双向的。</li>
+<li><h3 id="FIL-PAGE-LSN"><a href="#FIL-PAGE-LSN" class="headerlink" title="FIL_PAGE_LSN"></a>FIL_PAGE_LSN</h3>8B 大小，页最后被修改时所对应的 LSN值，全程为 Log Sequence Number，日志序列号。一个递增的数字，与事务相关。</li>
+<li><h3 id="FIL-PAGE-TYPE"><a href="#FIL-PAGE-TYPE" class="headerlink" title="FIL_PAGE_TYPE"></a>FIL_PAGE_TYPE</h3>2B 大小，代表当前页类型，其中索引页固定为：<code>0x45BF</code>。</li>
+<li><h3 id="FIL-PAGE-FILE-FLUSH-LSN"><a href="#FIL-PAGE-FILE-FLUSH-LSN" class="headerlink" title="FIL_PAGE_FILE_FLUSH_LSN"></a>FIL_PAGE_FILE_FLUSH_LSN</h3>8B 大小，仅在第 1 页中使用，用来判断数据库是正常关闭还是异常宕机。</li>
+<li><h3 id="FIL-PAGE-ARCH-LOG-NO-OR-SPACE-ID"><a href="#FIL-PAGE-ARCH-LOG-NO-OR-SPACE-ID" class="headerlink" title="FIL_PAGE_ARCH_LOG_NO_OR_SPACE_ID"></a>FIL_PAGE_ARCH_LOG_NO_OR_SPACE_ID</h3>4B 大小，表示当前页属于哪个表空间。</li>
+</ul>
+<h2 id="Page-Header"><a href="#Page-Header" class="headerlink" title="Page Header"></a>Page Header</h2><p>Page Header 是索引页特有的结构，占用固定的 56B 大小，记录索引页中记录相关的状态信息。字段比较多，我们关注一些比较重要的字段即可：</p>
+<ul>
+<li><h3 id="PAGE-N-DlR-SLOTS"><a href="#PAGE-N-DlR-SLOTS" class="headerlink" title="PAGE_N_DlR_SLOTS"></a>PAGE_N_DlR_SLOTS</h3>一个页可能含有上千条记录，如果挨个遍历，效率太低。为了提高页中记录的检索效率，InnoDB 将页内的记录划分为多个组，组里最大的那条记录相对于页的地址偏移量记录到 <code>Page Directory</code> 中，每个组都对应一个槽，槽的大小固定为 2B。该属性记录的就是页内槽的数量。</li>
+<li><h3 id="PAGE-HEAP-TOP"><a href="#PAGE-HEAP-TOP" class="headerlink" title="PAGE_HEAP_TOP"></a>PAGE_HEAP_TOP</h3>Free Space 的起始位置，它是 User Records 和 Free Space 的分界点。一个全新页一开始是没有 User Records 部分的，没插入一条记录，都要向 Free Space 申请空间，Free Space 耗尽则代表页满了。</li>
+<li><h3 id="PAGE-FREE"><a href="#PAGE-FREE" class="headerlink" title="PAGE_FREE"></a>PAGE_FREE</h3>DELETE 命令删除记录时，InnoDB 并不会真的将记录从磁盘中删除，而是在记录的头信息中打个标记，然后将其加入到删除链表中。PAGE_FREE 指向的就是删除链表的头节点。</li>
+<li><h3 id="PAGE-DIRECTION-amp-PAGE-N-DIRECTION"><a href="#PAGE-DIRECTION-amp-PAGE-N-DIRECTION" class="headerlink" title="PAGE_DIRECTION &amp; PAGE_N_DIRECTION"></a>PAGE_DIRECTION &amp; PAGE_N_DIRECTION</h3>PAGE_DIRECTION 表示最后一条数据插入的方向，比上一条记录值大则记为右边，反之则是左边。PAGE_N_DIRECTION 表示同一方向连续插入的记录数，方向变了该值就会重置。</li>
+<li><h3 id="PAGE-LEVEL"><a href="#PAGE-LEVEL" class="headerlink" title="PAGE_LEVEL"></a>PAGE_LEVEL</h3>InnoDB 组织数据的形式是 B+ 树，树中的节点就是索引页，PAGE_LEVEL 代表当前页在 B+ 树中所处的层级。InnoDB 规定，叶子节点层级为 0，然后向上递增。</li>
+</ul>
+<h2 id="User-Records"><a href="#User-Records" class="headerlink" title="User Records"></a>User Records</h2><p>用户的数据记录存放在 User Records 部分，一个全新的页一开始全是 Free Space。当有数据插入进来的时候需要向 Free Space 申请空间，当 Free Space 耗尽时，则代表当前页已经用完了。如果再有记录需要插入，则需要申请一个新的页了。</p>
+<h3 id="记录的格式"><a href="#记录的格式" class="headerlink" title="记录的格式"></a>记录的格式</h3><p>MySQL 目前有四种行记录格式：Redundant、Compact、Dynamic 和 Compressed。其中 Redundant 是以前使用的旧格式，为了兼容性还一直保留。自 MySQL 5.1 开始，默认的行记录格式为 Compact，而从 MySQL 5.7 开始，默认的行记录格式为 Dynamic。通过以下命令查看当前表的行格式：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql<span class="operator">&gt;</span> <span class="keyword">SHOW</span> <span class="keyword">TABLE</span> STATUS <span class="keyword">LIKE</span> <span class="string">&#x27;&lt;table name&gt;&#x27;</span>;</span><br></pre></td></tr></table></figure>
+
+<p>Compact 行格式在 MySQL 5.0 引入，设计的目标是高效的存储数据。简单来说就是：一个页中存放的行数据越多，其性能就越高。其结构如图所示：</p>
+
+
+<p>记录跟记录之间是怎么连接的呢？其答案就在记录头里，我们把记录头信息拿出来看看它的结构：</p>
+
+
+<p>记录头信息的最后 2B 用来连接下一条记录，将页内所有记录串联成一个单向链表。如下图：</p>
+
+
+<p>大家不妨想一想，数据是按照什么顺序排序的？</p>
+<h2 id="Infimum-amp-Supremum"><a href="#Infimum-amp-Supremum" class="headerlink" title="Infimum &amp; Supremum"></a>Infimum &amp; Supremum</h2><p>试想一下，InnoDB 如何知道当前页中是否含有目标数据？需要把整页的数据都遍历一遍吗？那效率太低了。为了解决这个问题，在页中划分出了一块区域 <code>The Infimum and Supremum Records</code>，代表了当前页中的最大和最小记录。</p>
+
+
+<p>有了 Infimum Record 和 Supremum Record，现在查询不需要将某一页的 User Records 全部遍历完，只需要将这两个记录和待查询的目标记录进行比较即可。比如我们要查询的数 id = 200，那么很明显不在当前页。接下来就可以通过下一页指针跳到下一页进行检索。</p>
+<h2 id="Page-Directory"><a href="#Page-Directory" class="headerlink" title="Page Directory"></a>Page Directory</h2><p>通过 Infimum Record 和 Supremum Record 可以判断出目标数据是否在当前页中，避免了页遍历。但是如果目标数据在当前页中，也不可避免需要遍历 User Records，由于 User Records 是单链表，效率并不是很高。那么如何提高这部分效率呢？此时就需要 <code>Page Directory</code>。</p>
+<p>介绍 PAGE_N_DlR_SLOTS 时提到过，为了提高遍历效率，InnoDB 将记录划分到多个组中，每个组对应一个槽。而 Page Directory 是一个目录，里边有很懂槽位，每个槽位都指向了一条 User Records 中的记录。按照官方设定，在一个完整的页中，每个 6 条数据就会有一个槽。</p>
+<p>MySQL 在新增数据的时候就会将对应的槽创建好，有了 Page Directory，就可以对一张页的数据进行粗略的二分查找，确定出大概的位置，找到大概的位置之后，需要回到 User Record 中继续挨个遍历匹配。</p>
+
+
+<h2 id="File-Trailer"><a href="#File-Trailer" class="headerlink" title="File Trailer"></a>File Trailer</h2><p>File Trailer 是所有页都有的通用结构，占用固定的 8B，它主要作用就是为了校验页的完整性。由于磁盘的速度较慢，InnoDB 不会每次更新数据就直接刷盘。而是将页作为刷盘的基本单位，数据更新时，先对内存中的页进行修改，稍后再将整个页的数据一次性刷到磁盘里。但是刷盘的途中难免会遇到断电等一系列的故障，造成页的数据不完整。InnoDB 再刷盘前根据页数据计算出一个 Checksum，在页头跟页尾都写一份。刷盘的时候，先刷页头再刷页尾，当头尾两个 Checksum 一致时，说明磁盘是完整的，否则，说明出错了。</p>
+<h1 id="行-1"><a href="#行-1" class="headerlink" title="行"></a>行</h1><p>InnoDB 中最小的存储单元是页，默认每页的大小为 16KB。页中的数据是按行进行存放的，每页中存放的行记录最少为 2 行，最多为 16KB /2 - 200 行，也就是 7992 行。</p>
+<p>以 Compact 格式为例，介绍一下行的存储结构：</p>
+
+
+<ul>
+<li><p><strong>变长字段长度列表</strong><br>MySQL 支持一些变长的数据类型，如: VARCHAR(n)、TEXT、BLOB 等，使用这些数类型的列称为变长字段。由于变长字段存储多少字节的数据是不固定的，因此我们需要在存储真实数据的时候顺便将这些数据占用的字节数页存储起来。在 Compact 行格式中，会把所有的边长字段的真实数据（非 NULL）占用的字节长度都存放在记录开头，从而形成一个长度列表，各个变长字段的长度按照列的顺序逆序存放。至于变长字段长度列表中每个列长度使用多少字节来表示是有一套规则的。</p>
+<p>首先需要说明 W、M、L 的含义：W 为某个字符集中表示一个字符最多需要使用的字节数，这个值可以通过 <code>SHOW charset</code> 命令查看，对应 <code>Maxlen</code> 列的值。比如 <code>UTF8</code> 字符集中 W 就是 3，<code>ASCII</code> 字符集中的 W 就是 1。对于变长类型 <code>VARCHAR(n)</code> 来说，M 代表该类型能够最多存储的字符个数，再结合使用的字符集，可以得出该类型最多占用的字节数为 <code>W * M</code>。而 L 代表的是该类型实际存储的字符串占用的字节数。因此有以下规则：</p>
+<ol>
+<li>如果 W * M &lt;= 255，则使用 1 个字节来表示长度。</li>
+<li>如果 W * M &gt; 255，并且 L &lt;= 127，那么使用 1 个字节来表示长度。</li>
+<li>如果 W * M &gt; 255，并且 L &gt; 127，那么使用 2 个字节来表示长度。</li>
+</ol>
 </li>
-<li><strong>possible_keys</strong><br>可能用到的索引 Key</li>
-<li><strong>Key</strong><br>实际用到的索引 Key</li>
-<li><strong>key_len</strong><br>实际用到的索引 Key 长度</li>
-<li><strong>ref</strong><br>表示索引的哪一列被使用了，如果可能的话是一个常数</li>
-<li><strong>rows</strong><br>表示要获取所需记录大概要读取的行数</li>
-<li><strong>filtered</strong><br>表示返回结果的行占需要读到的行(rows 列的值)的百分比</li>
-<li><strong>extra</strong><br>此时为 Null，虽然用到了索引（主键索引），但是要查询数据需要回表。此外，它还有以下几种状态：<ul>
-<li>using index：表示目前使用了覆盖索引查询</li>
-<li>using where：表示使用了where子句查询，通常表示没使用索引</li>
-<li>using index condition：表示查询条件使用到了联合索引的前面几个字段</li>
-<li>using temporary：表示使用了临时表处理查询结果</li>
-<li>using filesort：表示以索引字段之外的方式进行排序，效率较低</li>
-<li>select tables optimized away：表示在索引字段上使用了聚合函数</li>
 </ul>
-</li>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>变长字段的长度最大不会使用超过 2 个字节来表示是因为在 MySQL 中，对于一条记录占用的最大存储空间是有限制的，除了 BLOB、TEXT 类型之外，其他所有的列（不包括隐藏列和记录头信息）占用的字节长度加起来不能超过65535 个字节。如果表只有一列，那么这也就意味着该列最多占用 65535 个字节，那么此长度使用 2 个字节表示即可。</p>
+</blockquote>
+<p>另外，如果使用定长字符集，如：<code>ASCII</code> 字符集，那么 <code>CHAR(N)</code> 这中类型占用的字节数就是固定的；如果是变长字符集，如：<code>UTF8</code>，那么 <code>CHAR(n)</code> 这种类型所占用的字节数也是不确定的，只不过该列的长度也会被存储到变长字段长度列表中。</p>
+<ul>
+<li>NULL 标记<br>NULL 标志位将每个允许为 NULL 的列都对应一个二进制位，二进制位同样按照列的顺序逆序存放，二进制位为 1 表示该列的值为 NULL；为 0 表示该列的值不为 NULL。该部分一般占用 1 个字节，如果允许为 NULL 的字段超过 8 个，那么需要 2 个字节表示。</li>
 </ul>
-<h2 id="查询列未被索引覆盖"><a href="#查询列未被索引覆盖" class="headerlink" title="查询列未被索引覆盖"></a>查询列未被索引覆盖</h2><blockquote>
-<p>为了便于分析，我们把查询的列根据是否被索引覆盖分开。首先分析查询得列未被覆盖的场景。</p>
-</blockquote>
-<p>文章开始时，我们为表 <code>studen_info</code> 中的字段 <code>user_id</code>、<code>username</code>、<code>class_id</code> 创建了一个联合索引，那么对应的相当于产生了以下三个索引：（<code>user_id</code>）、（<code>user_id，username</code>）、（<code>user_id，username，class_id</code>），也就是前导列。</p>
-<h3 id="匹配前导列（精确查询）"><a href="#匹配前导列（精确查询）" class="headerlink" title="匹配前导列（精确查询）"></a>匹配前导列（精确查询）</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> user_id <span class="operator">=</span> <span class="string">&#x27;5630&#x27;</span>;</span><br></pre></td></tr></table></figure>
-<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/02.jpg" class="" width="800">
-
-<p>由于使用 <code>user_id</code> 前导列进行查询，得到的 <code>type</code> 为 <code>ref</code>，也就是采用了非唯一索引扫描，<code>key_len</code> 为 <code>4</code> 字节（因为 <code>user_id</code> 采用 int 类型），<code>Extra</code> 为 NULL。此时 MySQL 会回表查询额外的字段。</p>
-<hr>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> user_id <span class="operator">=</span> <span class="number">1277</span> <span class="keyword">AND</span> username <span class="operator">=</span> <span class="string">&#x27;山&#x27;</span> </span><br></pre></td></tr></table></figure>
-<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/03.jpg" class="" width="800">
-
-<hr>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> user_id <span class="operator">=</span> <span class="number">1277</span> <span class="keyword">AND</span> username <span class="operator">=</span> <span class="string">&#x27;山&#x27;</span> <span class="keyword">AND</span> class_id <span class="operator">=</span> <span class="number">121</span></span><br></pre></td></tr></table></figure>
-
-<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/04.jpg" class="" width="800">
+<h2 id="行溢出"><a href="#行溢出" class="headerlink" title="行溢出"></a>行溢出</h2><p>我们知道行记录占用的空间最多为 65535B（包括隐藏列）。但是一个数据页的大小默认为 16KB，也就是 16384B，并且还有一个限制就是每页最少存储 2 行记录（否则就变成链表了，也就失去了 B+Tree 的意义），因此很有可能出现一页中连一条记录都存不下的情况。</p>
+<p>对于这种情况，InnoDB 会将占用的存储空间非常大的列拆开，在当前列中只存储该列的前 768 个字节的数据和一个指向溢出页（Uncompressed BLOB Page 类型）的地址。</p>
 
 
-<p><strong>💡 总结</strong></p>
-<blockquote>
-<p>通过以上看出，当索引是前导列时，它们的检索 type 是 ref，filtered 为 100 说明能根据索引命中数据。唯一有变化的就是 key_len，当前导列为三个索引时，ken_len 为 42。int 类型的 user_id、class_id 各占 4B，username 类型为 varchar(8) ，而字符集是 utf8mb4，所以它占用 8 * 4 + 2（变长类型需要额外的 2B 表示长度）。</p>
-</blockquote>
-<h3 id="匹配前导列（范围-模糊）"><a href="#匹配前导列（范围-模糊）" class="headerlink" title="匹配前导列（范围/模糊）"></a>匹配前导列（范围/模糊）</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> user_id <span class="operator">&gt;</span> <span class="number">1277</span></span><br></pre></td></tr></table></figure>
-<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/05.jpg" class="" width="800">
-
-<p>如果我们对 <code>user_id</code> 采用范围查询，发现 MySQL 进行全表扫描，即 <code>type</code> 为 <code>ALL</code>，而 <code>Extra</code> 为 <code>Using where</code> 说明应用层做了条件过滤。</p>
-<hr>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> user_id <span class="operator">=</span> <span class="number">1277</span> <span class="keyword">AND</span> username <span class="keyword">like</span> <span class="string">&#x27;山&#x27;</span> </span><br></pre></td></tr></table></figure>
-<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/06.jpg" class="" width="800">
-
-<p>如果 <code>user_id</code> 做精确匹配，然后 <code>username</code> 做模糊查询，得到的 <code>type</code> 为 <code>range</code>，说明 MySQL 进行了 索引范围扫描。<code>Extra</code> 为 <code>Using index condition</code> 说明查询条件中出现了索引列，但是有部分条件无法使用索引，MySQL 会根据能用的索引条件先搜索一遍数据再匹配无法使用索引的条件。该过程是在引擎层完成的，所以属于新版本的优化。</p>
-<h3 id="前导列不匹配"><a href="#前导列不匹配" class="headerlink" title="前导列不匹配"></a>前导列不匹配</h3><p>如果前导列不匹配那么会发生什么情况呢？从前边例子中我们发现，如果 <code>user_id</code> 为范围查找时，就会出现前导列不匹配的一种情况，MySQL 会进行全表扫描，然后使用服务层的条件筛选，即 <code>Using where</code>。那么其他的前导列不匹配的场景是不是也一样呢？</p>
-<p><strong>精确查询</strong></p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> username <span class="operator">=</span> <span class="string">&#x27;山&#x27;</span></span><br></pre></td></tr></table></figure>
-<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/07.jpg" class="" width="800">
-
-<p>从图中我们看到，MySQL 进行了全表扫描，即 <code>type</code> 为 <code>ALL</code><br>。然后采用服务层过滤，即 <code>Extra</code> 为 <code>Using where</code>。</p>
-<p><strong>模糊查询</strong></p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> student_info <span class="keyword">where</span> username <span class="keyword">like</span> <span class="string">&#x27;test&#x27;</span> <span class="keyword">AND</span> class_id <span class="operator">&gt;</span> <span class="number">100</span></span><br></pre></td></tr></table></figure>
-
-<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/08.jpg" class="" width="800">
-
-<p>与精确查询一样，也进行了全表扫描，同时服务层做筛选。</p>
-<h3 id="非索引筛选"><a href="#非索引筛选" class="headerlink" title="非索引筛选"></a>非索引筛选</h3><p>如果我们使用非索引进行筛选过滤又会发生什么呢？</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> student_info <span class="keyword">where</span> age <span class="operator">&gt;</span> <span class="number">10</span></span><br></pre></td></tr></table></figure>
-
-<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/09.jpg" class="" width="800">
-
-<p>MySQL 仍然进行了全表扫描。</p>
-<p><strong>💡 总结</strong></p>
-<blockquote>
-<p>通过以上的例子，我们可以看出，如果匹配了前导列，那么 MySQL 会进行非唯一索引扫描定位到具体的数据，然后回表查询非索引的字段。如果匹配前导列，但是前导列有部分索引未能生效（如模糊查询），那么会进行全索引扫描，然后利用引擎过滤出未能匹配的数据。如果前导列不匹配或者非索引列筛选，那么行为是一致的，都会进行全表扫描，然后利用服务层过滤数据。总之，只要查询列不命中索引，势必会进行回表查询的。</p>
-</blockquote>
-<h2 id="查询列被索引覆盖"><a href="#查询列被索引覆盖" class="headerlink" title="查询列被索引覆盖"></a>查询列被索引覆盖</h2><p>我们分析了查询列未命中索引的场景，接下来我们看看如果命中索引时，会出现什么情况。</p>
-<h3 id="前导列命中"><a href="#前导列命中" class="headerlink" title="前导列命中"></a>前导列命中</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> username, class_id, user_id <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> user_id <span class="operator">=</span> <span class="number">100</span></span><br></pre></td></tr></table></figure>
-<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/10.jpg" class="" width="800">
-
-<p><code>username</code>、<code>class_id</code>、<code>user_id</code> 都是联合索引里的成员，而筛选条件也是匹配前导列，所以我们看到 <code>Extra</code> 为 <code>Using index</code>，<code>rows</code> 为 1，<code>ref</code> 为 <code>const</code> 说明 MySQL 直接使用二级索引就完成数据的查询与过滤，并不需要回表。</p>
-<h3 id="前导列范围查询"><a href="#前导列范围查询" class="headerlink" title="前导列范围查询"></a>前导列范围查询</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> username, class_id, user_id <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> user_id <span class="operator">&gt;</span> <span class="number">100</span></span><br></pre></td></tr></table></figure>
-
-<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/11.jpg" class="" width="800">
-
-<p>我们发现 <code>Extra</code> 为 <code>Using where; Using index</code>，<code>type</code> 为 <code>rang</code> 说明进行了索引范围的扫描，意味着无法直接通过索引查找来查询到符合条件的数据。</p>
-<h3 id="非前导列筛选"><a href="#非前导列筛选" class="headerlink" title="非前导列筛选"></a>非前导列筛选</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> username, class_id, user_id <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> create_date <span class="operator">&gt;</span> <span class="string">&#x27;2021-12-11 10:22:11&#x27;</span></span><br></pre></td></tr></table></figure>
-<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/12.jpg" class="" width="800">
-
-<p>毫无疑问，肯定是需要回表的。</p>
-<p><strong>💡 总结</strong></p>
-<blockquote>
-<p>通过以上几个例子，我们可以得出以下结论，如果查询字段被索引命中，如果是前导列匹配，则直接通过索引就可以获取结果，不需要回表。如果前导列不匹配，依然不用回表，只不过会进行全索引扫描筛选。如果筛选条件是非索引字段，那么需要回表进行查询。</p>
-</blockquote>
-<h1 id="索引组合查询"><a href="#索引组合查询" class="headerlink" title="索引组合查询"></a>索引组合查询</h1><p>如果把两个不同的索引组合一下查询会发生什么呢？</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> INDEX age <span class="keyword">ON</span> student_info (age)</span><br></pre></td></tr></table></figure>
-<p>我们为 <code>age</code> 单独创建一个索引，然后查询一下看看：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> username, class_id, user_id, age <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> user_id <span class="operator">=</span> <span class="number">100</span></span><br></pre></td></tr></table></figure>
-<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/13.jpg" class="" width="800">
-
-<p>我们发现 MySQL 回表查询了。</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> username, class_id, user_id, age <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> age <span class="operator">=</span> <span class="number">12</span></span><br></pre></td></tr></table></figure>
-
-<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/14.jpg" class="" width="800">
-
-<p><strong>💡 总结</strong></p>
-<blockquote>
-<p>如果组合两个不同的索引进行过滤或者查询，会发现 MySQL 虽然不会进行全表扫描，但是仍然会回表查询数据。也就是说多个单列索引不如一个多列索引。</p>
-</blockquote>
-<h1 id="索引下推"><a href="#索引下推" class="headerlink" title="索引下推"></a>索引下推</h1><p>什么是索引下推呢？还记得 <code>Extra</code> 为 <code>Using index condition</code> 这种情况吗？就是当查询字段未覆盖索引，筛选条件中的前导列部分索引不匹配，MySQL 会在索引扫描部分数据之后，让引擎再根据未匹配的索引过滤。将过滤好的数据交给服务层，依次来减少 <code>IO</code> 操作。如以下例子：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> age <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> user_id <span class="operator">=</span> <span class="number">100</span> <span class="keyword">AND</span> class_id <span class="operator">&gt;</span> <span class="number">11</span></span><br></pre></td></tr></table></figure>
-<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/15.jpg" class="" width="800">
-
-<p>前提是前导列中有索引可以匹配上，而部分索引不匹配（由范围、模糊查询、顺序等原因造成的）。如果仅有的索引列不匹配，那么将进行全表扫描，如图：</p>
-<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/16.jpg" class="" width="800">
-
-<p>索引下推是 <code>Mysql 5.6</code> 推出的功能，我们看下，如果我们关闭这个功能，MySQL 的行为是怎样的：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SET</span> optimizer_switch<span class="operator">=</span>&quot;index_condition_pushdown=off&quot;;</span><br></pre></td></tr></table></figure>
-
-<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/17.jpg" class="" width="800">
-
-<p><code>type</code> 为 <code>ref</code> 说明进行了非唯一索引扫描，<code>Extra</code> 为 <code>Using where</code> 说明进行了服务层的过滤。这是符合预期的，因为索引下推就是利用存储引擎将我们想要的数据进行过滤，减少与服务层的 IO 交互次数。</p>
-<hr>
-<h1 id="尾声"><a href="#尾声" class="headerlink" title="尾声"></a>尾声</h1><p>本文通过多个简单的例子介绍了索引在不同场景下表现出来的行为，当然实际的情况要远比这个复杂，但是只要我们能够理解它，举一发三，所有问题我们都能迎刃而解。</p>
+<p>如果可以在一页中至少存放两行记录，那么 VARCHAR 等类型（TEXT、BLOB）的列数据就不会放到 BLOB 页中。</p>
+<p>最后，我们需要知道如果一条记录占用的字节数过多时，可能发生行溢出。</p>
+<h2 id="Dynamic-和-Compressed-行格式"><a href="#Dynamic-和-Compressed-行格式" class="headerlink" title="Dynamic 和 Compressed 行格式"></a>Dynamic 和 Compressed 行格式</h2><p>Dynamic 和 Compressed 是 InnoDB 1.0.x 版本开始引入的新格式。新的格式对于存放 BLOB 中的数据采用了完全行溢出的方式，也就是连 768B 的数据也被移到了溢出页中，数据页中只存放了 20B 的溢出页地址。同时Compressed 行记录格式会对行数据进行 zlib 算法压缩，因此在存储 BLOB、TEXT、VARCHAR 这类大长度类型的数据时比较有优势。</p>
 
     
 
@@ -383,7 +386,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2023/01/09/mysql/MySQL%E9%A1%B5%E4%B8%8E%E8%A1%8C/">展开全文 >></a>
     </p>
     
 
@@ -417,7 +420,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/12/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/11/">11</a><a class="page-number" href="/articles/page/12/">12</a><span class="page-number current">13</span><a class="page-number" href="/articles/page/14/">14</a><a class="page-number" href="/articles/page/15/">15</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/65/">65</a><a class="extend next" rel="next" href="/articles/page/14/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/12/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/11/">11</a><a class="page-number" href="/articles/page/12/">12</a><span class="page-number current">13</span><a class="page-number" href="/articles/page/14/">14</a><a class="page-number" href="/articles/page/15/">15</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/66/">66</a><a class="extend next" rel="next" href="/articles/page/14/">下一页</a>
     </nav>
   
 
@@ -430,7 +433,7 @@
   <div class="outer">
     <div id="footer-info">
     	<div class="footer-left">
-    		&copy; 2018-2023 <a target="_blank">Tubetrue01</a>
+    		&copy; 2018-2024 <a target="_blank">Tubetrue01</a>
     	</div>
     </div>
   </div>
@@ -541,6 +544,14 @@
           <ul class="article-tag-list" q-show="showTags">
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">CMake</a>
               </li>
              
@@ -557,7 +568,35 @@
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color5">Unix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">TCP</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">K8s</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">C++</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">网络</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -566,14 +605,6 @@
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">git</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color5">Unix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">TCP</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -589,31 +620,7 @@
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">redis</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">jvm</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">C++</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -621,19 +628,15 @@
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">Redis</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">网络</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
+                <a href="javascript:void(0)" class="js-tag color1">redis</a>
               </li>
             
             <div class="clearfix"></div>

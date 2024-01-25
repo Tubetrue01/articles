@@ -17,42 +17,11 @@
 <meta property="og:site_name" content="Tubetrue01">
 <meta property="og:description" content="引言 本篇文章作为红黑树的最后一篇文章，介绍红黑树的删除操作，也是最难的一部分。我们话不多说，直接进入正题。  2-3-4 树的删除 我们知道红黑树的本质是 2-3-4 树，所以在介绍红黑树的删除操作前，需要先了解 2-3-4 树的删除操作。    上图是一棵 2-3-4 树，其中包含了 2 节点、3 节点、4 节点。接下来我们逐个分析下对每种节点的删除。 三节点的删除如图 1 所示，其中（1、2">
 <meta property="og:locale" content="en_US">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/01.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/02.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/03.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/04.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/05.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/06.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/07.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/08.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/09.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/10.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/11.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/12.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/13.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/14.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/15.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/16.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/17.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/18.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/19.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/20.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/21.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/22.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/23.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/24.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/25.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/26.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/27.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/28.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/29.jpg">
-<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/30.jpg">
 <meta property="article:published_time" content="2023-03-14T03:17:17.000Z">
-<meta property="article:modified_time" content="2023-07-20T07:40:14.296Z">
+<meta property="article:modified_time" content="2024-01-25T01:19:40.775Z">
 <meta property="article:author" content="Tubetrue01">
 <meta property="article:tag" content="数据结构与算法">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://tubetrue01.github.io/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/01.jpg">
   
     <link rel="alternative" href="/articles/atom.xml" title="Tubetrue01" type="application/atom+xml">
   
@@ -274,52 +243,52 @@
 <h1 id="2-3-4-树的删除"><a href="#2-3-4-树的删除" class="headerlink" title="2-3-4 树的删除"></a>2-3-4 树的删除</h1><blockquote>
 <p>我们知道红黑树的本质是 2-3-4 树，所以在介绍红黑树的删除操作前，需要先了解 2-3-4 树的删除操作。</p>
 </blockquote>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/01.jpg" class="" width="400">
+
 
 <p>上图是一棵 2-3-4 树，其中包含了 2 节点、3 节点、4 节点。接下来我们逐个分析下对每种节点的删除。</p>
 <h2 id="三节点的删除"><a href="#三节点的删除" class="headerlink" title="三节点的删除"></a>三节点的删除</h2><p>如图 1 所示，其中（1、2），（8、9），（7、10）为三节点。但是对于它们的删除其实是不同的。首先（1、2）、（8、9）作为叶子节点，我们可以删除任意一个元素而不破坏树的平衡。</p>
 <p>但是对于（7、10）而言，对于 7、10 任意元素的删除都会使其变成二节点，那么此时树的平衡被打破，就需要进行调整，如图所示：</p>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/02.jpg" class="" width="400">
+
 
 <p>当 7 被删除时，树的平衡被破坏，此时必须要找到一个可以替换它的节点。所以沿着它的右子树寻找，找到 8 之后，变把 8 的值替换掉被删的 7。然后删掉 8，此时树又恢复平衡了。</p>
 <p>为什么不是用 6 替换 7 而是 8 呢？原因很简单，因为 6 是一个二节点，而（8、9）是一个三节点。用 8 替换 7 的成本是最低的。也就是说它会优先选择非二节点的子节点中的元素来替换自己。不信？我们看下图：</p>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/03.jpg" class="" width="400">
+
 
 <p>我们删除 4，在分析 4 的两个子节点时发现 3 是二节点，5 是四节点，那不用说还是选择 5 替换自己吧。然后在把 5 替换成自身之后，把它删了。</p>
 <p>但是，那如果子节点都是二节点的情况呢？我们看下图：</p>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/04.jpg" class="" width="400">
+
 
 <p>我们继续删除元素 8。此时 8 的两个子节点都是单节点。如果此时删除 8 时，它会发现 8 的两个子节点都是单节点，那就把 6、8、9 合并成，然后删除 8 。其实也就是把 8 的两个子节点进行合并。</p>
 <h2 id="四节点删除"><a href="#四节点删除" class="headerlink" title="四节点删除"></a>四节点删除</h2><blockquote>
 <p>三节点分析完了，我们继续分析四节点的删除，当然作为叶子节点的删除情况就不再赘述了，因为不涉及平衡问题，直接删就对了。</p>
 </blockquote>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/05.jpg" class="" width="400">
+
 
 <p>删除 2 时，会对 2 的两个子树进行分析，如果都是单子节点，那么就会将 2 跟它的两个子节点合并，再删除 2。</p>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/06.jpg" class="" width="400">
+
 
 <p>对于 4 的删除与 2 类似，就不再赘述。</p>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/07.jpg" class="" width="400">
+
 
 <p>对于 6 的删除其实原理都是一样的，会从它的子节点中进行选择，如果是三、四节点那么就用子替换自己，如果是二节点，那么就会将两个子节点进行合并。</p>
 <h2 id="二节点删除"><a href="#二节点删除" class="headerlink" title="二节点删除"></a>二节点删除</h2><blockquote>
 <p>其实理解了三节点、四节点的删除之后，二节点的删除也大同小异，但我觉得还是再举一个不同的例子介绍一下吧。</p>
 </blockquote>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/08.jpg" class="" width="400">
+
 
 <p>2 作为二节点，没错，它就是我们本次的删除对象。分析了一下，2 有两个单子节点，运用我们之前学过的知识，1、2、3 合并，然后删除 2，于是就得到了下面的结果：</p>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/09.jpg" class="" width="400">
+
 
 <p>2 已经顺利删除了，但是看这棵树怎么感觉这么别扭？1、3 组成的三节点是 4 的左节点与 6 平级了，但是 6 还有下一级。好像出错翻车了。。。</p>
 <p>我们回想一下三节点、四节点，之所以行得通是因为它们并不是孤单一人。但二节点删除了就真的没了。所以就不能直接删除，那么到底怎么删除我们看下图：</p>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/10.jpg" class="" width="400">
+
 
 <p>节点 2 会向上分析它的父跟兄弟节点，发现可以组合，那么 2、4、6 会组合成四节点。至此你会发现，2 不再是孤单一人，就可以运用之前的知识，对 2 的两个子进行合并，然后删除 2。</p>
 <p>当然也会遇到无法合并的场景，如下图：</p>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/11.jpg" class="" width="400">
+
 
 <p>由于 6、8 是三节点，所以 2、4 无法跟 6、8 再组合了。那此时如何处理呢？显然自己的孩子是帮不了自己了，那么只能向自己的老父亲求助了，我们看下图：</p>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/12.jpg" class="" width="400">
+
 
 <p>此时 4 会下来跟 2 合并，但是 4 的位置不能空着，所以作为 4 的右孩子 6 就会顶替 4 的位置。此时 2 跟 4 合并之后，就跟之前的场景一样了。</p>
 <h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><blockquote>
@@ -333,7 +302,7 @@
 <h3 id="前驱删除"><a href="#前驱删除" class="headerlink" title="前驱删除"></a>前驱删除</h3><blockquote>
 <p>所谓前驱删除，就是查找小于当前值的最大值。</p>
 </blockquote>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/13.jpg" class="" width="300">
+
 
 <p>如图所示，如果删除元素 5，采用前驱删除法，那么从 5 的左节点开始，一直向右子节点查询，直到元素 4。</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 查询 t 节点的前驱节点，也就是找到比 t 小的最大值</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> *       5 (t)       5 (t)         5 (t)</span></span><br><span class="line"><span class="comment"> *      / \         / \           / \</span></span><br><span class="line"><span class="comment"> *     3   8  -&gt;  (3)  8   -&gt;    3   8</span></span><br><span class="line"><span class="comment"> *    / \         / \           / \</span></span><br><span class="line"><span class="comment"> *   1   4       1   4         1  (4)</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> &lt;K,V&gt; <span class="function">Entry&lt;K,V&gt; <span class="title">predecessor</span><span class="params">(Entry&lt;K,V&gt; t)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (t == <span class="keyword">null</span>)</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (t.left != <span class="keyword">null</span>)&#123;</span><br><span class="line">        <span class="comment">// 从左节点开始找</span></span><br><span class="line">        Entry&lt;K, V&gt; l = t.left;</span><br><span class="line">        <span class="keyword">while</span>(l.right != <span class="keyword">null</span>)&#123;</span><br><span class="line">            l = l.right;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> l;</span><br><span class="line">    &#125;<span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         *  这里是另外一种特殊的场景，也就是说，t 没有左子树那就需要顺着 t 的父向上找</span></span><br><span class="line"><span class="comment">         *</span></span><br><span class="line"><span class="comment">         *             5            (p) 5       (ch) 5     p = null</span></span><br><span class="line"><span class="comment">         *            / \              / \          / \</span></span><br><span class="line"><span class="comment">         *       (p) 3   8   -&gt;  (ch) 3   8   -&gt;   3   8</span></span><br><span class="line"><span class="comment">         *          / \              / \          / \</span></span><br><span class="line"><span class="comment">         *  (t,ch) 2   4        (t) 2   4    (t) 2   4</span></span><br><span class="line"><span class="comment">         * ===========================================</span></span><br><span class="line"><span class="comment">         *            5                5</span></span><br><span class="line"><span class="comment">         *           / \              / \</span></span><br><span class="line"><span class="comment">         *      (p) 3   8   -&gt;      (3)  8</span></span><br><span class="line"><span class="comment">         *         / \              / \</span></span><br><span class="line"><span class="comment">         *        2   4 (t,ch)     2   4 (t)</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        Entry&lt;K, V&gt; p = t.parent;</span><br><span class="line">        Entry&lt;K, V&gt; ch = t;</span><br><span class="line">        <span class="keyword">while</span>(p != <span class="keyword">null</span> &amp;&amp; ch == p.left)&#123;</span><br><span class="line">            ch = p;</span><br><span class="line">            p = p.parent;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> p;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
@@ -341,21 +310,21 @@
 <h3 id="后继删除"><a href="#后继删除" class="headerlink" title="后继删除"></a>后继删除</h3><blockquote>
 <p>后继删除就是查找大于当前值的最小值。</p>
 </blockquote>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/14.jpg" class="" width="300">
+
 
 <p>如图所示，如果采用后继删除法，会沿着 5 的右节点开始，一直向左子节点查询，直到元素 7。</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 查询 t 节点的后继节点，也就是比 t 大的最小值</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> *       5 (t)       5 (t)         5 (t)</span></span><br><span class="line"><span class="comment"> *      / \         / \           / \</span></span><br><span class="line"><span class="comment"> *     3   8  -&gt;   3  (8)   -&gt;   3   8</span></span><br><span class="line"><span class="comment"> *        / \         / \           / \</span></span><br><span class="line"><span class="comment"> *       7   9       7   9        (7)  9</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> &lt;K,V&gt; <span class="function">Entry&lt;K,V&gt; <span class="title">successor</span><span class="params">(Entry&lt;K,V&gt; t)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(t == <span class="keyword">null</span>) <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    <span class="comment">// 如果 t 还右子树，那么顺着右子树找到大于 t 的最小值</span></span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (t.right != <span class="keyword">null</span>) &#123;</span><br><span class="line">      Entry&lt;K, V&gt; r = t.right;</span><br><span class="line">      <span class="keyword">while</span>(r.left != <span class="keyword">null</span>)&#123;</span><br><span class="line">          r = r.left;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">return</span> r;</span><br><span class="line">    &#125;<span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         *  这里是另外一种特殊的场景，也就是说，t 没有右子树，那就需要顺着 t 的父向上找</span></span><br><span class="line"><span class="comment">         *</span></span><br><span class="line"><span class="comment">         *             5              5</span></span><br><span class="line"><span class="comment">         *            / \            / \</span></span><br><span class="line"><span class="comment">         *       (p) 3   8   -&gt;    (3)  8</span></span><br><span class="line"><span class="comment">         *          / \            / \</span></span><br><span class="line"><span class="comment">         *  (t,ch) 2   4      (t) 2   4</span></span><br><span class="line"><span class="comment">         * ===========================================</span></span><br><span class="line"><span class="comment">         *            5            (p) 5            (5)</span></span><br><span class="line"><span class="comment">         *           / \              / \           / \</span></span><br><span class="line"><span class="comment">         *      (p) 3   8   -&gt;  (ch) 3   8  -&gt;     3   8</span></span><br><span class="line"><span class="comment">         *         / \              / \           / \</span></span><br><span class="line"><span class="comment">         *        2   4 (t,ch)     2   4 (t)     2   4 (t)</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        Entry&lt;K, V&gt; p = t.parent;</span><br><span class="line">        Entry&lt;K, V&gt; ch = t;</span><br><span class="line">        <span class="keyword">while</span>(p != <span class="keyword">null</span> &amp;&amp; ch == p.right)&#123;</span><br><span class="line">            ch = p;</span><br><span class="line">            p = p.parent;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> p;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>无论是前驱删除还是后继删除，都会存在另外一种没有子节点的情况，也就是对应代码中的 <code>else</code>，当然了，如果是删除操作，是不会遇到这种情况的。我们看下图：</p>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/15.jpg" class="" width="200">
+
 
 <p>如果查找元素 4 的前驱或者后继，我们发现它根本没有子节点。那么也就是说 4 没有前驱或者后继节点了吗？那肯定不是，毕竟图中的 3 跟 5 已经很明显的告诉你了，它们就是 4 的前驱及后继。</p>
 <p>针对这种场景，我们需要变换个方向，向父节点方向查找就行了。如图：</p>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/16.jpg" class="" width="600">
+
 
 <h2 id="删除开始"><a href="#删除开始" class="headerlink" title="删除开始"></a>删除开始</h2><blockquote>
 <p>为了将删除操作简单化，我们还是以图例的方式，将涉及到的场景列出来，即使代码注释中已经存在了。</p>
 </blockquote>
-<h3 id="场景一-删除节点有两个子"><a href="#场景一-删除节点有两个子" class="headerlink" title="场景一 删除节点有两个子"></a>场景一 删除节点有两个子</h3><img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/17.jpg" class="" width="600">
+<h3 id="场景一-删除节点有两个子"><a href="#场景一-删除节点有两个子" class="headerlink" title="场景一 删除节点有两个子"></a>场景一 删除节点有两个子</h3>
 
 <p>节点 5 是目标删除节点也就是图中的 p。首先，按照后继删除法，找到 p 的后继节点 7（图中的 s）。然后将 s 的 key、val 替换掉节点 p。同时 p 指向 s。再找到 p 的子节点 replacement。此时你可能会有疑问，如果此时的 p 有两个子节点呢？不可能，为什么？因为如果 p 有两个子节点，那么查找后继的过程中，p 的左节点一定是 s，而不是现在的 p 了。</p>
 <p>找到 replacement 之后，我们需要把它的指向 p 的父节点，然后将 p 的父节点指向 replacement。最后断开 p 的双向指针，等系统回收。</p>
@@ -363,10 +332,10 @@
 <h3 id="场景二-删除节点有一个子"><a href="#场景二-删除节点有一个子" class="headerlink" title="场景二 删除节点有一个子"></a>场景二 删除节点有一个子</h3><blockquote>
 <p>如果删除节点为根节点的话，那么直接让子节点成为新的根即可，然后进行调平。</p>
 </blockquote>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/18.jpg" class="" width="600">
+
 
 <p>当删除节点 p 时，它只有一个子 replacement，此时直接修改 replacement 的指向以及断开 p 即可。</p>
-<h3 id="场景三-删除节点没有子"><a href="#场景三-删除节点没有子" class="headerlink" title="场景三 删除节点没有子"></a>场景三 删除节点没有子</h3><img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/19.jpg" class="" width="200">
+<h3 id="场景三-删除节点没有子"><a href="#场景三-删除节点没有子" class="headerlink" title="场景三 删除节点没有子"></a>场景三 删除节点没有子</h3>
 
 <p>如果删除节点没有任何子节点时，说明它是叶子节点。首先需要根据它的颜色来判断是否需要调整。然后再将其与父的双向指针断开即可。</p>
 <h3 id="场景四-删除节点是根"><a href="#场景四-删除节点是根" class="headerlink" title="场景四 删除节点是根"></a>场景四 删除节点是根</h3><p>如果删除的节点没有任何子，同时它又是根时，只需要把它置空即可。</p>
@@ -377,20 +346,20 @@
 <p>对目标节点删除之后，我们就需要根据情况来选择是否进行调整了。从删除的逻辑中我们可以得知只有删除的节点时黑色的时候才需要调整。</p>
 </blockquote>
 <h3 id="场景一-目标节点为根节点"><a href="#场景一-目标节点为根节点" class="headerlink" title="场景一 目标节点为根节点"></a>场景一 目标节点为根节点</h3><p>这个没什么好说的了，直接染黑就行了。</p>
-<h3 id="场景二-目标节点为红色"><a href="#场景二-目标节点为红色" class="headerlink" title="场景二 目标节点为红色"></a>场景二 目标节点为红色</h3><img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/20.jpg" class="" width="600">
+<h3 id="场景二-目标节点为红色"><a href="#场景二-目标节点为红色" class="headerlink" title="场景二 目标节点为红色"></a>场景二 目标节点为红色</h3>
 
 <p>上图是双节点的删除操作的最终状态，此时 x 节点并非根节点，同时它又是红色，我们从图中就能看出，只要将其染成黑色就行了。</p>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/21.jpg" class="" width="400">
+
 
 <p>上图是针对于单节点删除的最终状态，我们只需要对 x 染黑即可完成树的平衡。</p>
-<h3 id="场景三-兄弟节点不可借"><a href="#场景三-兄弟节点不可借" class="headerlink" title="场景三 兄弟节点不可借"></a>场景三 兄弟节点不可借</h3><img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/22.jpg" class="" width="400">
+<h3 id="场景三-兄弟节点不可借"><a href="#场景三-兄弟节点不可借" class="headerlink" title="场景三 兄弟节点不可借"></a>场景三 兄弟节点不可借</h3>
 
 <p>以上红黑树，我们需要删除节点 4 作为本次场景的起点，注意：节点 4 被标记为 p 说明将来是需要被拿掉的，这点与 replacement 标记不同。</p>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/23.jpg" class="" width="1000">
+
 
 
 <p>判断出 x 是左子节点还是右节点。上图 x 为左节点，也就是左倾树。我们根据 x 找到它的兄弟节点 sib。根据 sib 的颜色来判断 sib 是否是 x 的真正兄弟节点。什么意思？当 sib 为红色时，它并不是 x 的真正兄弟。图中的 6、8 对应的其实是 2-3-4 树中的三节点，也就是说 6、8 是处于同一级的。我们把它转成 2-3-4 树，你就明白了：</p>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/24.jpg" class="" width="400">
+
 
 <p>从 2-3-4 树中，我们可以明显的看出，7 才是 x 的兄弟节点，8 并不是。所以对于红黑树而言，只有兄弟节点是黑色时，它才是自己的亲兄弟。</p>
 <p>怎么才能找到 x 的亲兄弟呢？我们需要以 x 的父为中心进行左旋，在旋转之前，需要将当前 sib 染成黑色，x 的父节点染成红色。经过旋转之后就能拿到真正的 sib 了。</p>
@@ -398,17 +367,17 @@
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> &lt;K, V&gt; <span class="function"><span class="keyword">boolean</span> <span class="title">colorOf</span><span class="params">(Entry&lt;K, V&gt; p)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (p == <span class="keyword">null</span> ? BLACK : p.color);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>有两种情况使得 <code>colorOf(x) == BLACK</code>，一个是为 null，一个是含有节点且为黑色。对于当前这个场景而言，sib 要不有两个子节点，要不没有任何子节点。这两种我们当成一回事。</p>
 <p>那么有没有一种情况是一个节点为 null，一个节点为黑色呢？毕竟为 null 也是返回黑色？不可能！为什么？我们看 sib 是红色节点，它的父节点一定为黑色，所以 sib 是一个三节点元素。那么作为三节点元素，要不是以叶子形式存在的，要不是一定存在三个节点。不可能存在两个节点的情况。也就是说 sib 要不没有任何子节点，要不两个节点都在且为黑色。</p>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/25.jpg" class="" width="800">
+
 
 <p>回到正题，拿到 sib 之后，由于没有任何可辅助 x 平衡的节点，那就只能让 sib 自损了，它的变成红色，谁让 x 失去一个黑色节点呢。sib 自损之后，就得让 x 跟 sib 的父去辅助平衡了。也就是说父节点必须是红色的才行，如果是黑色的，那还得向上找。不过不要紧，因为当前的父节点是经过左旋得到的，而左旋之前原有的 sib 是红色的。所以此时 x 的父一定是红色的。那把它染成黑色，树就平衡了。</p>
 <p>那么可能还有一种场景，就是 sib 原本就是黑色的，那怎么办？我们看下图：</p>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/26.jpg" class="" width="500">
+
 
 <p>为了打破平衡，我们删掉树中的节点 2，得到下图：</p>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/27.jpg" class="" width="500">
+
 
 <p>其中 p 指向了节点 3。记住，p 是需要被删除的节点。由于 p 没有任何子节点，所以需要先进行调平，之后删除！</p>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/28.jpg" class="" width="1200">
+
 
 <p>此时 sib 为黑色，也就是 x 的亲兄弟。按照正常思路，需要将 sib 染红。此时向父的方向查找，直到找到红色的父节点。但是我们从图中可以看到，根本没有红色的父，不过也不要紧，每向上找到一级的父节点，我们就将当前父的兄弟节点染红。直到遇到红色的父节点或者根节点为止。</p>
 <p>但是你可能会说，如果 sib 为红色怎么办？其实 sib 为红色时不就又回到第一种场景了？需要先左旋找到 x 的真正兄弟。也真是由于左旋，那么它们的父就会变成红色。只要将其染黑就解决了。</p>
@@ -417,12 +386,12 @@
 <p>但是如果父也是黑色的，那就只能找父的兄弟借，如果不能借，那就把它的兄弟也变红。直到根或者找到红色的父节点。</p>
 </blockquote>
 <h3 id="场景四-兄弟节点可借"><a href="#场景四-兄弟节点可借" class="headerlink" title="场景四 兄弟节点可借"></a>场景四 兄弟节点可借</h3><p><strong>此时又分为两种情况，一种是存在单节点：</strong></p>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/29.jpg" class="" width="800">
+
 
 <p>首先找到 x 的兄弟节点，兄弟节点可借的情况说明它存在单红节点或者双红节点。对于单红节点也就是 2-3-4 树的三节点，需要先旋转一次。如图所示，定位到 sib 之后，旋转之前，需要将 sib 染红，sib 的子节点染黑。然后以 sib 为中心进行旋转，同时变更 sib 为 x 父的右节点。</p>
 <p>将 x 的父节点颜色赋给 sib，x 的父及 sib 的子染黑。然后以 x 的父节点为中心旋转。变更 x 为 root，调整完成。</p>
 <p><strong>另一种就是存在双红子节点：</strong></p>
-<img src="/articles/2023/03/14/dsaa/%E4%BB%8ETreeMap%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90%E7%BA%A2%E9%BB%91%E6%A0%91(%E4%B8%8B)%E5%88%A0%E9%99%A4/30.jpg" class="" width="800">
+
 
 <p>当兄弟节点存在两个红色子节点时，也就是 2-3-4 树的四节点，那么相比三节点，只需要旋转一次就行了。如图所示，定位到 sib 之后，将 sib 的颜色设置为 x 的父节点颜色。将 x 的父节点及 sib 的右节点染红，然后以 x 的父节点左旋。最后将 x 指向 root，完成树的平衡。</p>
 <p>整个树的调整逻辑就介绍完了，再来看代码就简单很多了：</p>
@@ -628,7 +597,7 @@ gitalk.render('gitalk-container')
   <div class="outer">
     <div id="footer-info">
     	<div class="footer-left">
-    		&copy; 2018-2023 <a target="_blank">Tubetrue01</a>
+    		&copy; 2018-2024 <a target="_blank">Tubetrue01</a>
     	</div>
     </div>
   </div>
@@ -739,6 +708,14 @@ gitalk.render('gitalk-container')
           <ul class="article-tag-list" q-show="showTags">
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">CMake</a>
               </li>
              
@@ -755,7 +732,35 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color5">Unix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">TCP</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">K8s</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">C++</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">网络</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -764,14 +769,6 @@ gitalk.render('gitalk-container')
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">git</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color5">Unix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">TCP</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -787,31 +784,7 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">redis</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">jvm</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">C++</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -819,19 +792,15 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">Redis</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">网络</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
+                <a href="javascript:void(0)" class="js-tag color1">redis</a>
               </li>
             
             <div class="clearfix"></div>
