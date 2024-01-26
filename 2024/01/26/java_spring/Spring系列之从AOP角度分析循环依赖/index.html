@@ -18,7 +18,7 @@
 <meta property="og:description" content="引言 在上一篇文章【从循环依赖到三级缓存】中，我们以一个简单的例子介绍了 Spring 是如何解决循环依赖的。文章中也介绍了 Bean 的生命周期发生的时机。而本文更进一步，将 AOP 引入循环依赖，看看 Spring 在解法上有什么不同。  一个简单而不简单的例子12345678910@Servicepublic class A &amp;#123;    @Autowired    private A">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2024-01-26T07:50:46.000Z">
-<meta property="article:modified_time" content="2024-01-26T07:54:50.571Z">
+<meta property="article:modified_time" content="2024-01-26T11:25:31.977Z">
 <meta property="article:author" content="Tubetrue01">
 <meta property="article:tag" content="Java">
 <meta property="article:tag" content="Spring">
@@ -251,7 +251,7 @@
 <p>我们进入 <code>DefaultSingletonBeanRegistry</code> 的 <code>getSingleton()</code> 方法：</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Object <span class="title">getSingleton</span><span class="params">(String beanName, ObjectFactory&lt;?&gt; singletonFactory)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">synchronized</span> (<span class="keyword">this</span>.singletonObjects) &#123;</span><br><span class="line">	        <span class="comment">// 此时缓存中必定为 null</span></span><br><span class="line">		Object singletonObject = <span class="keyword">this</span>.singletonObjects.get(beanName);</span><br><span class="line">		<span class="keyword">if</span> (singletonObject == <span class="keyword">null</span>) &#123;</span><br><span class="line">		    ...</span><br><span class="line">		        <span class="comment">// 将当前 bean 的名字添加到创建状态集合中</span></span><br><span class="line">			beforeSingletonCreation(beanName);</span><br><span class="line">			<span class="keyword">boolean</span> newSingleton = <span class="keyword">false</span>;</span><br><span class="line">		</span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">			        <span class="comment">// 回调 AbstractAutowireCapableBeanFactory#createBean() 方法</span></span><br><span class="line">				singletonObject = singletonFactory.getObject();</span><br><span class="line">				newSingleton = <span class="keyword">true</span>;</span><br><span class="line">				...</span><br><span class="line">			&#125;</span><br><span class="line">		    ...</span><br><span class="line">			<span class="keyword">finally</span> &#123;</span><br><span class="line">			    ...</span><br><span class="line">			        <span class="comment">// 将 bean 名称从创建状态集合中移除</span></span><br><span class="line">				afterSingletonCreation(beanName);</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> (newSingleton) &#123;</span><br><span class="line">			        <span class="comment">// 将创建好的 bean 存入一级缓存，同时将二、三级缓存移除</span></span><br><span class="line">				addSingleton(beanName, singletonObject);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		 <span class="comment">// 返回实例</span></span><br><span class="line">		<span class="keyword">return</span> singletonObject;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>流程走向 <code>AbstractAutowireCapableBeanFactory#createBean()</code> 方法：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">                <span class="comment">// 这里为代理提供了切入点，那么此时代理会从这里做处理吗？</span></span><br><span class="line">		Object bean = resolveBeforeInstantiation(beanName, mbdToUse);</span><br><span class="line">		<span class="keyword">if</span> (bean != <span class="keyword">null</span>) &#123;</span><br><span class="line">			<span class="keyword">return</span> bean;</span><br><span class="line">		&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">protected</span> Object <span class="title">resolveBeforeInstantiation</span><span class="params">(String beanName, RootBeanDefinition mbd)</span> </span>&#123;</span><br><span class="line">	Object bean = <span class="keyword">null</span>;</span><br><span class="line">	<span class="keyword">if</span> (!Boolean.FALSE.equals(mbd.beforeInstantiationResolved)) &#123;</span><br><span class="line">		<span class="keyword">if</span> (!mbd.isSynthetic() &amp;&amp; hasInstantiationAwareBeanPostProcessors()) &#123;</span><br><span class="line">			Class&lt;?&gt; targetType = determineTargetType(beanName, mbd);</span><br><span class="line">			<span class="keyword">if</span> (targetType != <span class="keyword">null</span>) &#123;</span><br><span class="line">			        <span class="comment">// 我们要关注的就是代理相关的处理器的具体行为</span></span><br><span class="line">				bean = applyBeanPostProcessorsBeforeInstantiation(targetType, beanName);</span><br><span class="line">				<span class="keyword">if</span> (bean != <span class="keyword">null</span>) &#123;</span><br><span class="line">				        <span class="comment">// 如果 bean 不为 null，那么就可以应用 bean 初始化后置方法，然后由主流程直接返回</span></span><br><span class="line">					bean = applyBeanPostProcessorsAfterInitialization(bean, beanName);</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		mbd.beforeInstantiationResolved = (bean != <span class="keyword">null</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> bean;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="comment">// 这里为代理提供了切入点，那么此时代理会从这里做处理吗？</span></span><br><span class="line">    Object bean = resolveBeforeInstantiation(beanName, mbdToUse);</span><br><span class="line">    <span class="keyword">if</span> (bean != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> bean;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">protected</span> Object <span class="title">resolveBeforeInstantiation</span><span class="params">(String beanName, RootBeanDefinition mbd)</span> </span>&#123;</span><br><span class="line">	Object bean = <span class="keyword">null</span>;</span><br><span class="line">	<span class="keyword">if</span> (!Boolean.FALSE.equals(mbd.beforeInstantiationResolved)) &#123;</span><br><span class="line">		<span class="keyword">if</span> (!mbd.isSynthetic() &amp;&amp; hasInstantiationAwareBeanPostProcessors()) &#123;</span><br><span class="line">			Class&lt;?&gt; targetType = determineTargetType(beanName, mbd);</span><br><span class="line">			<span class="keyword">if</span> (targetType != <span class="keyword">null</span>) &#123;</span><br><span class="line">			        <span class="comment">// 我们要关注的就是代理相关的处理器的具体行为</span></span><br><span class="line">				bean = applyBeanPostProcessorsBeforeInstantiation(targetType, beanName);</span><br><span class="line">				<span class="keyword">if</span> (bean != <span class="keyword">null</span>) &#123;</span><br><span class="line">				        <span class="comment">// 如果 bean 不为 null，那么就可以应用 bean 初始化后置方法，然后由主流程直接返回</span></span><br><span class="line">					bean = applyBeanPostProcessorsAfterInitialization(bean, beanName);</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		mbd.beforeInstantiationResolved = (bean != <span class="keyword">null</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> bean;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>与代理相关的 <code>InstantiationAwareBeanPostProcessor</code> 实现是 <code>InfrastructureAdvisorAutoProxyCreator</code>，而 <code>postProcessBeforeInstantiation()</code> 方法则是委托给了父类 <code>AbstractAutoProxyCreator</code> 的实现：</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> Object <span class="title">postProcessBeforeInstantiation</span><span class="params">(Class&lt;?&gt; beanClass, String beanName)</span> </span>&#123;</span><br><span class="line">        <span class="comment">// 生成缓存 key，本例中为 &#x27;a&#x27;</span></span><br><span class="line">	Object cacheKey = getCacheKey(beanClass, beanName);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// targetSourcedBeans 肯定是不包含当前对象的</span></span><br><span class="line">	<span class="keyword">if</span> (!StringUtils.hasLength(beanName) || !<span class="keyword">this</span>.targetSourcedBeans.contains(beanName)) &#123;</span><br><span class="line">	        <span class="comment">// 当前增强 bean 里也同样没有它的名字</span></span><br><span class="line">		<span class="keyword">if</span> (<span class="keyword">this</span>.advisedBeans.containsKey(cacheKey)) &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		  <span class="comment">// 该 bean 并非代理相关基础组件实现</span></span><br><span class="line">		<span class="keyword">if</span> (isInfrastructureClass(beanClass) || shouldSkip(beanClass, beanName)) &#123;</span><br><span class="line">			<span class="keyword">this</span>.advisedBeans.put(cacheKey, Boolean.FALSE);</span><br><span class="line">			<span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 此时目标源也不存在，所以代理此时并未介入</span></span><br><span class="line">	TargetSource targetSource = getCustomTargetSource(beanClass, beanName);</span><br><span class="line">	<span class="keyword">if</span> (targetSource != <span class="keyword">null</span>) &#123;</span><br><span class="line">		<span class="keyword">if</span> (StringUtils.hasLength(beanName)) &#123;</span><br><span class="line">			<span class="keyword">this</span>.targetSourcedBeans.add(beanName);</span><br><span class="line">		&#125;</span><br><span class="line">		Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(beanClass, beanName, targetSource);</span><br><span class="line">		Object proxy = createProxy(beanClass, beanName, specificInterceptors, targetSource);</span><br><span class="line">		<span class="keyword">this</span>.proxyTypes.put(cacheKey, proxy.getClass());</span><br><span class="line">		<span class="keyword">return</span> proxy;</span><br><span class="line">	&#125;</span><br><span class="line">        <span class="comment">// 将 null 返回调用者</span></span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
@@ -598,15 +598,15 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">C</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">Docker</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">C</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -642,7 +642,19 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color5">Java</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">jvm</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -654,23 +666,11 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">网络</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">jvm</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">MySQL</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -682,7 +682,7 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
+                <a href="javascript:void(0)" class="js-tag color3">网络</a>
               </li>
             
             <div class="clearfix"></div>
