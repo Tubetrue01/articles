@@ -17,11 +17,15 @@
 <meta property="og:site_name" content="Tubetrue01">
 <meta property="og:description" content="引言 本篇文章主要是介绍一下 TCP 中的慢启动、拥塞避免算法、快速启动以及快速恢复间的基本概念，也便于加强记忆。  滑动窗口    在开始讲解之前，我们需要了解几个基本概念，首先要介绍的就是滑动窗口协议。什么是滑动窗口协议？以及为什么要有它的存在呢？我们知道 TCP 是基于流的协议，发送方每次要发送多少数据给接收方呢？如果发送一个 MSS 效率太低；如果发送太多，接收方消化不了（接收缓冲区满），">
 <meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2022/12/26/c_unix/TCP(%E4%BA%8C)%E6%85%A2%E5%90%AF%E5%8A%A8,%E6%8B%A5%E5%A1%9E%E9%81%BF%E5%85%8D%E7%AE%97%E6%B3%95,%E5%BF%AB%E9%80%9F%E9%87%8D%E4%BC%A0%E4%B8%8E%E5%BF%AB%E9%80%9F%E6%81%A2%E5%A4%8D/01.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2022/12/26/c_unix/TCP(%E4%BA%8C)%E6%85%A2%E5%90%AF%E5%8A%A8,%E6%8B%A5%E5%A1%9E%E9%81%BF%E5%85%8D%E7%AE%97%E6%B3%95,%E5%BF%AB%E9%80%9F%E9%87%8D%E4%BC%A0%E4%B8%8E%E5%BF%AB%E9%80%9F%E6%81%A2%E5%A4%8D/02.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2022/12/26/c_unix/TCP(%E4%BA%8C)%E6%85%A2%E5%90%AF%E5%8A%A8,%E6%8B%A5%E5%A1%9E%E9%81%BF%E5%85%8D%E7%AE%97%E6%B3%95,%E5%BF%AB%E9%80%9F%E9%87%8D%E4%BC%A0%E4%B8%8E%E5%BF%AB%E9%80%9F%E6%81%A2%E5%A4%8D/03.jpg">
 <meta property="article:published_time" content="2022-12-26T11:10:58.000Z">
-<meta property="article:modified_time" content="2024-01-25T01:19:40.742Z">
+<meta property="article:modified_time" content="2023-07-20T07:40:14.000Z">
 <meta property="article:author" content="Tubetrue01">
 <meta property="article:tag" content="TCP">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://tubetrue01.github.io/articles/2022/12/26/c_unix/TCP(%E4%BA%8C)%E6%85%A2%E5%90%AF%E5%8A%A8,%E6%8B%A5%E5%A1%9E%E9%81%BF%E5%85%8D%E7%AE%97%E6%B3%95,%E5%BF%AB%E9%80%9F%E9%87%8D%E4%BC%A0%E4%B8%8E%E5%BF%AB%E9%80%9F%E6%81%A2%E5%A4%8D/01.jpg">
   
     <link rel="alternative" href="/articles/atom.xml" title="Tubetrue01" type="application/atom+xml">
   
@@ -241,14 +245,14 @@
 <p>本篇文章主要是介绍一下 TCP 中的慢启动、拥塞避免算法、快速启动以及快速恢复间的基本概念，也便于加强记忆。</p>
 </blockquote>
 <h1 id="滑动窗口"><a href="#滑动窗口" class="headerlink" title="滑动窗口"></a>滑动窗口</h1><hr>
-
+<img src="/articles/2022/12/26/c_unix/TCP(%E4%BA%8C)%E6%85%A2%E5%90%AF%E5%8A%A8,%E6%8B%A5%E5%A1%9E%E9%81%BF%E5%85%8D%E7%AE%97%E6%B3%95,%E5%BF%AB%E9%80%9F%E9%87%8D%E4%BC%A0%E4%B8%8E%E5%BF%AB%E9%80%9F%E6%81%A2%E5%A4%8D/01.jpg" class="" width="600">
 
 <hr>
 <p>在开始讲解之前，我们需要了解几个基本概念，首先要介绍的就是滑动窗口协议。什么是滑动窗口协议？以及为什么要有它的存在呢？我们知道 TCP 是基于流的协议，发送方每次要发送多少数据给接收方呢？如果发送一个 MSS 效率太低；如果发送太多，接收方消化不了（接收缓冲区满），又或者网络带宽低，造成数据丢包。</p>
 <p>所以发送方需要知道，它每次最多要发送多少数据给接收方比较合适，这里就用到了滑动窗口。滑动窗口就是接收方通告的窗口。</p>
 <p>从上图中，有 11 个字节需要发送给服务端（滑动窗口的单位是：字节），其中滑动窗口为 6 字节大小。1、2、3 前 3 个字节已经被接收并且完成确认。4、5、6 三个字节已经接收，但是还没有进行确认。所以此时发送分可以发送 7、8、9 三个字节给接收方，但是 10、11 不能发送。</p>
 <h2 id="窗口运动"><a href="#窗口运动" class="headerlink" title="窗口运动"></a>窗口运动</h2><hr>
-
+<img src="/articles/2022/12/26/c_unix/TCP(%E4%BA%8C)%E6%85%A2%E5%90%AF%E5%8A%A8,%E6%8B%A5%E5%A1%9E%E9%81%BF%E5%85%8D%E7%AE%97%E6%B3%95,%E5%BF%AB%E9%80%9F%E9%87%8D%E4%BC%A0%E4%B8%8E%E5%BF%AB%E9%80%9F%E6%81%A2%E5%A4%8D/02.jpg" class="" width="600">
 
 <hr>
 <ol>
@@ -278,7 +282,7 @@
 <li>当新的数据被对方确认时，就增加 cwnd，但增加的方法依赖于我们是否在进行慢启动或拥塞避免。如果 cwnd 小于或等于 ssthresh，则正在进行慢启动，否则正在进行拥塞避免。慢启动一直持续到我们回到当拥塞发生时所处位置的半时候才停止，然后转为执行拥塞避免。</li>
 </ol>
 <p>慢启动算法初始设置 cwnd 为 1 个报文段，此后以指数的形式增加。而拥塞避免算法要求每次收到一个 ACk 时，将 cwnd 增加 1/cwnd，也就是说线性的增加增长。也就是说，拥塞避免算法希望在一个往返时间内最多为 cwnd 增加 1 个报文段（不管和这个 RTT 中收到多少个 ACK），而慢启动根据 RTT 中所收到的 ACK 个数增加 cwnd。</p>
-
+<img src="/articles/2022/12/26/c_unix/TCP(%E4%BA%8C)%E6%85%A2%E5%90%AF%E5%8A%A8,%E6%8B%A5%E5%A1%9E%E9%81%BF%E5%85%8D%E7%AE%97%E6%B3%95,%E5%BF%AB%E9%80%9F%E9%87%8D%E4%BC%A0%E4%B8%8E%E5%BF%AB%E9%80%9F%E6%81%A2%E5%A4%8D/03.jpg" class="" width="600">
 
 <p>以上图为例，当 cwnd 为 32 个报文段时就会发生拥塞。于是设置 ssthresh 为 16 个报文段，而 cwnd 为 1 个报文段。时刻 0 发送一个报文段，随着 ACK 的到来，cwnd 以指数的形式增加到 ssthresh 时才停止（慢启动阶段），从该时刻启，cwnd 以线性的方式增加，每个 RTT 内最多增加 1 个报文段（拥塞避免阶段）。</p>
 <h1 id="快速重传与快速恢复"><a href="#快速重传与快速恢复" class="headerlink" title="快速重传与快速恢复"></a>快速重传与快速恢复</h1><p>我们不知道一个重复的 ACK 是由一个丢失的报文段引起的，还是由于仅仅出现了几个报文段的重排序造成的，因此我们等待少量重复的 ACK 到来。加入这只是一些报文段的重新排序，则在重新排序的报文段被处理并产生一个新的 ACK 之前，只可能产生 1~2 个重复的 ACK。如果一连串收到 3 个或 3 个以上重复的 ACK，就非常可能是一个报文段丢失了。于是我们就重传丢失的报文段而不等待超时定时器溢出。这就是<strong>快速重传算法</strong>。接下来执行的不是慢启动算法而是拥塞避免算法，这就是<strong>快速恢复算法</strong>。</p>
@@ -603,14 +607,6 @@ gitalk.render('gitalk-container')
           <ul class="article-tag-list" q-show="showTags">
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">CMake</a>
               </li>
              
@@ -623,7 +619,19 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">Reprint</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">K8s</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -635,27 +643,11 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">K8s</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">C++</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">网络</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -679,6 +671,18 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">网络</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">jvm</a>
               </li>
              
@@ -687,15 +691,15 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">Redis</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">redis</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
               </li>
             
             <div class="clearfix"></div>

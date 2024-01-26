@@ -17,11 +17,16 @@
 <meta property="og:site_name" content="Tubetrue01">
 <meta property="og:description" content="引言 squash 选项通常在分支合并时，将多个 commits 记录合并成一个的操作。squash 并非一个 git 命令，而是 rebase 或者 merge 的一个选项。  何时需要 Squash正如引言所说，squash 只是用来合并多个提交记录。至于是否需要这样做，从某种程度上来说，这只是一个偏好问题。对于有些团队来说，像 master 或者 main 这样的长期运行的分支，squash">
 <meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2022/04/25/git/Git%E7%B3%BB%E5%88%97(%E4%BA%8C)Squash/01.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2022/04/25/git/Git%E7%B3%BB%E5%88%97(%E4%BA%8C)Squash/02.gif">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2022/04/25/git/Git%E7%B3%BB%E5%88%97(%E4%BA%8C)Squash/03.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2022/04/25/git/Git%E7%B3%BB%E5%88%97(%E4%BA%8C)Squash/04.jpg">
 <meta property="article:published_time" content="2022-04-25T08:37:33.000Z">
-<meta property="article:modified_time" content="2024-01-25T01:19:40.961Z">
+<meta property="article:modified_time" content="2022-06-20T01:57:35.000Z">
 <meta property="article:author" content="Tubetrue01">
 <meta property="article:tag" content="git">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://tubetrue01.github.io/articles/2022/04/25/git/Git%E7%B3%BB%E5%88%97(%E4%BA%8C)Squash/01.jpg">
   
     <link rel="alternative" href="/articles/atom.xml" title="Tubetrue01" type="application/atom+xml">
   
@@ -250,23 +255,23 @@
 <h1 id="如何-Squash"><a href="#如何-Squash" class="headerlink" title="如何 Squash"></a>如何 Squash</h1><p>有不同的方式跟工具帮你 squash 你的提交信息。本文，我们只讨论 交互式的 rebase 跟 merge 这两种命令作为 squash 的主要方法。</p>
 <h2 id="交互式的-rebase"><a href="#交互式的-rebase" class="headerlink" title="交互式的 rebase"></a>交互式的 rebase</h2><p>在任何使用交互式的 rebase 时，都可以手动 squash 你的提交记录。本文不会进行更深入的讲解 rebase，只是通过一个简单的例子进行说明：</p>
 <p>如下图所示，我们在 feature/login 分支上完成了开发的全部任务，我们打算把它合并到 main 分支。在合并之前，我们可以清理并压缩它们：</p>
-
+<img src="/articles/2022/04/25/git/Git%E7%B3%BB%E5%88%97(%E4%BA%8C)Squash/01.jpg" class="" width="600">
 
 <p>我们执行以下命令：</p>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> git rebase -i HEAD~3</span></span><br></pre></td></tr></table></figure>
 <p>此时会打开编辑窗口，你可以选择并操作你的提交历史。交互式的 rebase 允许你在你的提交历史上执行多种不同的操作，比如我们要做的 squash。只要记录被标记为 squash，那么它们都会被合并：</p>
-
+<img src="/articles/2022/04/25/git/Git%E7%B3%BB%E5%88%97(%E4%BA%8C)Squash/02.gif" class="" width="600">
 
 <p>最后，为 squash 之后生成的新提交编写提交信息。整个操作就完成了，三个老的提交记录就已经被合并了。</p>
 <h2 id="Merge"><a href="#Merge" class="headerlink" title="Merge"></a>Merge</h2><p>当进行分支合并的时候，也可以进行 squash：</p>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> git merge --squash feature/login</span></span><br><span class="line"></span><br><span class="line">Auto-merging imprint.html</span><br><span class="line">Removing img/iconBlog.png</span><br><span class="line">Auto-merging about.html</span><br><span class="line">Squash commit -- not updating HEAD</span><br><span class="line">Automatic merge went well; stopped before committing as requested</span><br></pre></td></tr></table></figure>
 
 <p>跟 rebase 的 squash 很类似，所有的变更都会合并为一个常规的 merge。变更的记录存在本地仓库中，需要进行手动的提交。</p>
-
+<img src="/articles/2022/04/25/git/Git%E7%B3%BB%E5%88%97(%E4%BA%8C)Squash/03.jpg" class="" width="600">
 
 <p>最后，使用 squash 可以避免因合并而自动创建提交记录。使它看上去更像是只产生了一个单一提交。</p>
 <h1 id="Pull-Requests"><a href="#Pull-Requests" class="headerlink" title="Pull Requests"></a>Pull Requests</h1><p>当合并时进行 squash 通常用于在 Pull Request 关闭的时候。像 GitHub、GitLab 或者 Bitbucket 这些代码管理平台都支持当合并一个 Pull Request 时 squash。</p>
-
+<img src="/articles/2022/04/25/git/Git%E7%B3%BB%E5%88%97(%E4%BA%8C)Squash/04.jpg" class="" width="600">
 
 <hr>
 <h1 id="原文"><a href="#原文" class="headerlink" title="原文"></a>原文</h1><ul>
@@ -582,14 +587,6 @@ gitalk.render('gitalk-container')
           <ul class="article-tag-list" q-show="showTags">
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">CMake</a>
               </li>
              
@@ -602,7 +599,19 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">Reprint</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">K8s</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -614,27 +623,11 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">K8s</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">C++</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">网络</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -658,6 +651,18 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">网络</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">jvm</a>
               </li>
              
@@ -666,15 +671,15 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">Redis</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">redis</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
               </li>
             
             <div class="clearfix"></div>

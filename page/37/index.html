@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-c_cmake/cmake迷你系列(二)创建你自己的库" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-c_cmake/cmake迷你系列(三)分离你的模块" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2021/08/21/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%BA%8C)%E5%88%9B%E5%BB%BA%E4%BD%A0%E8%87%AA%E5%B7%B1%E7%9A%84%E5%BA%93/" target="_blank">cmake 迷你系列（二）创建你自己的库</a>
+	  <a class="article-title" href="/articles/2021/08/21/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%89)%E5%88%86%E7%A6%BB%E4%BD%A0%E7%9A%84%E6%A8%A1%E5%9D%97/" target="_blank">cmake 迷你系列（三）分离你的模块</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2021/08/21/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%BA%8C)%E5%88%9B%E5%BB%BA%E4%BD%A0%E8%87%AA%E5%B7%B1%E7%9A%84%E5%BA%93/" class="archive-article-date">
-        <time datetime="2021-08-21T01:46:50.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-08-21</time>
+<a href="/articles/2021/08/21/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%89)%E5%88%86%E7%A6%BB%E4%BD%A0%E7%9A%84%E6%A8%A1%E5%9D%97/" class="archive-article-date">
+        <time datetime="2021-08-21T04:32:50.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-08-21</time>
 </a>
 
   
@@ -216,39 +216,61 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>上一篇文章 <a href="https://tubetrue01.github.io/articles/2021/08/20/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%80)%E5%BC%80%E5%90%AF/">【开启】</a> 我们从零开始搭建起来了一个简单的 hello world 程序。并在文章的结尾，我们写了一个工具类，用于相加两个数，那么本章就围绕这个工具类展开。</p>
+<p>我们会创建静态库以及动态库之后，接下要分离我们的模块，既然工具包不仅仅是提供给 main 程序的，我们就没有别要它们放到一起了。</p>
 </blockquote>
-<h1 id="你也可以封装库"><a href="#你也可以封装库" class="headerlink" title="你也可以封装库"></a>你也可以封装库</h1><p>我们回顾一下项目结构：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">test</span><br><span class="line"> |---src</span><br><span class="line">      |---main.c</span><br><span class="line">      |---utils.c</span><br><span class="line">      |---utils.h</span><br><span class="line"> |---CMakeLists.txt</span><br></pre></td></tr></table></figure>
-<p>我们直接把 utils.c 同 main.c 打包到了一起，如果我们想把 utils 打包成库，供其他程序使用，应该怎么做呢？</p>
-<h2 id="静态库"><a href="#静态库" class="headerlink" title="静态库"></a>静态库</h2><p>由于我们要单独打库，所以我们需要修改一下我们的编译规则：</p>
-<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.21</span>)</span><br><span class="line"><span class="keyword">project</span>(<span class="keyword">test</span> VERSION <span class="number">0.0</span>.<span class="number">1</span> LANGUAGES C)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CMAKE_C_STANDARD <span class="number">11</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(MAIN_SOURCE</span><br><span class="line">        <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/src/main.c</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(UTILS_SOURCE</span><br><span class="line">        <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/src/utils.c</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_library</span>(utils STATIC <span class="variable">$&#123;UTILS_SOURCE&#125;</span>)</span><br><span class="line"><span class="comment">#add_executable(test $&#123;MAIN_SOURCE&#125;)</span></span><br></pre></td></tr></table></figure>
-<p>我们分析一下以上的修改：</p>
+<h1 id="包就要规整"><a href="#包就要规整" class="headerlink" title="包就要规整"></a>包就要规整</h1><p>我们创建出另外一个包 utils，结构如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">test</span><br><span class="line"> |---CMakeLists.txt</span><br><span class="line"> |---src</span><br><span class="line">      |---CMakeLists.txt</span><br><span class="line">      |---main.c</span><br><span class="line"> |---utils</span><br><span class="line">      |---CMakeLists.txt</span><br><span class="line">      |---utils.c</span><br><span class="line">      |---utils.h</span><br></pre></td></tr></table></figure>
+<p>以上我们做了以下改动：</p>
 <ol>
-<li>6 行，我们使用 set 命令取代之前的 <code>aux_source_directory()</code>，因为我们这次需要把 main 函数跟库分开打。这里 set 指定将 main.c 保存到了 MAIN_SOURCE 变量下，后续只要 <code>$&#123;MAIN_SOURCE&#125;</code> 即可获取，另外注意到 PROJECT_SOURCE_DIR 这个变量，该变量则代表了当前项目的根路径。</li>
-<li>10 行，我们以同样的方式指定了库的源码程序，并存到了 UTILS_SOURCE 变量中。</li>
-<li>14 行，我们使用 <code>add_library</code> 来告诉编译器，我们要生成库，名字是 utils，生成为静态库，参与编译的源码为 UTILS_SOURCE 指定的。当然，static 关键字可以不指定，默认情况下生成的也是静态库。</li>
-<li>15 行，我们把 test 执行文件注释掉，因为它需要静态库，但是此时还没有编译出来，如果不注释掉，当编译的时候会报以下错误：</li>
+<li>新建 utils 包，叫模块应该更加合理。</li>
+<li>将 utils.c、utils.h 放到 utils 模块下。</li>
+<li>同时，我们发现每个模块下都有一个 CMakeLists.txt 文件，这是必须的，如果说你的模块需要参与编译。</li>
 </ol>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Undefined symbols for architecture x86_64:</span><br><span class="line">  &quot;_add&quot;, referenced from:</span><br><span class="line">      _main in main.c.o</span><br><span class="line">ld: symbol(s) not found for architecture x86_64</span><br><span class="line">clang: error: linker command failed with exit code 1 (use -v to see invocation)</span><br><span class="line">make[2]: *** [test] Error 1</span><br><span class="line">make[1]: *** [CMakeFiles/test.dir/all] Error 2</span><br><span class="line">make: *** [all] Error 2</span><br></pre></td></tr></table></figure>
-<p>不过不要紧，后续我们再解决这个问题。</p>
-<ol start="5">
-<li>执行以下命令进行编译：</li>
+<h2 id="整理-CMakeLists-txt"><a href="#整理-CMakeLists-txt" class="headerlink" title="整理 CMakeLists.txt"></a>整理 CMakeLists.txt</h2><p>既然每个包下有一个 CMakeLists.txt 文件，我们接下来要做的就是把根路径里的 CMakeLists.txt 内容提取到各自模块中的 CMakeLists.txt 里。我们先回顾一下根中 CMakeLists.txt 的内容：</p>
+<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.21</span>)</span><br><span class="line"><span class="keyword">project</span>(<span class="keyword">test</span> VERSION <span class="number">0.0</span>.<span class="number">1</span> LANGUAGES C)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CMAKE_C_STANDARD <span class="number">11</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(MAIN_SOURCE</span><br><span class="line">        <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/src/main.c</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(UTILS_SOURCE</span><br><span class="line">        utils/utils.c</span><br><span class="line">        )</span><br><span class="line"><span class="keyword">unset</span>(UTILS_LIB CACHE)</span><br><span class="line"><span class="keyword">find_library</span>(UTILS_LIB NAMES utils PATHS <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/build)</span><br><span class="line"><span class="comment">#add_library(utils SHARED $&#123;UTILS_SOURCE&#125;)</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">add_executable</span>(<span class="keyword">test</span> <span class="variable">$&#123;MAIN_SOURCE&#125;</span>)</span><br><span class="line"><span class="keyword">target_link_libraries</span>(<span class="keyword">test</span> <span class="variable">$&#123;UTILS_LIB&#125;</span>)</span><br></pre></td></tr></table></figure>
+<p>我们要做的就是把 main 下相关的编译信息放到 src 包中的 CMakeLists.txt：</p>
+<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span>(MAIN_SOURCE</span><br><span class="line">        main.c</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_executable</span>(<span class="keyword">test</span> <span class="variable">$&#123;MAIN_SOURCE&#125;</span>)</span><br><span class="line"><span class="keyword">target_link_libraries</span>(<span class="keyword">test</span> <span class="variable">$&#123;UTILS_LIB&#125;</span>)</span><br></pre></td></tr></table></figure>
+
+<p>然后把 utils 模块相关信息放到 utils 模块中的 CMakeLists.txt 文件中：</p>
+<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span>(UTILS_SOURCE</span><br><span class="line">        utils.c</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_library</span>(utils SHARED <span class="variable">$&#123;UTILS_SOURCE&#125;</span>)</span><br></pre></td></tr></table></figure>
+<p>最后我们根路径中的 CMakeLists.txt 中就剩下如下内容：</p>
+<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.21</span>)</span><br><span class="line"><span class="keyword">project</span>(<span class="keyword">test</span> VERSION <span class="number">0.0</span>.<span class="number">1</span> LANGUAGES C)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CMAKE_C_STANDARD <span class="number">11</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">unset</span>(UTILS_LIB CACHE)</span><br><span class="line"><span class="keyword">find_library</span>(UTILS_LIB NAMES utils PATHS <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/build)</span><br></pre></td></tr></table></figure>
+<p>是不是精简了很多？而且各自模块的功能就要放到各自的模块，根包中的就只是单纯的做通用处理。到了这里我们还是没有办法启动我们的项目的，因为我们需要为根中的 CMakeLists.txt 指定它的子。本示例中，我们的子有两个，一个是 src 下的，一个是 utils 下的，所以我们要加进来：</p>
+<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.21</span>)</span><br><span class="line"><span class="keyword">project</span>(<span class="keyword">test</span> VERSION <span class="number">0.0</span>.<span class="number">1</span> LANGUAGES C)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CMAKE_C_STANDARD <span class="number">11</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">unset</span>(UTILS_LIB CACHE)</span><br><span class="line"><span class="keyword">find_library</span>(UTILS_LIB NAMES utils PATHS <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/build/utils)</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_subdirectory</span>(src)</span><br><span class="line"><span class="keyword">add_subdirectory</span>(utils)</span><br></pre></td></tr></table></figure>
+<p>9 行、10 行我们通过 <code>add_subdirectory</code> 指令，将 src、utils 两个模块加入进来。同时我们还要注意第 7 行路径改为：/build/utils，因为添加 utils 模块之后，就会在 build 里添加对应的包了，后续我们会讲解如何打包到指定位置，这样就不用修改我们的程序了。</p>
+<h1 id="安装你的库"><a href="#安装你的库" class="headerlink" title="安装你的库"></a>安装你的库</h1><p>由于编译之后，我们需要修改我们的库路径，所以这里我们指定我们的库安装路径。这样方便查找。<br>我们修改 utils 模块中的 CMakeLists.txt 内容：</p>
+<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span>(UTILS_SOURCE</span><br><span class="line">        utils.c</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_library</span>(utils STATIC <span class="variable">$&#123;UTILS_SOURCE&#125;</span>)</span><br><span class="line"><span class="keyword">add_library</span>(utils-share SHARED <span class="variable">$&#123;UTILS_SOURCE&#125;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">file</span>(STRINGS VERSION version)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set_target_properties</span>(utils-share</span><br><span class="line">        PROPERTIES</span><br><span class="line">        OUTPUT_NAME utils</span><br><span class="line">        PUBLIC_HEADER utils.h</span><br><span class="line">        VERSION <span class="variable">$&#123;version&#125;</span></span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line"><span class="keyword">install</span>(TARGETS utils utils-share</span><br><span class="line">        ARCHIVE DESTINATION <span class="variable">$&#123;LIB_INSTALL_DIR&#125;</span></span><br><span class="line">        LIBRARY DESTINATION <span class="variable">$&#123;LIB_INSTALL_DIR&#125;</span></span><br><span class="line">        PUBLIC_HEADER DESTINATION <span class="variable">$&#123;LIB_INCLUDE_DIR&#125;</span></span><br><span class="line">        )</span><br></pre></td></tr></table></figure>
+<p>内容比较多，不过没有关系，我们一步一步分析：</p>
+<ol>
+<li>5 行、6 行，我们这次同时生成动态库与静态库，由于变量明不能重复，所以动态库我们叫 utils-share。</li>
+<li>我们生成库的时候，一般都会定义一个版本号，所以我们就用 file 指令读取当前路径下的 VERSION 文件中的版本号，并存于 version 变量中。</li>
+<li>由于变量不能重名，导致动态库叫 utils-share，这显然不是我们想要的，所以我们需要给它重新命名，这也是第 10 行的作用。我们修改 utils-share 的属性，OUTPUT_NAME 用来指定动态库生成的名字；PUBLIC_HEADER 用来将我们的头文件暴露出来，毕竟库的使用方通过该头文件才能知道库提供的功能有哪些。VERSION 用于指定动态库的版本号。</li>
+<li>我们在第 17 行安装我们的库，TARGETS 指定我们要安装的目标对象，这里是 utils 静态库，utils-share 动态库两个。接下来的 ARCHIVE 指定我们静态库安装路径，LIBRARY 指定我们动态库安装路径，PUBLIC_HEADER 指定我们头文件安装路径。</li>
+<li>指令中的 LIB_INSTALL_DIR 以及 LIB_INCLUDE_DIR 则是在根路径定义的安装路径。</li>
 </ol>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cmake -S . -B build</span><br><span class="line">cd build</span><br><span class="line">make</span><br></pre></td></tr></table></figure>
-<p>那么在 build 路径下就生成了 libutils.a 这个文件，也就是我们需要的静态库文件。</p>
-<h3 id="使用静态库"><a href="#使用静态库" class="headerlink" title="使用静态库"></a>使用静态库</h3><p>有了静态库文件之后，我们怎么使用它呢？</p>
-<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.21</span>)</span><br><span class="line"><span class="keyword">project</span>(<span class="keyword">test</span> VERSION <span class="number">0.0</span>.<span class="number">1</span> LANGUAGES C)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CMAKE_C_STANDARD <span class="number">11</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(MAIN_SOURCE</span><br><span class="line">        <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/src/main.c</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(UTILS_SOURCE</span><br><span class="line">        <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/src/utils.c</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line"><span class="keyword">find_library</span>(UTILS_LIB NAMES utils PATHS <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/build)</span><br><span class="line"><span class="comment">#add_library(utils STATIC $&#123;UTILS_SOURCE&#125;)</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">add_executable</span>(<span class="keyword">test</span> <span class="variable">$&#123;MAIN_SOURCE&#125;</span>)</span><br><span class="line"><span class="keyword">target_link_libraries</span>(<span class="keyword">test</span> <span class="variable">$&#123;UTILS_LIB&#125;</span>)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>我们着重看一下 14 行以及 18 行。其中 14 行告诉编译器，应该去哪里找库文件，UTILS_LIB 用于存放库信息，NAMES 跟 PATHS 分别代表了库的名字以及查找路径，注意我们生成的库都以 lib + 源码文件的名字开头，如本例中 utils 编译出来的库叫做 libutils.a 。但是我们使用 find_library 查找时，名字可以不用加 lib。<br>找到库之后，我们需要将该库链接到我们的目标程序，这也是 target_link_libraries 所做的工作。该命令则是告诉编译器将 ${UTILS_LIB} 库链接到 test 这个目标程序。<br>接下来就可以启动或者编译我们的源程序了！</p>
-<p><strong>📚 Tips</strong></p>
-<blockquote>
-<p>target_link_libraries 必须要放到 add_executable 指令的下边，也就是说，必须要先生成目标文件，才可以为目标文件创建链接属性。除了 target_link_libraries 命令外，<code>link_libraries($&#123;UTILS_LIB&#125;)</code> 也可以链接，如果我们的库需要全局链接，那么可以使用该命令（并且只有放到根路径中的 CMakeLists.txt 才会生效），否则还是建议使用 target_link_libraries。除此之外还有另外一个不再推荐的指令 target_link_libraries() 。</p>
-</blockquote>
-<h2 id="动态库"><a href="#动态库" class="headerlink" title="动态库"></a>动态库</h2><p>创建好静态库之后，我们这次创建动态库，方法很简单，只将 <code>add_library(utils STATIC $&#123;UTILS_SOURCE&#125;)</code> 修改为 <code>add_library(utils SHARED $&#123;UTILS_SOURCE&#125;)</code> 即可。</p>
-<p>删除 build 路径，重新编译，当动态库创建好之后，启动我们的项目，提示：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">make[3]: *** No rule to make target `../build/libutils.a&#x27;, needed by `test&#x27;.  Stop.</span><br><span class="line">make[2]: *** [CMakeFiles/test.dir/all] Error 2</span><br><span class="line">make[1]: *** [CMakeFiles/test.dir/rule] Error 2</span><br><span class="line">make: *** [test] Error 2</span><br></pre></td></tr></table></figure>
-<p>奇怪了，我们生成的动态库明明是 libutils.dylib，为什么又去找 libutils.a 了呢？我们回想一下，谁来保存我们的库路径？当然是 <code>find_library(UTILS_LIB NAMES utils PATHS $&#123;PROJECT_SOURCE_DIR&#125;/build)</code> 这个指令中的 UTILS_LIB 变量。既然我们生成了新的库，但是它还去找老的静态库，也就是说，这个变量被缓存了。那么怎么解决这个问题呢？很简单，只需要清掉这个缓存就可以了，我们在 <code>find_library(UTILS_LIB NAMES utils PATHS $&#123;PROJECT_SOURCE_DIR&#125;/build)</code> 上添加另外一条指令 <code>unset(UTILS_LIB CACHE)</code>，再启动我们的程序，发现可以正常运行了。</p>
-<hr>
+<p>以上命令会生成三个库文件：libutils.a、libutils.1.0.0.dylib、libutils.dylib。其中 1.0.0 就是 VERSION 文件中定义的版本号，而 libutils.dylib 是一个软链，指向了 libutils.1.0.0.dylib。</p>
+<p>最终根路径中的 CMakeLists.txt 内容如下：</p>
+<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.21</span>)</span><br><span class="line"><span class="keyword">project</span>(<span class="keyword">test</span> VERSION <span class="number">0.0</span>.<span class="number">1</span> LANGUAGES C)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(CMAKE_C_STANDARD <span class="number">11</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">set</span>(LIB_INSTALL_DIR <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/libs/lib)</span><br><span class="line"><span class="keyword">set</span>(LIB_INCLUDE_DIR <span class="variable">$&#123;PROJECT_SOURCE_DIR&#125;</span>/libs/<span class="keyword">include</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">unset</span>(UTILS_LIB CACHE)</span><br><span class="line"><span class="keyword">find_library</span>(UTILS_LIB NAMES utils PATHS <span class="variable">$&#123;LIB_INSTALL_DIR&#125;</span>)</span><br><span class="line"><span class="keyword">find_path</span>(UTILS_HEADER NAMES utils.h PATHS <span class="variable">$&#123;LIB_INCLUDE_DIR&#125;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#include_directories($&#123;UTILS_HEADER&#125;)</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">add_subdirectory</span>(src)</span><br><span class="line"><span class="keyword">add_subdirectory</span>(utils)</span><br></pre></td></tr></table></figure>
+<ol>
+<li>6 行、7 行指定了静态库以及头文件的安装路径。</li>
+<li>10 行指定我们的库文件路径。</li>
+<li>11 行我们这里指定了头文件的安装路径。</li>
+<li>13 行将我们找到的头文件包含进我们的程序中，有读者可能会有疑问，为什么不直接使用 <code>include_directories</code> 把头文件加进来，非要在用个 <code>find_path</code> 呢？其实这里主要是介绍一下 <code>find_path</code> 的用法，一方面是由于 <code>include_directories</code> 的范围有点大，所以我们更推荐的做法是采用 <code>target_include_directories()</code> 指令。除非该头文件是全局都需要使用的。这里我们就直接采用后者的方式，将头文件仅仅包括到当前编译文件中。</li>
+</ol>
+<p>src 下的 CMakeLists.txt 为：</p>
+<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span>(MAIN_SOURCE</span><br><span class="line">        main.c</span><br><span class="line">        )</span><br><span class="line"></span><br><span class="line"><span class="keyword">add_executable</span>(<span class="keyword">test</span> <span class="variable">$&#123;MAIN_SOURCE&#125;</span>)</span><br><span class="line"><span class="keyword">target_include_directories</span>(<span class="keyword">test</span> PRIVATE <span class="variable">$&#123;UTILS_HEADER&#125;</span>)</span><br><span class="line"><span class="keyword">target_link_libraries</span>(<span class="keyword">test</span> <span class="variable">$&#123;UTILS_LIB&#125;</span>)</span><br></pre></td></tr></table></figure>
+<ol>
+<li><p>6 行，我们将头文件编译到 test 目标对象中。这里有个 PRIVATE 关键字，相似的还有 PUBLIC、INTERFACE，那它们分别是什么意思呢？</p>
+<ul>
+<li><strong>PRIVATE</strong><br>私有，指被链接的库仅仅被目标使用，目标不对外暴露这个被链接的库的接口；</li>
+<li><strong>PUBLIC</strong><br>公有，指被链接的库不仅被目标使用，目标还对外暴露这个被链接的库的接口;</li>
+<li><strong>INTERFACE</strong><br>接口，指被链接的库不被目标使用，但目标对外暴露这个被链接的库的接口;</li>
+</ul>
+<p>如果理解起来比较费劲，没有关系，在后续的文章中，我会单独开一篇，详细讲解这些特性。</p>
+</li>
+<li><p>7 行，将生成的库链接到 test 中。</p>
+</li>
+</ol>
 
     
 
@@ -279,7 +301,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2021/08/21/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%BA%8C)%E5%88%9B%E5%BB%BA%E4%BD%A0%E8%87%AA%E5%B7%B1%E7%9A%84%E5%BA%93/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2021/08/21/c_cmake/cmake%E8%BF%B7%E4%BD%A0%E7%B3%BB%E5%88%97(%E4%B8%89)%E5%88%86%E7%A6%BB%E4%BD%A0%E7%9A%84%E6%A8%A1%E5%9D%97/">展开全文 >></a>
     </p>
     
 
@@ -313,7 +335,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/36/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/35/">35</a><a class="page-number" href="/articles/page/36/">36</a><span class="page-number current">37</span><a class="page-number" href="/articles/page/38/">38</a><a class="page-number" href="/articles/page/39/">39</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/66/">66</a><a class="extend next" rel="next" href="/articles/page/38/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/36/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/35/">35</a><a class="page-number" href="/articles/page/36/">36</a><span class="page-number current">37</span><a class="page-number" href="/articles/page/38/">38</a><a class="page-number" href="/articles/page/39/">39</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/67/">67</a><a class="extend next" rel="next" href="/articles/page/38/">下一页</a>
     </nav>
   
 
@@ -437,14 +459,6 @@
           <ul class="article-tag-list" q-show="showTags">
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">CMake</a>
               </li>
              
@@ -457,7 +471,19 @@
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">Reprint</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">K8s</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -469,27 +495,11 @@
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">K8s</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">C++</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">网络</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -513,6 +523,18 @@
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">网络</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">jvm</a>
               </li>
              
@@ -521,15 +543,15 @@
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">Redis</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">redis</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
               </li>
             
             <div class="clearfix"></div>

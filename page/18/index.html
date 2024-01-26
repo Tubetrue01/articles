@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-proxy/TLS混淆(二)解ClientHello" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-proxy/TLS混淆(三)ServerHello" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2022/12/27/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%BA%8C)%E8%A7%A3ClientHello/" target="_blank">TLS 混淆（二）解 ClientHello</a>
+	  <a class="article-title" href="/articles/2022/12/28/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%B8%89)ServerHello/" target="_blank">TLS 混淆（三）Server Hello</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2022/12/27/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%BA%8C)%E8%A7%A3ClientHello/" class="archive-article-date">
-        <time datetime="2022-12-27T09:21:05.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2022-12-27</time>
+<a href="/articles/2022/12/28/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%B8%89)ServerHello/" class="archive-article-date">
+        <time datetime="2022-12-28T05:05:05.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2022-12-28</time>
 </a>
 
   
@@ -216,26 +216,38 @@
   <div class="article-entry" itemprop="articleBody">
     
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p><a href="https://tubetrue01.github.io/articles/2022/12/23/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%B8%80)ClientHello/">【上一篇文章】</a> 介绍了客户端发送请求到服务端进行 Hello Client 握手，本篇继续讲解服务端收到请求之后如何反解析具体的数据。</p>
+<p><a href="https://tubetrue01.github.io/articles/2022/12/27/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%BA%8C)%E8%A7%A3ClientHello/">【上一篇文章】</a> 介绍了服务端混淆插件获取请求之后完成真实数据的提取工作，接下来代理服务器会根据客户端的请求数据扮演客户端的角色完成真实的请求，拿到响应之后，将该响应数据混淆之后发送回客户端。</p>
 </blockquote>
-<h1 id="庐山真面目"><a href="#庐山真面目" class="headerlink" title="庐山真面目"></a>庐山真面目</h1><p>Hello Client 握手包其实就只是一个用来欺骗防火墙的外壳，真正的数据也藏在其中。到达服务端之后，我们首先要做的就是去掉外壳，拿到真实的数据。</p>
+<h1 id="Server-Hello"><a href="#Server-Hello" class="headerlink" title="Server Hello"></a>Server Hello</h1><p>服务端处理完客户端发送过来了 <code>Hello Client</code> 之后，服务端以 <code>Server Hello</code> 包进行响应。</p>
 <ol>
-<li><p>先判断当前是否启用混淆</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (obfs == <span class="literal">NULL</span> || obfs-&gt;deobfs_stage &lt; <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>;</span><br></pre></td></tr></table></figure></li>
-<li><p>如果当前混淆上下文中不存在 extra，实例化它，它的作用我们往后在介绍。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (obfs-&gt;extra == <span class="literal">NULL</span>)</span><br><span class="line">&#123;</span><br><span class="line">    obfs-&gt;extra = ss_malloc(<span class="keyword">sizeof</span>(<span class="keyword">frame_t</span>));</span><br><span class="line">    <span class="built_in">memset</span>(obfs-&gt;extra, <span class="number">0</span>, <span class="keyword">sizeof</span>(<span class="keyword">frame_t</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
-<li><p>为当前混淆上下文初始化缓存，这里分配了 32 个字节。具体的作用，我们稍后介绍。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (obfs-&gt;buf == <span class="literal">NULL</span>)</span><br><span class="line">&#123;</span><br><span class="line">    obfs-&gt;buf = (<span class="keyword">buffer_t</span> *) ss_malloc(<span class="keyword">sizeof</span>(<span class="keyword">buffer_t</span>));</span><br><span class="line">    balloc(obfs-&gt;buf, <span class="number">32</span>);</span><br><span class="line">    obfs-&gt;buf-&gt;len = <span class="number">32</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
-<li><p>由于当前的混淆阶段为 0（Hello Client 握手包，混淆阶段肯定为 0），所以开始解析 <strong>tls_client_hello</strong>。</p>
-</li>
+<li><p>混淆状态的检测</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (obfs == <span class="literal">NULL</span> || obfs-&gt;obfs_stage &lt; <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>;</span><br></pre></td></tr></table></figure></li>
+<li><p>分配临时缓存用于封装之前的响应数据存放</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">buffer_t</span> tmp = &#123;<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="literal">NULL</span>&#125;;</span><br></pre></td></tr></table></figure></li>
+<li><p>Server Hello 包作为响应时，此时混淆阶段为 0，所以我们就直接进入混淆的处理逻辑，与客户端请求的混淆类似。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 存储真实数据的长度</span></span><br><span class="line"><span class="keyword">size_t</span> buf_len = buf-&gt;len;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 计算 server_hello 模板的大小</span></span><br><span class="line"><span class="keyword">size_t</span> hello_len = <span class="keyword">sizeof</span>(struct tls_server_hello);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 计算双方通讯的加密算法（只作为混淆用）模板大小</span></span><br><span class="line"><span class="keyword">size_t</span> change_cipher_spec_len = <span class="keyword">sizeof</span>(struct tls_change_cipher_spec);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 计算握手模板大小</span></span><br><span class="line"><span class="keyword">size_t</span> encrypted_handshake_len = <span class="keyword">sizeof</span>(struct tls_encrypted_handshake);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 总的 Server Hello 包大小</span></span><br><span class="line"><span class="keyword">size_t</span> tls_len = hello_len + change_cipher_spec_len + encrypted_handshake_len + buf_len;</span><br></pre></td></tr></table></figure></li>
+<li><p>将真实数据复制到临时缓存中</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">brealloc(&amp;tmp, buf_len, cap);</span><br><span class="line">brealloc(buf, tls_len, cap);</span><br><span class="line"><span class="comment">// 复制真实数据到 tmp.data</span></span><br><span class="line"><span class="built_in">memcpy</span>(tmp.data, buf-&gt;data, buf_len);</span><br></pre></td></tr></table></figure></li>
+<li><p>计算出了整个 <code>Server Hello</code> 包的大小，那接下来就要填充数值了，首先开始填充 <code>sever hello 模板数据</code></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Server Hello */</span></span><br><span class="line"><span class="built_in">memcpy</span>(buf-&gt;data, &amp;tls_server_hello_template, hello_len);</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tls_server_hello</span> *<span class="title">hello</span> =</span> (struct tls_server_hello *) buf-&gt;data;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 生成当前时间</span></span><br><span class="line">hello-&gt;random_unix_time = CT_HTONL((<span class="keyword">uint32_t</span>) time(<span class="literal">NULL</span>));</span><br><span class="line"><span class="comment">// 生成 28 字节的随机数</span></span><br><span class="line">rand_bytes(hello-&gt;random_bytes, <span class="number">28</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">/* </span></span><br><span class="line"><span class="comment"> * 在上一步解混淆的时候，应创建好 `obfs-&gt;buf`，并且将客户端的 `session id` 保存到了 `obfs-&gt;buf-&gt;data` 中，现在只需要取出来存到 `hello` 模板中（同一个连接，共用同一个 obfs 上下文对象）</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (obfs-&gt;buf != <span class="literal">NULL</span>)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">memcpy</span>(hello-&gt;session_id, obfs-&gt;buf-&gt;data, <span class="number">32</span>);</span><br><span class="line">&#125; <span class="keyword">else</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 如果不存在，只能随机一个了</span></span><br><span class="line">    rand_bytes(hello-&gt;session_id, <span class="number">32</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们看下 server hello 模板：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">tls_server_hello</span></span></span><br><span class="line"><span class="class">        <span class="title">tls_server_hello_template</span> =</span> &#123;</span><br><span class="line">        <span class="comment">// 0x16 代表此次内容为握手协议</span></span><br><span class="line">        .content_type = <span class="number">0x16</span>,</span><br><span class="line">        <span class="comment">// 0x0301 代表 TLS 版本号 1.0</span></span><br><span class="line">        .version = CT_HTONS(<span class="number">0x0301</span>),</span><br><span class="line">        <span class="comment">// 内容长度固定 91 字节，也就是 len 字段之后到 ec_point_formats 字段的总长度</span></span><br><span class="line">        .len = CT_HTONS(<span class="number">91</span>),</span><br><span class="line">        <span class="comment">// 握手类型 2 代表 server hello 握手</span></span><br><span class="line">        .handshake_type = <span class="number">2</span>,</span><br><span class="line">        <span class="comment">// 以下两个字段固定为 0x0057，也就是 87 字节代表 handshake_version 到 ec_point_formats 的总长度</span></span><br><span class="line">        .handshake_len_1 = <span class="number">0</span>,</span><br><span class="line">        .handshake_len_2 = CT_HTONS(<span class="number">87</span>),</span><br><span class="line">        <span class="comment">// 握手版本，0x0303 代表 TLS 1.2</span></span><br><span class="line">        .handshake_version = CT_HTONS(<span class="number">0x0303</span>),</span><br><span class="line"></span><br><span class="line">        .random_unix_time = <span class="number">0</span>,</span><br><span class="line">        .random_bytes = &#123;<span class="number">0</span>&#125;,</span><br><span class="line"></span><br><span class="line">        .session_id_len = <span class="number">32</span>,</span><br><span class="line">        .session_id = &#123;<span class="number">0</span>&#125;,</span><br><span class="line">        <span class="comment">// 0xCCA8 代表加密算法用的是 TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256</span></span><br><span class="line">        .cipher_suite = CT_HTONS(<span class="number">0xCCA8</span>),</span><br><span class="line">        <span class="comment">// 不启用压缩算法</span></span><br><span class="line">        .comp_method = <span class="number">0</span>,</span><br><span class="line">        <span class="comment">// 扩展长度为 0，也就意味着以下内容将不进行展示</span></span><br><span class="line">        .ext_len = <span class="number">0</span>,</span><br><span class="line"></span><br><span class="line">        .ext_renego_info_type = CT_HTONS(<span class="number">0xFF01</span>),</span><br><span class="line">        .ext_renego_info_ext_len = CT_HTONS(<span class="number">1</span>),</span><br><span class="line">        .ext_renego_info_len = <span class="number">0</span>,</span><br><span class="line"></span><br><span class="line">        .extended_master_secret_type = CT_HTONS(<span class="number">0x0017</span>),</span><br><span class="line">        .extended_master_secret_ext_len = <span class="number">0</span>,</span><br><span class="line"></span><br><span class="line">        .ec_point_formats_ext_type = CT_HTONS(<span class="number">0x000B</span>),</span><br><span class="line">        .ec_point_formats_ext_len = CT_HTONS(<span class="number">2</span>),</span><br><span class="line">        .ec_point_formats_len = <span class="number">1</span>,</span><br><span class="line">        .ec_point_formats = &#123;<span class="number">0</span>&#125;,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></li>
+<li><p>密钥交换模板</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Change Cipher Spec */</span></span><br><span class="line"><span class="built_in">memcpy</span>(buf-&gt;data + hello_len, &amp;tls_change_cipher_spec_template, change_cipher_spec_len);</span><br></pre></td></tr></table></figure>
+<p>模板数据：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">tls_change_cipher_spec</span></span></span><br><span class="line"><span class="class">        <span class="title">tls_change_cipher_spec_template</span> =</span> &#123;</span><br><span class="line">        <span class="comment">// 类型 0x14 代表密钥交换</span></span><br><span class="line">        .content_type = <span class="number">0x14</span>,</span><br><span class="line">        <span class="comment">// 代表 TLS 1.2</span></span><br><span class="line">        .version = CT_HTONS(<span class="number">0x0303</span>),</span><br><span class="line">        <span class="comment">// 内容长度</span></span><br><span class="line">        .len = CT_HTONS(<span class="number">1</span>),</span><br><span class="line">        <span class="comment">// 消息内容</span></span><br><span class="line">        .msg = <span class="number">0x01</span>,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></li>
+<li><p>加密的握手信息</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Encrypted Handshake */</span></span><br><span class="line"><span class="built_in">memcpy</span>(buf-&gt;data + hello_len + change_cipher_spec_len, &amp;tls_encrypted_handshake_template,</span><br><span class="line">       encrypted_handshake_len);</span><br></pre></td></tr></table></figure>
+<p>模板数据：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">tls_encrypted_handshake</span></span></span><br><span class="line"><span class="class">        <span class="title">tls_encrypted_handshake_template</span> =</span> &#123;</span><br><span class="line">        <span class="comment">// 0x16 代表内容为加密的握手信息</span></span><br><span class="line">        .content_type = <span class="number">0x16</span>,</span><br><span class="line">        <span class="comment">// 版本为 TLS 1.2</span></span><br><span class="line">        .version = CT_HTONS(<span class="number">0x0303</span>),</span><br><span class="line">        <span class="comment">// 实际的数据长度</span></span><br><span class="line">        .len = <span class="number">0</span>,</span><br><span class="line">        <span class="comment">// char msg[len];</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></li>
+<li><p>真实数据填充</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 将数据复制到报文尾部，也就是存到 tls_encrypted_handshake 的 msg 字段中</span></span><br><span class="line"><span class="built_in">memcpy</span>(buf-&gt;data + hello_len + change_cipher_spec_len + encrypted_handshake_len,</span><br><span class="line">       tmp.data, buf_len);</span><br></pre></td></tr></table></figure></li>
+<li><p>收尾</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 获取加密的握手信息指针</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tls_encrypted_handshake</span> *<span class="title">encrypted_handshake</span> =</span></span><br><span class="line">                (struct tls_encrypted_handshake *) (buf-&gt;data + hello_len + change_cipher_spec_len);</span><br><span class="line"><span class="comment">// 设置数据大小                </span></span><br><span class="line">encrypted_handshake-&gt;len = CT_HTONS(buf_len);</span><br><span class="line"><span class="comment">// buf-&gt;len 保存整个报文大小</span></span><br><span class="line">buf-&gt;len = tls_len;</span><br><span class="line"><span class="comment">// 递增混淆阶段</span></span><br><span class="line">obfs-&gt;obfs_stage++;</span><br></pre></td></tr></table></figure></li>
 </ol>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * buf-&gt;len 为整个 Hello Client 数据包的长度，包括：固定的混淆模板 + 数据 + 混淆域名长度</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">int</span> len = buf-&gt;len;</span><br><span class="line"></span><br><span class="line">len -= <span class="keyword">sizeof</span>(struct tls_client_hello);</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 减去 client hello 模板数据后为 0，说明此数据包有问题</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (len &lt;= <span class="number">0</span>) <span class="keyword">return</span> OBFS_NEED_MORE;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 将 hello 指针指向数据起始地址，用于取值</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tls_client_hello</span> *<span class="title">hello</span> =</span> (struct tls_client_hello *) buf-&gt;data;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* </span></span><br><span class="line"><span class="comment"> * 如果握手类型与 hello client 中的类型不一致，说明包出现了问题</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (hello-&gt;content_type != tls_client_hello_template.content_type)</span><br><span class="line">    <span class="keyword">return</span> OBFS_ERROR;</span><br><span class="line">    </span><br><span class="line"><span class="comment">/* </span></span><br><span class="line"><span class="comment"> * hello-&gt;len 是整个 Hello Client 内容的长度，加上 5 字节则代表整个 Hello Client 报文的大小（content_type、version、len 总共 5B），</span></span><br><span class="line"><span class="comment"> * 理论上该字段与 buf-&gt;len 字段大小一致</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">size_t</span> hello_len = CT_NTOHS(hello-&gt;len) + <span class="number">5</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 取 Hello Client 包中的 Session Id 字段，存与混淆上下文中的缓存里（步骤 3 中的缓存就是出于这个目的）</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="built_in">memcpy</span>(obfs-&gt;buf-&gt;data, hello-&gt;session_id, <span class="number">32</span>);</span><br></pre></td></tr></table></figure>
-<ol start="5">
-<li>获取真实数据</li>
-</ol>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 计算 session ticket 头大小</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">len -= <span class="keyword">sizeof</span>(struct tls_ext_session_ticket);</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 如果小于 0，则说明数据包出现了问题</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (len &lt;= <span class="number">0</span>) <span class="keyword">return</span> OBFS_NEED_MORE;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 计算指针偏移，获取 ticket 指针</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tls_ext_session_ticket</span> *<span class="title">ticket</span> =</span></span><br><span class="line">        (struct tls_ext_session_ticket *) (buf-&gt;data + <span class="keyword">sizeof</span>(struct tls_client_hello));</span><br><span class="line">        </span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 判断当前类型是否一致        </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (ticket-&gt;session_ticket_type != tls_ext_session_ticket_template.session_ticket_type)</span><br><span class="line">    <span class="keyword">return</span> OBFS_ERROR;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* </span></span><br><span class="line"><span class="comment"> * 获取真实数据长度</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">size_t</span> ticket_len = CT_NTOHS(ticket-&gt;session_ticket_ext_len);</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 如果去掉 hello client 头跟 ticket 头之后的长度 len 比数据内容还小，显然是有问题的</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (len &lt; ticket_len)</span><br><span class="line">    <span class="keyword">return</span> OBFS_NEED_MORE;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 将真实数据存放到 buf-&gt;data 中，注意这里用到了 memmove 函数，是因为内存肯定有重叠，</span></span><br><span class="line"><span class="comment"> * 此操作完成了以后，buf 中的数据只能通过 ticket_len 表示出有用的数据地址</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">memmove(buf-&gt;data, (<span class="keyword">char</span> *) ticket + <span class="keyword">sizeof</span>(struct tls_ext_session_ticket), ticket_len);</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 这是一个有意思的点，buf-&gt;len 是客户端传进来的，它等于 tls_len，</span></span><br><span class="line"><span class="comment"> * 而 tls_len 等于 buf_len + hello_len + server_name_len + host_len + ticket_len + other_ext_len，</span></span><br><span class="line"><span class="comment"> * 其中只有 buf_len 数据大小跟 host_len 混淆主机名长度是动态的，其他都是固定不变的。</span></span><br><span class="line"><span class="comment"> * 我们再来看看 hello_len，它是数据报文的 len 字段加 5 字节之后的大小，也就是整个 Hello Client 报文的大小。</span></span><br><span class="line"><span class="comment"> * 两者其实是等价的，但是为什么还会有这个判断逻辑呢？大家不妨可以先思考下</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (buf-&gt;len &gt; hello_len)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * buf-&gt;data + hello_len 指向了包的结尾，此次操作是将数据包之外多余的数据追加到数据之后</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    memmove(buf-&gt;data + ticket_len, buf-&gt;data + hello_len, buf-&gt;len - hello_len);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 将 buf-&gt;len 重新赋值为数据的真实长度</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">buf-&gt;len = ticket_len + buf-&gt;len - hello_len;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 递增混淆阶段</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">obfs-&gt;deobfs_stage++;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 如果有额外的数据</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (buf-&gt;len &gt; ticket_len)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * 需要解混淆数据内容</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">return</span> deobfs_app_data(buf, ticket_len, obfs);</span><br><span class="line">&#125; <span class="keyword">else</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * 思考一下，buf-&gt;len 除了等于 ticket_len 之外，存在小于 ticket_len 也就是说 buf-&gt;len - hello_len 为负的情况吗？</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    ((<span class="keyword">frame_t</span> *) obfs-&gt;extra)-&gt;idx = buf-&gt;len - ticket_len;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>以上就是对 Hello Client 解混淆的介绍，其中有几个令人疑惑的点，<code>deobfs_app_data</code> 、<code>Session Id</code> 的作用？什么情况会有额外的数据？<code>buf-&gt;len</code> 有可能比 <code>ticket_len</code> 小吗？不要着急，后续的文章会对这些内容逐一解释。</p>
-<p>此外，我们还要记住的一点是，obfs 上下文对象是针对于当前连接存在的。只要当前连接没有被销毁，obfs 就是同一个对象。</p>
+<h3 id="实际的-TLS-混淆响应数据包"><a href="#实际的-TLS-混淆响应数据包" class="headerlink" title="实际的 TLS 混淆响应数据包"></a>实际的 TLS 混淆响应数据包</h3><img src="/articles/2022/12/28/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%B8%89)ServerHello/01.jpg" class="" width="800">
+
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>请求数据的混淆是将数据放到了 <code>session ticket</code> 中，而响应的混淆是将数据存放到了 <code>encrypted handshake</code> 中。</p>
 
     
 
@@ -262,7 +274,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2022/12/27/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%BA%8C)%E8%A7%A3ClientHello/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2022/12/28/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%B8%89)ServerHello/">展开全文 >></a>
     </p>
     
 
@@ -296,7 +308,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/17/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/16/">16</a><a class="page-number" href="/articles/page/17/">17</a><span class="page-number current">18</span><a class="page-number" href="/articles/page/19/">19</a><a class="page-number" href="/articles/page/20/">20</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/66/">66</a><a class="extend next" rel="next" href="/articles/page/19/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/17/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/16/">16</a><a class="page-number" href="/articles/page/17/">17</a><span class="page-number current">18</span><a class="page-number" href="/articles/page/19/">19</a><a class="page-number" href="/articles/page/20/">20</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/67/">67</a><a class="extend next" rel="next" href="/articles/page/19/">下一页</a>
     </nav>
   
 
@@ -420,14 +432,6 @@
           <ul class="article-tag-list" q-show="showTags">
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">CMake</a>
               </li>
              
@@ -440,7 +444,19 @@
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">Reprint</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">K8s</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -452,27 +468,11 @@
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">K8s</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">C++</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">网络</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -496,6 +496,18 @@
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">网络</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">jvm</a>
               </li>
              
@@ -504,15 +516,15 @@
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">Redis</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">redis</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
               </li>
             
             <div class="clearfix"></div>

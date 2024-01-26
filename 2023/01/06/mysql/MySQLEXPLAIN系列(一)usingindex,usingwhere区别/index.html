@@ -17,11 +17,29 @@
 <meta property="og:site_name" content="Tubetrue01">
 <meta property="og:description" content="引言 开发中，为了查看 SQL 的执行计划，通常都会 Explain 一下，对 SQL 进行分析，以查看索引的使用情况。Extra 内容比较多，本文着重介绍一下 Using index、Using where Using index、Using index condition、Using where 的几种情况。  准备工作我们以一个简单的学生表为例进行说明（MySQL 的版本为 8.0.31）。">
 <meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/01.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/02.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/03.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/04.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/05.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/06.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/07.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/08.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/09.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/10.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/11.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/12.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/13.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/14.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/15.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/16.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/17.jpg">
 <meta property="article:published_time" content="2023-01-06T12:12:05.000Z">
-<meta property="article:modified_time" content="2024-01-25T01:19:40.992Z">
+<meta property="article:modified_time" content="2023-07-20T07:40:14.000Z">
 <meta property="article:author" content="Tubetrue01">
 <meta property="article:tag" content="MySQL">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://tubetrue01.github.io/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/01.jpg">
   
     <link rel="alternative" href="/articles/atom.xml" title="Tubetrue01" type="application/atom+xml">
   
@@ -249,7 +267,7 @@
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 开启允许创建函数</span></span><br><span class="line"><span class="keyword">SET</span> <span class="keyword">GLOBAL</span> log_bin_trust_function_creators <span class="operator">=</span> <span class="number">1</span>;</span><br><span class="line"><span class="keyword">DROP</span> <span class="keyword">FUNCTION</span> IF <span class="keyword">EXISTS</span> rand_name;    </span><br><span class="line"><span class="comment">-- 创建随机生成姓名函数 rand_name</span></span><br><span class="line">delimiter $$</span><br><span class="line"></span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">FUNCTION</span> rand_name(n <span class="type">int</span>) <span class="keyword">RETURNS</span> <span class="type">varchar</span>(<span class="number">16</span>)</span><br><span class="line"><span class="keyword">BEGIN</span></span><br><span class="line">    <span class="keyword">DECLARE</span> family_str <span class="type">varchar</span> (<span class="number">128</span>) <span class="keyword">default</span> <span class="string">&#x27;张王孙李周吴赵董郑尹刘孟&#x27;</span>;</span><br><span class="line">    <span class="keyword">DECLARE</span> name_str <span class="type">varchar</span> (<span class="number">128</span>) <span class="keyword">default</span> <span class="string">&#x27;平书丽颜莹佳若山向秋凡白斌绮源鹏雯奇润语芯烟蕾天曼绮彤文宇紫星飞玉凡梅敏&#x27;</span>;</span><br><span class="line">    <span class="keyword">DECLARE</span> i <span class="type">int</span> <span class="keyword">default</span> <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">DECLARE</span> full_name <span class="type">varchar</span>(<span class="number">16</span>) <span class="keyword">default</span> <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">    <span class="keyword">DECLARE</span> rand_num <span class="type">int</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    WHILE i <span class="operator">&lt;</span> n DO</span><br><span class="line">        <span class="keyword">SET</span> full_name <span class="operator">=</span> IF(i <span class="operator">&gt;</span> <span class="number">0</span>, concat(full_name, <span class="string">&#x27;,&#x27;</span>), full_name);</span><br><span class="line">        <span class="keyword">SET</span> full_name <span class="operator">=</span> concat(full_name, SUBSTR(family_str, <span class="built_in">floor</span>(<span class="number">1</span><span class="operator">+</span>rand()<span class="operator">*</span><span class="number">16</span>), <span class="number">1</span>));</span><br><span class="line">        <span class="keyword">SET</span> full_name <span class="operator">=</span> concat(full_name, SUBSTR(name_str, <span class="built_in">floor</span>(<span class="number">1</span><span class="operator">+</span>rand()<span class="operator">*</span><span class="number">16</span>), <span class="number">1</span>));</span><br><span class="line">        <span class="keyword">SET</span> rand_num <span class="operator">=</span> rand()<span class="operator">*</span><span class="number">10</span>;</span><br><span class="line">        <span class="keyword">SET</span> full_name <span class="operator">=</span> IF(rand_num <span class="operator">&gt;</span> <span class="number">5</span>, concat(full_name, SUBSTR(name_str, <span class="built_in">floor</span>(<span class="number">1</span><span class="operator">+</span>rand()<span class="operator">*</span><span class="number">16</span>), <span class="number">1</span>)), full_name);</span><br><span class="line">        <span class="keyword">SET</span> i <span class="operator">=</span> i <span class="operator">+</span> <span class="number">1</span>;</span><br><span class="line">    <span class="keyword">END</span> WHILE;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">RETURN</span> full_name;</span><br><span class="line"></span><br><span class="line"><span class="keyword">END</span>$$ </span><br><span class="line">delimiter ; </span><br><span class="line"></span><br><span class="line"><span class="comment">-- 创建存储过程</span></span><br><span class="line"><span class="keyword">DROP</span> <span class="keyword">PROCEDURE</span> IF <span class="keyword">EXISTS</span> insert_student;</span><br><span class="line">delimiter $$</span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">PROCEDURE</span> insert_student(<span class="keyword">in</span> num <span class="type">int</span>)</span><br><span class="line"><span class="keyword">BEGIN</span></span><br><span class="line">    <span class="comment">-- 记录循环次数</span></span><br><span class="line">    <span class="keyword">DECLARE</span> i <span class="type">int</span> <span class="keyword">default</span> <span class="number">0</span>;</span><br><span class="line">    <span class="comment">-- 关闭自动提交</span></span><br><span class="line">    <span class="keyword">SET</span> autocommit <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line">    <span class="comment">-- 循环 insert</span></span><br><span class="line">    WHILE i <span class="operator">&lt;</span> num do</span><br><span class="line">        <span class="keyword">INSERT</span> <span class="keyword">INTO</span> student_info(username, class_id, user_id, age) <span class="keyword">VALUES</span> </span><br><span class="line">        (rand_name(<span class="number">1</span>), <span class="built_in">floor</span>(<span class="number">15</span> <span class="operator">+</span> rand()<span class="operator">*</span><span class="number">10</span>), <span class="built_in">floor</span>(rand()<span class="operator">*</span><span class="number">10000</span> <span class="operator">+</span> rand()<span class="operator">*</span><span class="number">1000</span>), <span class="built_in">floor</span>(<span class="number">10</span> <span class="operator">+</span> rand()<span class="operator">*</span><span class="number">10</span>));</span><br><span class="line">        <span class="keyword">SET</span> i <span class="operator">=</span> i <span class="operator">+</span> <span class="number">1</span>;</span><br><span class="line">    <span class="keyword">END</span> WHILE;</span><br><span class="line">    <span class="keyword">COMMIT</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">END</span>$$</span><br><span class="line">delimiter ;</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 生成测试数据</span></span><br><span class="line"><span class="keyword">CALL</span> insert_student(<span class="number">1000000</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 对 user_id 去重</span></span><br><span class="line"><span class="keyword">DELETE</span> </span><br><span class="line"><span class="keyword">FROM</span></span><br><span class="line">    student_info</span><br><span class="line"><span class="keyword">WHERE</span></span><br><span class="line">    id <span class="keyword">NOT</span> <span class="keyword">IN</span> ( <span class="keyword">SELECT</span> tmp.minid <span class="keyword">FROM</span> ( <span class="keyword">SELECT</span> <span class="built_in">MIN</span>( id ) <span class="keyword">AS</span> minid <span class="keyword">FROM</span> student_info <span class="keyword">GROUP</span> <span class="keyword">BY</span> user_id ) tmp )</span><br></pre></td></tr></table></figure>
 <h1 id="Extra"><a href="#Extra" class="headerlink" title="Extra"></a>Extra</h1><p>我们以一个简单的 SQL 开始：</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> id <span class="operator">=</span> <span class="number">1</span>;</span><br></pre></td></tr></table></figure>
-
+<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/01.jpg" class="" width="800">
 
 <p><code>id</code> 为表的自增主键，也是 <code>Innodb</code> 的聚簇索引，所以通过 <code>id</code> 进行查询，它的 <code>Explain</code> 如上图所示，其中我们需要关注以下几个字段：</p>
 <ul>
@@ -283,17 +301,17 @@
 </blockquote>
 <p>文章开始时，我们为表 <code>studen_info</code> 中的字段 <code>user_id</code>、<code>username</code>、<code>class_id</code> 创建了一个联合索引，那么对应的相当于产生了以下三个索引：（<code>user_id</code>）、（<code>user_id，username</code>）、（<code>user_id，username，class_id</code>），也就是前导列。</p>
 <h3 id="匹配前导列（精确查询）"><a href="#匹配前导列（精确查询）" class="headerlink" title="匹配前导列（精确查询）"></a>匹配前导列（精确查询）</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> user_id <span class="operator">=</span> <span class="string">&#x27;5630&#x27;</span>;</span><br></pre></td></tr></table></figure>
-
+<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/02.jpg" class="" width="800">
 
 <p>由于使用 <code>user_id</code> 前导列进行查询，得到的 <code>type</code> 为 <code>ref</code>，也就是采用了非唯一索引扫描，<code>key_len</code> 为 <code>4</code> 字节（因为 <code>user_id</code> 采用 int 类型），<code>Extra</code> 为 NULL。此时 MySQL 会回表查询额外的字段。</p>
 <hr>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> user_id <span class="operator">=</span> <span class="number">1277</span> <span class="keyword">AND</span> username <span class="operator">=</span> <span class="string">&#x27;山&#x27;</span> </span><br></pre></td></tr></table></figure>
-
+<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/03.jpg" class="" width="800">
 
 <hr>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> user_id <span class="operator">=</span> <span class="number">1277</span> <span class="keyword">AND</span> username <span class="operator">=</span> <span class="string">&#x27;山&#x27;</span> <span class="keyword">AND</span> class_id <span class="operator">=</span> <span class="number">121</span></span><br></pre></td></tr></table></figure>
 
-
+<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/04.jpg" class="" width="800">
 
 
 <p><strong>💡 总结</strong></p>
@@ -301,30 +319,30 @@
 <p>通过以上看出，当索引是前导列时，它们的检索 type 是 ref，filtered 为 100 说明能根据索引命中数据。唯一有变化的就是 key_len，当前导列为三个索引时，ken_len 为 42。int 类型的 user_id、class_id 各占 4B，username 类型为 varchar(8) ，而字符集是 utf8mb4，所以它占用 8 * 4 + 2（变长类型需要额外的 2B 表示长度）。</p>
 </blockquote>
 <h3 id="匹配前导列（范围-模糊）"><a href="#匹配前导列（范围-模糊）" class="headerlink" title="匹配前导列（范围/模糊）"></a>匹配前导列（范围/模糊）</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> user_id <span class="operator">&gt;</span> <span class="number">1277</span></span><br></pre></td></tr></table></figure>
-
+<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/05.jpg" class="" width="800">
 
 <p>如果我们对 <code>user_id</code> 采用范围查询，发现 MySQL 进行全表扫描，即 <code>type</code> 为 <code>ALL</code>，而 <code>Extra</code> 为 <code>Using where</code> 说明应用层做了条件过滤。</p>
 <hr>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> user_id <span class="operator">=</span> <span class="number">1277</span> <span class="keyword">AND</span> username <span class="keyword">like</span> <span class="string">&#x27;山&#x27;</span> </span><br></pre></td></tr></table></figure>
-
+<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/06.jpg" class="" width="800">
 
 <p>如果 <code>user_id</code> 做精确匹配，然后 <code>username</code> 做模糊查询，得到的 <code>type</code> 为 <code>range</code>，说明 MySQL 进行了 索引范围扫描。<code>Extra</code> 为 <code>Using index condition</code> 说明查询条件中出现了索引列，但是有部分条件无法使用索引，MySQL 会根据能用的索引条件先搜索一遍数据再匹配无法使用索引的条件。该过程是在引擎层完成的，所以属于新版本的优化。</p>
 <h3 id="前导列不匹配"><a href="#前导列不匹配" class="headerlink" title="前导列不匹配"></a>前导列不匹配</h3><p>如果前导列不匹配那么会发生什么情况呢？从前边例子中我们发现，如果 <code>user_id</code> 为范围查找时，就会出现前导列不匹配的一种情况，MySQL 会进行全表扫描，然后使用服务层的条件筛选，即 <code>Using where</code>。那么其他的前导列不匹配的场景是不是也一样呢？</p>
 <p><strong>精确查询</strong></p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> username <span class="operator">=</span> <span class="string">&#x27;山&#x27;</span></span><br></pre></td></tr></table></figure>
-
+<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/07.jpg" class="" width="800">
 
 <p>从图中我们看到，MySQL 进行了全表扫描，即 <code>type</code> 为 <code>ALL</code><br>。然后采用服务层过滤，即 <code>Extra</code> 为 <code>Using where</code>。</p>
 <p><strong>模糊查询</strong></p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> student_info <span class="keyword">where</span> username <span class="keyword">like</span> <span class="string">&#x27;test&#x27;</span> <span class="keyword">AND</span> class_id <span class="operator">&gt;</span> <span class="number">100</span></span><br></pre></td></tr></table></figure>
 
-
+<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/08.jpg" class="" width="800">
 
 <p>与精确查询一样，也进行了全表扫描，同时服务层做筛选。</p>
 <h3 id="非索引筛选"><a href="#非索引筛选" class="headerlink" title="非索引筛选"></a>非索引筛选</h3><p>如果我们使用非索引进行筛选过滤又会发生什么呢？</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> student_info <span class="keyword">where</span> age <span class="operator">&gt;</span> <span class="number">10</span></span><br></pre></td></tr></table></figure>
 
-
+<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/09.jpg" class="" width="800">
 
 <p>MySQL 仍然进行了全表扫描。</p>
 <p><strong>💡 总结</strong></p>
@@ -333,16 +351,16 @@
 </blockquote>
 <h2 id="查询列被索引覆盖"><a href="#查询列被索引覆盖" class="headerlink" title="查询列被索引覆盖"></a>查询列被索引覆盖</h2><p>我们分析了查询列未命中索引的场景，接下来我们看看如果命中索引时，会出现什么情况。</p>
 <h3 id="前导列命中"><a href="#前导列命中" class="headerlink" title="前导列命中"></a>前导列命中</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> username, class_id, user_id <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> user_id <span class="operator">=</span> <span class="number">100</span></span><br></pre></td></tr></table></figure>
-
+<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/10.jpg" class="" width="800">
 
 <p><code>username</code>、<code>class_id</code>、<code>user_id</code> 都是联合索引里的成员，而筛选条件也是匹配前导列，所以我们看到 <code>Extra</code> 为 <code>Using index</code>，<code>rows</code> 为 1，<code>ref</code> 为 <code>const</code> 说明 MySQL 直接使用二级索引就完成数据的查询与过滤，并不需要回表。</p>
 <h3 id="前导列范围查询"><a href="#前导列范围查询" class="headerlink" title="前导列范围查询"></a>前导列范围查询</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> username, class_id, user_id <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> user_id <span class="operator">&gt;</span> <span class="number">100</span></span><br></pre></td></tr></table></figure>
 
-
+<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/11.jpg" class="" width="800">
 
 <p>我们发现 <code>Extra</code> 为 <code>Using where; Using index</code>，<code>type</code> 为 <code>rang</code> 说明进行了索引范围的扫描，意味着无法直接通过索引查找来查询到符合条件的数据。</p>
 <h3 id="非前导列筛选"><a href="#非前导列筛选" class="headerlink" title="非前导列筛选"></a>非前导列筛选</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> username, class_id, user_id <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> create_date <span class="operator">&gt;</span> <span class="string">&#x27;2021-12-11 10:22:11&#x27;</span></span><br></pre></td></tr></table></figure>
-
+<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/12.jpg" class="" width="800">
 
 <p>毫无疑问，肯定是需要回表的。</p>
 <p><strong>💡 总结</strong></p>
@@ -353,12 +371,12 @@
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> INDEX age <span class="keyword">ON</span> student_info (age)</span><br></pre></td></tr></table></figure>
 <p>我们为 <code>age</code> 单独创建一个索引，然后查询一下看看：</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> username, class_id, user_id, age <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> user_id <span class="operator">=</span> <span class="number">100</span></span><br></pre></td></tr></table></figure>
-
+<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/13.jpg" class="" width="800">
 
 <p>我们发现 MySQL 回表查询了。</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> username, class_id, user_id, age <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> age <span class="operator">=</span> <span class="number">12</span></span><br></pre></td></tr></table></figure>
 
-
+<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/14.jpg" class="" width="800">
 
 <p><strong>💡 总结</strong></p>
 <blockquote>
@@ -366,15 +384,15 @@
 </blockquote>
 <h1 id="索引下推"><a href="#索引下推" class="headerlink" title="索引下推"></a>索引下推</h1><p>什么是索引下推呢？还记得 <code>Extra</code> 为 <code>Using index condition</code> 这种情况吗？就是当查询字段未覆盖索引，筛选条件中的前导列部分索引不匹配，MySQL 会在索引扫描部分数据之后，让引擎再根据未匹配的索引过滤。将过滤好的数据交给服务层，依次来减少 <code>IO</code> 操作。如以下例子：</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EXPLAIN <span class="keyword">SELECT</span> age <span class="keyword">FROM</span> student_info <span class="keyword">WHERE</span> user_id <span class="operator">=</span> <span class="number">100</span> <span class="keyword">AND</span> class_id <span class="operator">&gt;</span> <span class="number">11</span></span><br></pre></td></tr></table></figure>
-
+<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/15.jpg" class="" width="800">
 
 <p>前提是前导列中有索引可以匹配上，而部分索引不匹配（由范围、模糊查询、顺序等原因造成的）。如果仅有的索引列不匹配，那么将进行全表扫描，如图：</p>
-
+<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/16.jpg" class="" width="800">
 
 <p>索引下推是 <code>Mysql 5.6</code> 推出的功能，我们看下，如果我们关闭这个功能，MySQL 的行为是怎样的：</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SET</span> optimizer_switch<span class="operator">=</span>&quot;index_condition_pushdown=off&quot;;</span><br></pre></td></tr></table></figure>
 
-
+<img src="/articles/2023/01/06/mysql/MySQLEXPLAIN%E7%B3%BB%E5%88%97(%E4%B8%80)usingindex,usingwhere%E5%8C%BA%E5%88%AB/17.jpg" class="" width="800">
 
 <p><code>type</code> 为 <code>ref</code> 说明进行了非唯一索引扫描，<code>Extra</code> 为 <code>Using where</code> 说明进行了服务层的过滤。这是符合预期的，因为索引下推就是利用存储引擎将我们想要的数据进行过滤，减少与服务层的 IO 交互次数。</p>
 <hr>
@@ -689,14 +707,6 @@ gitalk.render('gitalk-container')
           <ul class="article-tag-list" q-show="showTags">
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">CMake</a>
               </li>
              
@@ -709,7 +719,19 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">Reprint</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">K8s</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -721,27 +743,11 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">K8s</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">C++</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">网络</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -765,6 +771,18 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">网络</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">jvm</a>
               </li>
              
@@ -773,15 +791,15 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">Redis</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">redis</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
               </li>
             
             <div class="clearfix"></div>

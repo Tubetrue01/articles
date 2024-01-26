@@ -17,11 +17,22 @@
 <meta property="og:site_name" content="Tubetrue01">
 <meta property="og:description" content="引言 InnoDB 引擎从 MySQL 5.5.5 起取代了 MyISAM，成为默认的存储引擎。它提供了对 MySQL 对 ACID 事务的支持，并且实现了 SQL 标准的四种隔离级别。提供行级锁和外键约束，它的设计目标就是处理大容量数据库系统，在运行时在内存中建立缓冲池，用于缓冲数据与索引。  架构图  以上取自于 MySQL 官网，描述了 InnoDB 的整体架构，本文会对其中各个部分进行详细">
 <meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/01.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/03.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/04.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/05.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/06.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/07.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/08.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/09.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/10.jpg">
 <meta property="article:published_time" content="2023-01-27T03:37:05.000Z">
-<meta property="article:modified_time" content="2024-01-25T01:19:41.004Z">
+<meta property="article:modified_time" content="2023-07-20T07:40:14.000Z">
 <meta property="article:author" content="Tubetrue01">
 <meta property="article:tag" content="MySQL">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://tubetrue01.github.io/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/01.jpg">
   
     <link rel="alternative" href="/articles/atom.xml" title="Tubetrue01" type="application/atom+xml">
   
@@ -240,7 +251,7 @@
     <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
 <p>InnoDB 引擎从 MySQL 5.5.5 起取代了 MyISAM，成为默认的存储引擎。它提供了对 MySQL 对 ACID 事务的支持，并且实现了 SQL 标准的四种隔离级别。提供行级锁和外键约束，它的设计目标就是处理大容量数据库系统，在运行时在内存中建立缓冲池，用于缓冲数据与索引。</p>
 </blockquote>
-<h1 id="架构图"><a href="#架构图" class="headerlink" title="架构图"></a>架构图</h1>
+<h1 id="架构图"><a href="#架构图" class="headerlink" title="架构图"></a>架构图</h1><img src="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/01.jpg" class="" width="600">
 
 <p>以上取自于 MySQL 官网，描述了 InnoDB 的整体架构，本文会对其中各个部分进行详细介绍。</p>
 <h2 id="结构划分"><a href="#结构划分" class="headerlink" title="结构划分"></a>结构划分</h2><p>InnoDB 将整个结构分为内存与磁盘两个部分，其中在内存结构中包括了以下组件：</p>
@@ -265,7 +276,7 @@
 <p>Buffer Pool 的大小直接影响了数据库的整体性能，所以如果需要变更大小可以通过参数 <code>innodb_buffer_pool_size</code> 进行配置。</p>
 <p>InnoDB 是如何使用 Buffer Pool 的呢？比如当我们执行一条很简单的 sql 语句 <code>SELECT * FROM table WHERE id = 1</code>。InnoDB 会将该条记录对应的一页数据从磁盘中读取到 buffer pool 中，如果后续有相同的查询，直接将该数据返回。</p>
 <p>对于数据的更新操作类似，如：<code>UPDATE table SET name = &#39;&#39; WHERE id = 1</code>，InnoDB 将 id = 1 的一页数据加载到 Buffer Pool 中，在内存中对其进行修改，然后将该页标记为<strong>脏页</strong>，由后续的线程完成刷盘。</p>
-
+<img src="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/02.jpg" class="" width="400">
 
 <h3 id="Buffer-Pool-与查询缓存"><a href="#Buffer-Pool-与查询缓存" class="headerlink" title="Buffer Pool 与查询缓存"></a>Buffer Pool 与查询缓存</h3><p>我们知道 MySQL 分为 【Server 层】与【存储引擎层】，如果开启了查询缓存的功能，当你执行一条 SQL 的时候，Server 层先从查询缓存中查看是否曾经执行过这条 SQL，如果执行过，那么之前的查询结果会以 key-value 的形式保存在查询缓存中。其中，key 是 SQL 语句，value 是查询结果。记住，这个查询是发生在服务层的，称为查询缓存。</p>
 <p>如果查询缓存中没有目标数据，MySQL 则通过存储引擎将数据检索出来，返回给 Buffer Pool，然后进而返回给服务层，供查询缓存使用。而该查询缓存好是 Session 共享的。</p>
@@ -282,7 +293,7 @@
 <p>所以最终的 Buffer Pool 大小 innodb_buffer_pool_size = innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances</p>
 </blockquote>
 <h3 id="内存管理"><a href="#内存管理" class="headerlink" title="内存管理"></a>内存管理</h3><p>为了提高的性能，将 Buffer Pool 划分为热数据区、冷数据区两部分。数据页第一次被加载到缓冲池时，先将其存放到冷数据区的链表头部，1s（由 innodb_old_block_time）后该缓存页被访问了再将其转移至热数据区的链表头位置。</p>
-
+<img src="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/03.jpg" class="" width="600">
 
 <p>热数据区与冷数据区的比例默认为 5:3，可以通过 <code>innodb_old_blocks_pct</code> 来指定冷数据的占比。</p>
 <h3 id="预读机制"><a href="#预读机制" class="headerlink" title="预读机制"></a>预读机制</h3><p>为了提高性能，MySQL 提供了预读的特性。什么是预读呢？就是 IO 异步读取多个页数据到 Buffer Pool，并且这些页被认为是很快就被读取到的。InnoDB 使用两种预读算法来提高 IO 性能：线性预读（linear read-ahead）和随机预读（random read-ahead）。</p>
@@ -302,14 +313,14 @@
 </ul>
 </li>
 </ul>
+<img src="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/04.jpg" class="" width="400">
 
-
-
+<img src="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/05.jpg" class="" width="400">
 
 <ul>
 <li><h4 id="三种链表"><a href="#三种链表" class="headerlink" title="三种链表"></a>三种链表</h4><ul>
 <li><p><strong>LRU 链表</strong><br>在内存管理开头部分有介绍 Buffer Pool 分为热数据区和冷数据区，它由 LRU 链表管理。热数据区部分又称为 New Sublist（Young 链表），冷数据区部分又称为 Old Sublist（Old 链表）。其结构如下图所示：</p>
-
+<img src="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/06.jpg" class="" width="400">
 
 <p>默认情况下：</p>
 <ul>
@@ -360,7 +371,7 @@
 </ul>
 <p>InnoDB 是在运行过程中尽可能多的占用内存，因此未被使用的页很小。当读取的数据不在 Buffer Pool 中时，就需要申请一个空闲页来存放。如果没有足够的空闲页时，就必须从 LRU 链表的尾部淘汰页。如果该页是干净的，可以直接拿来用，如果是脏页，就需要进行刷盘。</p>
 <h2 id="Change-Buffer"><a href="#Change-Buffer" class="headerlink" title="Change Buffer"></a>Change Buffer</h2><p>我们更新一条记录时，该记录对应的辅助索引也需要更新（如果存在）。如果两者放到一起势必降低更新性能。对于辅助索引的更新，用另外一种基于内存的数据结构 Change Buffer 来完成，以此提升数据更新的性能。</p>
-
+<img src="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/07.jpg" class="" width="400">
 
 <h3 id="写操作亦能减少-IO"><a href="#写操作亦能减少-IO" class="headerlink" title="写操作亦能减少 IO"></a>写操作亦能减少 IO</h3><blockquote>
 <p>对于读请求，Buffer Pool 能够减少磁盘的 IO 次数，那么写操作可不可以利用相同的机制来减少磁盘 IO 呢？</p>
@@ -522,10 +533,10 @@
 <h3 id="Double-Write-双写落盘"><a href="#Double-Write-双写落盘" class="headerlink" title="Double Write 双写落盘"></a>Double Write 双写落盘</h3><p>如果说 Change Buffer 为 InnoDB 带来了性能上的提升，那么 Double Write 则是给 InnoDB 提供了数据页可靠性的保障。</p>
 <h4 id="刷盘风险"><a href="#刷盘风险" class="headerlink" title="刷盘风险"></a>刷盘风险</h4><p>IO 的最小单位：<br>    1. MySQL I/O 的最小单位是 16K。<br>    2. 文件系统 I/O 的最小单位是 4K。<br>    3. 磁盘 I/O 的最小单位是 512B。</p>
 <p>因此，存在 IO 写入导致页损坏的风险：</p>
-
+<img src="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/08.jpg" class="" width="400">
 
 <p>一个数据页的大小是 16K，假设在脏页刷新到磁盘过程中，写了 8K 突然掉电，也就是说前 8K 数据是新的，后 8K 是旧的，那么磁盘数据库这个数据页就是不完整的，是一个坏掉的数据页。也无法通过 Redo Log 恢复，因为 Redo Log 记录的是对页的物理修改，如果页本身已经损坏，Redo Log 也无能为力。所以此时就需要 double write。</p>
-
+<img src="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/09.jpg" class="" width="400">
 
 <p>如图所示，Double Write 由两部分组成，一部分是内存中的 double write buffer，大小为 2MB；另一部分是磁盘上共享表空间连续的 128 个页（2MB）。</p>
 <p>在对 Buffer Pool 中的脏页进行刷新时，并不是直接写盘，而是执行以下步骤：</p>
@@ -554,7 +565,7 @@
 </blockquote>
 <h2 id="Redo-Log-File"><a href="#Redo-Log-File" class="headerlink" title="Redo Log File"></a>Redo Log File</h2><p>我们知道 redo log 记录了事务执行过程中的修改情况，保证了事务的持久性。redo log 由两部分组成，即前文中我们介绍过的 <strong>redo log buffer</strong> 以及我们将要介绍的 <strong>redo log file</strong>。</p>
 <p>redo log buffer 是内存型的数据结构，那么必然容易丢失，所以需要对其进行持久化。而持久化到磁盘的文件就是 redo log file。</p>
-
+<img src="/articles/2023/01/27/mysql/MySQLInnoDB%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E/10.jpg" class="" width="400">
 
 <p>为了保证每次日志都能持久化到磁盘上，每次将 log buffer 中的日志写入到日志文件时都会调用一次系统的 <code>fsync()</code> 函数。</p>
 <p>为了得到更高的可靠性，用户可以设置多个镜像日志组，将不同的文件组放到不同的磁盘上，以此来提高重做日志的高可用性。</p>
@@ -935,14 +946,6 @@ gitalk.render('gitalk-container')
           <ul class="article-tag-list" q-show="showTags">
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">CMake</a>
               </li>
              
@@ -955,7 +958,19 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">Reprint</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">K8s</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -967,27 +982,11 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">K8s</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">C++</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">网络</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -1011,6 +1010,18 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">网络</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">jvm</a>
               </li>
              
@@ -1019,15 +1030,15 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">Redis</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">redis</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
               </li>
             
             <div class="clearfix"></div>

@@ -17,11 +17,18 @@
 <meta property="og:site_name" content="Tubetrue01">
 <meta property="og:description" content="引言 为了加快程序的运行效率，我们引入了多线程的概念。但是速度提升的同时引来了共享资源安全性的问题。为了保证多线程下程序的准确性，锁机制就是我们需要掌握的一种手段。本文将介绍的就是 synchronized 的实现原理（以 JDK 8 为基础）。  线程安全问题不是所有程序在多线程下就是非安全的，我们判断一个程序是否是多线程安全的需要有下面三个要素：  多线程如果程序是单线程的，那么它肯定是安全的">
 <meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/23/java/Java%E9%94%81%E6%9C%BA%E5%88%B6%E4%B9%8BSynchronized%E5%AE%9E%E7%8E%B0(%E4%B8%8A)/01.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/23/java/Java%E9%94%81%E6%9C%BA%E5%88%B6%E4%B9%8BSynchronized%E5%AE%9E%E7%8E%B0(%E4%B8%8A)/02.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/23/java/Java%E9%94%81%E6%9C%BA%E5%88%B6%E4%B9%8BSynchronized%E5%AE%9E%E7%8E%B0(%E4%B8%8A)/03.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/23/java/Java%E9%94%81%E6%9C%BA%E5%88%B6%E4%B9%8BSynchronized%E5%AE%9E%E7%8E%B0(%E4%B8%8A)/04.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/23/java/Java%E9%94%81%E6%9C%BA%E5%88%B6%E4%B9%8BSynchronized%E5%AE%9E%E7%8E%B0(%E4%B8%8A)/05.jpg">
+<meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/23/java/Java%E9%94%81%E6%9C%BA%E5%88%B6%E4%B9%8BSynchronized%E5%AE%9E%E7%8E%B0(%E4%B8%8A)/06.jpg">
 <meta property="article:published_time" content="2023-03-23T09:01:05.000Z">
-<meta property="article:modified_time" content="2024-01-25T01:19:40.977Z">
+<meta property="article:modified_time" content="2023-07-20T07:40:14.000Z">
 <meta property="article:author" content="Tubetrue01">
 <meta property="article:tag" content="Java">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://tubetrue01.github.io/articles/2023/03/23/java/Java%E9%94%81%E6%9C%BA%E5%88%B6%E4%B9%8BSynchronized%E5%AE%9E%E7%8E%B0(%E4%B8%8A)/01.jpg">
   
     <link rel="alternative" href="/articles/atom.xml" title="Tubetrue01" type="application/atom+xml">
   
@@ -260,12 +267,12 @@
 </li>
 </ul>
 <h2 id="Java-对象内存布局"><a href="#Java-对象内存布局" class="headerlink" title="Java 对象内存布局"></a>Java 对象内存布局</h2><p>讲解锁实现之前就需要先了解锁的存储，要想了解锁的存储就得知道对象的内存布局：</p>
-
+<img src="/articles/2023/03/23/java/Java%E9%94%81%E6%9C%BA%E5%88%B6%E4%B9%8BSynchronized%E5%AE%9E%E7%8E%B0(%E4%B8%8A)/01.jpg" class="" width="200">
 
 <p>我们把焦点放到对象头中的 MarkWord 结构，根据操作系统位数的不同，MarkWord 又分为 32 位及 64 位，如下图：</p>
 <ul>
-<li><h4 id="32-位"><a href="#32-位" class="headerlink" title="32 位"></a>32 位</h4></li>
-<li><h4 id="64-位"><a href="#64-位" class="headerlink" title="64 位"></a>64 位</h4></li>
+<li><h4 id="32-位"><a href="#32-位" class="headerlink" title="32 位"></a>32 位</h4><img src="/articles/2023/03/23/java/Java%E9%94%81%E6%9C%BA%E5%88%B6%E4%B9%8BSynchronized%E5%AE%9E%E7%8E%B0(%E4%B8%8A)/02.jpg" class="" width="600"></li>
+<li><h4 id="64-位"><a href="#64-位" class="headerlink" title="64 位"></a>64 位</h4><img src="/articles/2023/03/23/java/Java%E9%94%81%E6%9C%BA%E5%88%B6%E4%B9%8BSynchronized%E5%AE%9E%E7%8E%B0(%E4%B8%8A)/03.jpg" class="" width="600"></li>
 </ul>
 <p>从以上的结构中，我们看出了锁的相关信息了，其中，锁分为无锁、偏向锁、轻量级锁、重量级锁。每个级别它们各自存储的数据结构也有所差异，那也就是说不同的场景对应不同的锁级别。既然我们知道锁是存储在 MarkWord 中的，那么我们就需要看看锁到底是怎么实现的了。</p>
 <h2 id="锁的入口"><a href="#锁的入口" class="headerlink" title="锁的入口"></a>锁的入口</h2><blockquote>
@@ -293,11 +300,11 @@
 <p>以上就是同步代码块、同步方法的入口点。程序进入 <code>InterpreterRuntime::monitorenter</code> 方法的条件就是当前线程获取偏向锁失败（注意：此时就已经存在 LockRecord 了，大家可以比较一下偏向锁跟轻量级锁中，LockRecord 的作用是否一致）。我们把以上逻辑以图例的形式表现出来：</p>
 <ul>
 <li><p>同步方法</p>
-</li>
+<img src="/articles/2023/03/23/java/Java%E9%94%81%E6%9C%BA%E5%88%B6%E4%B9%8BSynchronized%E5%AE%9E%E7%8E%B0(%E4%B8%8A)/04.jpg" class="" width="600"></li>
 <li><p>同步代码块</p>
-</li>
+<img src="/articles/2023/03/23/java/Java%E9%94%81%E6%9C%BA%E5%88%B6%E4%B9%8BSynchronized%E5%AE%9E%E7%8E%B0(%E4%B8%8A)/05.jpg" class="" width="600"></li>
 <li><p>同步代码块退出指令</p>
-</li>
+<img src="/articles/2023/03/23/java/Java%E9%94%81%E6%9C%BA%E5%88%B6%E4%B9%8BSynchronized%E5%AE%9E%E7%8E%B0(%E4%B8%8A)/06.jpg" class="" width="400"></li>
 </ul>
 <p>如果获取偏向锁失败的话，就需要执行 <code>InterpreterRuntime::monitorenter</code> 方法：</p>
 <h4 id="monitorenter"><a href="#monitorenter" class="headerlink" title="monitorenter"></a>monitorenter</h4><blockquote>
@@ -642,14 +649,6 @@ gitalk.render('gitalk-container')
           <ul class="article-tag-list" q-show="showTags">
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">CMake</a>
               </li>
              
@@ -662,7 +661,19 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">Reprint</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">K8s</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -674,27 +685,11 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">K8s</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">C++</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">网络</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -718,6 +713,18 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">网络</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">jvm</a>
               </li>
              
@@ -726,15 +733,15 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">Redis</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">redis</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
               </li>
             
             <div class="clearfix"></div>

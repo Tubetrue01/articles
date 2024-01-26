@@ -186,7 +186,7 @@
             
 
   
-    <article id="post-entertainment/更换ChromecastWithGoogleTV桌面" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+    <article id="post-proxy/TLS混淆(一)ClientHello" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
       <header class="article-header">
@@ -194,7 +194,7 @@
   
     <h1 itemprop="name">
 	
-	  <a class="article-title" href="/articles/2022/12/22/entertainment/%E6%9B%B4%E6%8D%A2ChromecastWithGoogleTV%E6%A1%8C%E9%9D%A2/" target="_blank">更换 Chromecast with Google TV 桌面</a>
+	  <a class="article-title" href="/articles/2022/12/23/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%B8%80)ClientHello/" target="_blank">TLS 混淆（一）Client Hello</a>
   
     </h1>
   
@@ -202,8 +202,8 @@
 
   
   
-<a href="/articles/2022/12/22/entertainment/%E6%9B%B4%E6%8D%A2ChromecastWithGoogleTV%E6%A1%8C%E9%9D%A2/" class="archive-article-date">
-        <time datetime="2022-12-22T04:48:05.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2022-12-22</time>
+<a href="/articles/2022/12/23/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%B8%80)ClientHello/" class="archive-article-date">
+        <time datetime="2022-12-23T07:28:05.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2022-12-23</time>
 </a>
 
   
@@ -215,48 +215,77 @@
   
   <div class="article-entry" itemprop="articleBody">
     
-    <h1 id="你？你？还是你？"><a href="#你？你？还是你？" class="headerlink" title="你？你？还是你？"></a>你？你？还是你？</h1><p>一直用 PS5 看流媒体，结果发现手柄实在费电，基本上一天要两充，比游戏还费电。所以还是选择一款机顶盒比较合适，眼下有三款可以选择：Chromecast with Google TV、Fire Stick 4K Max、AppleTV。考虑到对 FireTV 不感冒，AppleTV 最近刚更新了 7 代价格也不是很合适，所以最终选择了 Chromecast with Google TV。</p>
-<h1 id="简约而不简单"><a href="#简约而不简单" class="headerlink" title="简约而不简单"></a>简约而不简单</h1>
-
-
-<p>整个包装盒里就这四件，比较小巧。用来接显示器正合适。</p>
-<p>【为您推荐】</p>
-
-
-<p>【影片】</p>
-
-
-<p>【节目】</p>
-
-
-<p>【应用】</p>
-
-
-<p>谷歌的界面整体上比国内的瀑布流界面要舒服的多，内容的推送也不错。系统升级到了最新的 Android 12。</p>
-<h1 id="极简至道"><a href="#极简至道" class="headerlink" title="极简至道"></a>极简至道</h1><p>用过一段时间之后发现一个问题，虽然是原生系统，但是 UI 时常掉帧。一卡一卡的还是很难受的，所以打算换个系统桌面。我的需求很简单，就是界面要简约、流畅。所以最终选择了 Emotn UI。</p>
+    <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
+<p>本篇文章主要介绍一下 TLS 混淆的实现原理。当然，有关 TLS 相关的知识不是本篇的主题，所以不进行过多介绍。</p>
+</blockquote>
+<h1 id="从请求到响应"><a href="#从请求到响应" class="headerlink" title="从请求到响应"></a>从请求到响应</h1><hr>
+<img src="/articles/2022/12/23/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%B8%80)ClientHello/01.jpg" class="" width="600">
 
 <hr>
-
-
-<p>Emotn UI 确实要简约很多，整个界面也十分漂亮。更重要的是，操作十分丝滑。</p>
-<h1 id="跟默认桌面说拜拜"><a href="#跟默认桌面说拜拜" class="headerlink" title="跟默认桌面说拜拜"></a>跟默认桌面说拜拜</h1><p>界面装好之后，你发现 Emotn UI 没有提供默认桌面选项。当系统重启或者遥控的 Home 键都会启动默认桌面。所以接下来要做的就是替换系统桌面（基本操作就不再细说了，基本上都会）。</p>
+<p>从图中可以看出，一个完整的请求与响应需要经历以下七个步骤：</p>
 <ol>
-<li><strong>ADB 连接到盒子（记得打开调试功能）</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">adb connect 10.66.1.7(机顶盒 IP)</span><br></pre></td></tr></table></figure></li>
-<li><strong>禁用系统桌面</strong><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">adb shell</span><br><span class="line">pm disable-user --user 0 com.google.android.apps.tv.launcherx</span><br><span class="line">pm disable-user --user 0 com.google.android.tungsten.setupwraith</span><br></pre></td></tr></table></figure></li>
-<li><strong>按键映射</strong><br>到此为止，整个系统 UI 已经换成了 Emotn UI。但是你发现 YouTube 快捷键失效了，另外遥控器上也有无用的按键能不能定制成其他的快捷键呢？<br>我们需要另一款软件 <a target="_blank" rel="noopener" href="https://www.dl.farsroid.com/ap/Button-Mapper-Pro-3.09(www.Farsroid.com).apk">【Button Mapper】</a>。下载安装之后，我们需要按照如下步骤进行定制：</li>
+<li>客户端发起请求</li>
+<li>客户端混淆插件对请求进行包装</li>
+<li>服务端混淆插件解混淆获取真实数据</li>
+<li>服务端通过原始请求拿到响应</li>
+<li>服务端混淆插件混淆响应</li>
+<li>客户端混淆插件解混淆</li>
+<li>客户端获取响应数据</li>
 </ol>
-<hr>
-   
-<hr>
-   
-<hr>
-   
-<hr>
-   
+<p>其中，客户端、服务端分别对应代理的客户端及服务端。</p>
+<h1 id="混淆上下文"><a href="#混淆上下文" class="headerlink" title="混淆上下文"></a>混淆上下文</h1><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> OBFS_OK         0</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> OBFS_NEED_MORE -1</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> OBFS_ERROR     -2</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">obfs</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="keyword">int</span>       obfs_stage;</span><br><span class="line">    <span class="keyword">int</span>       deobfs_stage;</span><br><span class="line">    <span class="keyword">buffer_t</span> *buf;</span><br><span class="line">    <span class="keyword">void</span>     *extra;</span><br><span class="line">&#125; <span class="keyword">obfs_t</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">obfs_para</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="keyword">const</span> <span class="keyword">char</span> *name;</span><br><span class="line">    <span class="keyword">const</span> <span class="keyword">char</span> *host;</span><br><span class="line">    <span class="keyword">const</span> <span class="keyword">char</span> *uri;</span><br><span class="line">    <span class="keyword">const</span> <span class="keyword">char</span> *method;</span><br><span class="line">    <span class="keyword">uint16_t</span>    port;</span><br><span class="line">    <span class="keyword">bool</span> send_empty_response_upon_connection;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> (*<span class="keyword">const</span> obfs_request)(<span class="keyword">buffer_t</span> *, <span class="keyword">size_t</span>, <span class="keyword">obfs_t</span> *);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> (*<span class="keyword">const</span> obfs_response)(<span class="keyword">buffer_t</span> *, <span class="keyword">size_t</span>, <span class="keyword">obfs_t</span> *);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> (*<span class="keyword">const</span> deobfs_request)(<span class="keyword">buffer_t</span> *, <span class="keyword">size_t</span>, <span class="keyword">obfs_t</span> *);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> (*<span class="keyword">const</span> deobfs_response)(<span class="keyword">buffer_t</span> *, <span class="keyword">size_t</span>, <span class="keyword">obfs_t</span> *);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> (*<span class="keyword">const</span> check_obfs)(<span class="keyword">buffer_t</span> *);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">void</span> (*<span class="keyword">const</span> disable)(<span class="keyword">obfs_t</span> *);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> (*<span class="keyword">const</span> is_enable)(<span class="keyword">obfs_t</span> *);</span><br><span class="line">&#125; <span class="keyword">obfs_para_t</span>;</span><br></pre></td></tr></table></figure>
 
-<p>至此，享受流媒体带来的幸福感吧！</p>
-<h1 id="给予后悔的机会"><a href="#给予后悔的机会" class="headerlink" title="给予后悔的机会"></a>给予后悔的机会</h1><p>如果有一天想换回原来的桌面，也仅仅是执行以下命令即可：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">adb connect 10.66.1.7(机顶盒 IP)</span><br><span class="line">adb shell</span><br><span class="line"></span><br><span class="line">pm enable --user 0 com.google.android.tungsten.setupwraith</span><br><span class="line">pm enable --user 0 com.google.android.apps.tv.launcherx</span><br></pre></td></tr></table></figure>
+<p>结构体 <code>obfs</code> 封装混淆阶段及混淆期间需要传递的数据，结构体 <code>obfs_para</code> 则封装了混淆的具体实现方法。通过以上我们可以看出，可以根据自己的需要自定义混淆的实现。比如目前有名的混淆方案为：simple-obfs、v2ray-plugin。当然本文主要介绍 simple-obfs 实现，毕竟最终效果差不多，但性能相差较大。simple-obfs 包括 HTTP、TLS 两种实现，这里只介绍后者。</p>
+<p>这里将混淆实现称为混淆插件，混淆插件也分为客户端及服务端。所以注意与代理客户端、服务端区分。为什么混淆要区分客户端跟服务端？其实很好理解，代理客户端发送请求之前，混淆客户端需要对请求数据进行封装。发送到服务端之前，混淆服务端需要对数据解析，然后将数据传给代理服务端处理。当代理服务端对数据进行响应之前，混淆服务端会对数据进行封装，到达代理客户端之前，混淆客户端需要对响应数据进行解析，再交给代理客户端。</p>
+<h1 id="一切均可混淆"><a href="#一切均可混淆" class="headerlink" title="一切均可混淆"></a>一切均可混淆</h1><p>在介绍代码之前，我们还需要补充一个概念，就是 TLS 握手。由于并非每次数据交互都需要握手，所以判断是否属于第一次通讯则交由结构体 <code>obfs</code> 中的 <code>obfs_stage</code> 及 <code>obfs_stage</code> 字段。当握手之后，后续的数据交互就仅仅是简单的按照 TLS 格式进行包装就了。</p>
+<p>对请求对象的封装方法为 <code>static int obfs_tls_request(buffer_t *buf, size_t cap, obfs_t *obfs)</code> ，其中 <code>buf</code> 为请求数据对象，<code>cap</code> 的容量大小为：<strong>2048</strong>，<code>obfs</code> 为混淆上下文结构体。</p>
+<ol>
+<li><p>如果未开启混淆或者混淆被禁用，直接返回，不做任何处理。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (obfs == <span class="literal">NULL</span> || obfs-&gt;obfs_stage &lt; <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>;</span><br></pre></td></tr></table></figure></li>
+<li><p>创建临时空间，用于存储请求数据。因为需要对请求数据 buf 做处理，所以这里先声明一块内存。注意这里声明了 <code>static</code> 说明后续会重复使用。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">buffer_t</span> tmp = &#123;<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="literal">NULL</span>&#125;;</span><br></pre></td></tr></table></figure></li>
+<li><p>握手处理<br>接下来要做的就是把 TLS 相关的报文结构空间计算出来。主要包括：<code>client_hello</code>、<code>ext_server_name</code>、<code>host</code>、<code>ext_session_ticket</code>、<code>ext_others</code> 几个字段的长度，其中 <code>host</code> 为混淆的主机名。</p>
+</li>
+</ol>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">size_t</span> buf_len = buf-&gt;len;</span><br><span class="line"><span class="keyword">size_t</span> hello_len = <span class="keyword">sizeof</span>(struct tls_client_hello);</span><br><span class="line"><span class="keyword">size_t</span> server_name_len = <span class="keyword">sizeof</span>(struct tls_ext_server_name);</span><br><span class="line"><span class="keyword">size_t</span> host_len = <span class="built_in">strlen</span>(obfs_tls-&gt;host);</span><br><span class="line"><span class="keyword">size_t</span> ticket_len = <span class="keyword">sizeof</span>(struct tls_ext_session_ticket);</span><br><span class="line"><span class="keyword">size_t</span> other_ext_len = <span class="keyword">sizeof</span>(struct tls_ext_others);</span><br><span class="line"><span class="keyword">size_t</span> tls_len = buf_len + hello_len + server_name_len</span><br><span class="line">                         + host_len + ticket_len + other_ext_len;</span><br></pre></td></tr></table></figure>
+<p><code>buf_len</code> 为具体数据长度，<code>hello_len</code> 固定 138B，<code>server_name_len</code> 固定 9B，<br><code>host_len</code> 取决于混淆的主机名，<code>ticket_len</code> 固定 4B，<code>other_ext_len</code> 固定 66B。</p>
+<p>接下来为 <code>tmp</code> 及 <code>buf</code> 分配空间，同时将 <code>buf</code> 中的请求数据复制到 <code>tmp</code> 中。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">brealloc(&amp;tmp, buf_len, cap);</span><br><span class="line">brealloc(buf, tls_len, cap);</span><br><span class="line"></span><br><span class="line"><span class="built_in">memcpy</span>(tmp.data, buf-&gt;data, buf_len);</span><br></pre></td></tr></table></figure>
+
+<p><code>brealloc</code> 方法取 <code>buf_len</code> 及 <code>cap</code> 的最大值为 <code>tmp</code> 分配内存。</p>
+<p>以下是对 TLS 中 Client Hello 包的封装</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Client Hello Header */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tls_client_hello</span> *<span class="title">hello</span> =</span> (struct tls_client_hello *) buf-&gt;data;</span><br><span class="line"><span class="built_in">memcpy</span>(hello, &amp;tls_client_hello_template, hello_len);</span><br><span class="line">hello-&gt;len = CT_HTONS(tls_len - <span class="number">5</span>);</span><br><span class="line">hello-&gt;handshake_len_2 = CT_HTONS(tls_len - <span class="number">9</span>);</span><br><span class="line">hello-&gt;random_unix_time = CT_HTONL((<span class="keyword">uint32_t</span>) time(<span class="literal">NULL</span>));</span><br><span class="line">rand_bytes(hello-&gt;random_bytes, <span class="number">28</span>);</span><br><span class="line">rand_bytes(hello-&gt;session_id, <span class="number">32</span>);</span><br><span class="line">hello-&gt;ext_len = CT_HTONS(server_name_len + host_len + ticket_len + buf_len + other_ext_len);</span><br></pre></td></tr></table></figure>
+<p>我们先对照下 Client Hello 结构体及实际的包头，首先看下结构体：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tls_client_hello</span> &#123;</span></span><br><span class="line">    <span class="keyword">char</span>  content_type;</span><br><span class="line">    <span class="keyword">short</span> version;</span><br><span class="line">    <span class="keyword">short</span> len;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">char</span>  handshake_type;</span><br><span class="line">    <span class="keyword">char</span>  handshake_len_1;</span><br><span class="line">    <span class="keyword">short</span> handshake_len_2;</span><br><span class="line">    <span class="keyword">short</span> handshake_version;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span>   random_unix_time;</span><br><span class="line">    <span class="keyword">char</span>  random_bytes[<span class="number">28</span>];</span><br><span class="line">    <span class="keyword">char</span>  session_id_len;</span><br><span class="line">    <span class="keyword">char</span>  session_id[<span class="number">32</span>];</span><br><span class="line">    <span class="keyword">short</span> cipher_suites_len;</span><br><span class="line">    <span class="keyword">char</span>  cipher_suites[<span class="number">56</span>];</span><br><span class="line">    <span class="keyword">char</span>  comp_methods_len;</span><br><span class="line">    <span class="keyword">char</span>  comp_methods[<span class="number">1</span>];</span><br><span class="line">    <span class="keyword">short</span> ext_len;</span><br><span class="line">&#125; __attribute__((packed, aligned(<span class="number">1</span>)));</span><br></pre></td></tr></table></figure>
+<p>结构体包含了报文类型、版本、长度、握手类型、随机时间、sessionId、协商的加密算法、压缩算法、扩展长度几个字段。这几个字段的赋值，我们先不着急介绍，先看下最终的报文生成：</p>
+<img src="/articles/2022/12/23/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%B8%80)ClientHello/02.jpg" class="" width="600">
+
+<p>红框里的部分就是 <code>Client Hello</code> 结构体的内容。我们通过代码一步一步进行介绍！</p>
+<p>a. 由于我们已经为 <code>buf-&gt;data</code> 从新分配好了内存，所以接下来开始填充数据。首先要填充的就是 <code>Client Hello</code> 包，伪造 TLS 握手，通过 <code>memcpy</code> 函数实现复制。我们看下 <code>hello_template</code> 模板：</p>
+   <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"> <span class="keyword">static</span> <span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">tls_client_hello</span></span></span><br><span class="line"><span class="class">      <span class="title">tls_client_hello_template</span> =</span> &#123;</span><br><span class="line">      .content_type = <span class="number">0x16</span>,</span><br><span class="line">      .version = CT_HTONS(<span class="number">0x0301</span>),</span><br><span class="line">      .len = <span class="number">0</span>,</span><br><span class="line"></span><br><span class="line">      .handshake_type = <span class="number">1</span>,</span><br><span class="line">      .handshake_len_1 = <span class="number">0</span>,</span><br><span class="line">      .handshake_len_2 = <span class="number">0</span>,</span><br><span class="line">      .handshake_version = CT_HTONS(<span class="number">0x0303</span>),</span><br><span class="line"></span><br><span class="line">      .random_unix_time = <span class="number">0</span>,</span><br><span class="line">      .random_bytes = &#123;<span class="number">0</span>&#125;,</span><br><span class="line"></span><br><span class="line">      .session_id_len = <span class="number">32</span>,</span><br><span class="line">      .session_id = &#123;<span class="number">0</span>&#125;,</span><br><span class="line"></span><br><span class="line">      .cipher_suites_len = CT_HTONS(<span class="number">56</span>),</span><br><span class="line">      .cipher_suites = &#123;</span><br><span class="line">              <span class="number">0xc0</span>, <span class="number">0x2c</span>, <span class="number">0xc0</span>, <span class="number">0x30</span>, <span class="number">0x00</span>, <span class="number">0x9f</span>, <span class="number">0xcc</span>, <span class="number">0xa9</span>, <span class="number">0xcc</span>, <span class="number">0xa8</span>, <span class="number">0xcc</span>, <span class="number">0xaa</span>, <span class="number">0xc0</span>, <span class="number">0x2b</span>, <span class="number">0xc0</span>, <span class="number">0x2f</span>,</span><br><span class="line">              <span class="number">0x00</span>, <span class="number">0x9e</span>, <span class="number">0xc0</span>, <span class="number">0x24</span>, <span class="number">0xc0</span>, <span class="number">0x28</span>, <span class="number">0x00</span>, <span class="number">0x6b</span>, <span class="number">0xc0</span>, <span class="number">0x23</span>, <span class="number">0xc0</span>, <span class="number">0x27</span>, <span class="number">0x00</span>, <span class="number">0x67</span>, <span class="number">0xc0</span>, <span class="number">0x0a</span>,</span><br><span class="line">              <span class="number">0xc0</span>, <span class="number">0x14</span>, <span class="number">0x00</span>, <span class="number">0x39</span>, <span class="number">0xc0</span>, <span class="number">0x09</span>, <span class="number">0xc0</span>, <span class="number">0x13</span>, <span class="number">0x00</span>, <span class="number">0x33</span>, <span class="number">0x00</span>, <span class="number">0x9d</span>, <span class="number">0x00</span>, <span class="number">0x9c</span>, <span class="number">0x00</span>, <span class="number">0x3d</span>,</span><br><span class="line">              <span class="number">0x00</span>, <span class="number">0x3c</span>, <span class="number">0x00</span>, <span class="number">0x35</span>, <span class="number">0x00</span>, <span class="number">0x2f</span>, <span class="number">0x00</span>, <span class="number">0xff</span></span><br><span class="line">      &#125;,</span><br><span class="line"></span><br><span class="line">      .comp_methods_len = <span class="number">1</span>,</span><br><span class="line">      .comp_methods = &#123;<span class="number">0</span>&#125;,</span><br><span class="line"></span><br><span class="line">      .ext_len = <span class="number">0</span>,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>我们通过代码跟报文图进行对比说明，<code>content_type</code> = 0x16 代表握手协议，协议版本 0x0301 代表 TLS 1.0。握手类型 1 代表此次握手为 <code>Client Hello</code> 握手，加密算法长度 56B 也就是包括 28 种加密算法组合。其他的主要是占位符，需要动态计算。而比较重要的一个字段就是 <code>session_id</code>，需要服务端回传。</p>
+<p>b. 接下来就是 <code>Session Ticket</code> 的填充，我们先看下结构体：<br>   <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"> <span class="class"><span class="keyword">struct</span> <span class="title">tls_ext_session_ticket</span> &#123;</span></span><br><span class="line">  <span class="keyword">short</span> session_ticket_type;</span><br><span class="line">  <span class="keyword">short</span> session_ticket_ext_len;</span><br><span class="line">  <span class="comment">// char  session_ticket[session_ticket_ext_len];</span></span><br><span class="line">&#125; __attribute__((packed, aligned(<span class="number">1</span>)));</span><br></pre></td></tr></table></figure><br>结构体比较简单，包括了类型、长度，而通过以下代码我们可以看到，真实数据就填充到了该段中，<code>session_ticket_ext_len</code> 代表了真实数据的长度，也就是下图红框中的内容。</p>
+   <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Session Ticket */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tls_ext_session_ticket</span> *<span class="title">ticket</span> =</span></span><br><span class="line">        (struct tls_ext_session_ticket *) ((<span class="keyword">char</span> *) hello + hello_len);</span><br><span class="line"><span class="built_in">memcpy</span>(ticket, &amp;tls_ext_session_ticket_template, <span class="keyword">sizeof</span>(struct tls_ext_session_ticket));</span><br><span class="line">ticket-&gt;session_ticket_ext_len = CT_HTONS(buf_len);</span><br><span class="line"><span class="built_in">memcpy</span>((<span class="keyword">char</span> *) ticket + ticket_len, tmp.data, buf_len);</span><br></pre></td></tr></table></figure>
+
+<img src="/articles/2022/12/23/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%B8%80)ClientHello/03.jpg" class="" width="600">
+
+<p>我们再看下 <code>Session Ticket</code> 模板数据：<br>  <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">tls_ext_session_ticket</span></span></span><br><span class="line"><span class="class">        <span class="title">tls_ext_session_ticket_template</span> =</span> &#123;</span><br><span class="line">        .session_ticket_type = CT_HTONS(<span class="number">0x0023</span>),</span><br><span class="line">        .session_ticket_ext_len = <span class="number">0</span>,</span><br><span class="line">        <span class="comment">// char  session_ticket[session_ticket_ext_len];</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure><br><code>ticket_type</code> 值为 0x0023 代表 <code>session_ticket</code>。</p>
+<p>c. 接下来就是对 <code>SNI</code> 的封装了，我们看下结构体：<br>  <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">tls_ext_server_name</span> &#123;</span></span><br><span class="line">    <span class="keyword">short</span> ext_type;</span><br><span class="line">    <span class="keyword">short</span> ext_len;</span><br><span class="line">    <span class="keyword">short</span> server_name_list_len;</span><br><span class="line">    <span class="keyword">char</span>  server_name_type;</span><br><span class="line">    <span class="keyword">short</span> server_name_len;</span><br><span class="line">    <span class="comment">// char server_name[server_name_len];</span></span><br><span class="line">&#125; __attribute__((packed, aligned(<span class="number">1</span>)));</span><br></pre></td></tr></table></figure><br>比较简单，主要是强调扩展字段的类型、长度、<code>server_name</code> 的长度、类型等。以下代码我们要注意，计算扩展长度的时候，需要加上各个字段本身占用的空间大小，如：<code>ext_len</code> 需要记录主机名长度的同时，还需要记录 <code>server_name_list_len</code>、<code>server_name_type</code>、<code>server_name_len</code> 本身占用的 5 字节空间，以此类推。</p>
+  <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* SNI */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tls_ext_server_name</span> *<span class="title">server_name</span> =</span></span><br><span class="line">        (struct tls_ext_server_name *) ((<span class="keyword">char</span> *) ticket + ticket_len + buf_len);</span><br><span class="line"><span class="built_in">memcpy</span>(server_name, &amp;tls_ext_server_name_template, server_name_len);</span><br><span class="line">server_name-&gt;ext_len = CT_HTONS(host_len + <span class="number">3</span> + <span class="number">2</span>);</span><br><span class="line">server_name-&gt;server_name_list_len = CT_HTONS(host_len + <span class="number">3</span>);</span><br><span class="line">server_name-&gt;server_name_len = CT_HTONS(host_len);</span><br><span class="line"><span class="built_in">memcpy</span>((<span class="keyword">char</span> *) server_name + server_name_len, obfs_tls-&gt;host, host_len);</span><br></pre></td></tr></table></figure>
+<p>以下红框里，混淆的主机名是 <code>itunes.apple.com</code>：</p>
+<img src="/articles/2022/12/23/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%B8%80)ClientHello/04.jpg" class="" width="600">
+
+<p>d. 最后就是其他的扩展字段，如以下结构体：<br>  <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">tls_ext_others</span> &#123;</span></span><br><span class="line">    <span class="keyword">short</span> ec_point_formats_ext_type;</span><br><span class="line">    <span class="keyword">short</span> ec_point_formats_ext_len;</span><br><span class="line">    <span class="keyword">char</span>  ec_point_formats_len;</span><br><span class="line">    <span class="keyword">char</span>  ec_point_formats[<span class="number">3</span>];</span><br><span class="line"></span><br><span class="line">    <span class="keyword">short</span> elliptic_curves_type;</span><br><span class="line">    <span class="keyword">short</span> elliptic_curves_ext_len;</span><br><span class="line">    <span class="keyword">short</span> elliptic_curves_len;</span><br><span class="line">    <span class="keyword">char</span>  elliptic_curves[<span class="number">8</span>];</span><br><span class="line"></span><br><span class="line">    <span class="keyword">short</span> sig_algos_type;</span><br><span class="line">    <span class="keyword">short</span> sig_algos_ext_len;</span><br><span class="line">    <span class="keyword">short</span> sig_algos_len;</span><br><span class="line">    <span class="keyword">char</span>  sig_algos[<span class="number">30</span>];</span><br><span class="line"></span><br><span class="line">    <span class="keyword">short</span> encrypt_then_mac_type;</span><br><span class="line">    <span class="keyword">short</span> encrypt_then_mac_ext_len;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">short</span> extended_master_secret_type;</span><br><span class="line">    <span class="keyword">short</span> extended_master_secret_ext_len;</span><br><span class="line">&#125; __attribute__((packed, aligned(<span class="number">1</span>)));</span><br></pre></td></tr></table></figure><br>主要包括五块内容，就不再过多介绍了。以下就是模板数据：</p>
+  <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">  <span class="keyword">static</span> <span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">tls_ext_others</span></span></span><br><span class="line"><span class="class">        <span class="title">tls_ext_others_template</span> =</span> &#123;</span><br><span class="line">        .ec_point_formats_ext_type = CT_HTONS(<span class="number">0x000B</span>),</span><br><span class="line">        .ec_point_formats_ext_len = CT_HTONS(<span class="number">4</span>),</span><br><span class="line">        .ec_point_formats_len = <span class="number">3</span>,</span><br><span class="line">        .ec_point_formats = &#123;<span class="number">0x01</span>, <span class="number">0x00</span>, <span class="number">0x02</span>&#125;,</span><br><span class="line"></span><br><span class="line">        .elliptic_curves_type = CT_HTONS(<span class="number">0x000a</span>),</span><br><span class="line">        .elliptic_curves_ext_len = CT_HTONS(<span class="number">10</span>),</span><br><span class="line">        .elliptic_curves_len = CT_HTONS(<span class="number">8</span>),</span><br><span class="line">        .elliptic_curves = &#123;<span class="number">0x00</span>, <span class="number">0x1d</span>, <span class="number">0x00</span>, <span class="number">0x17</span>, <span class="number">0x00</span>, <span class="number">0x19</span>, <span class="number">0x00</span>, <span class="number">0x18</span>&#125;,</span><br><span class="line"></span><br><span class="line">        .sig_algos_type = CT_HTONS(<span class="number">0x000d</span>),</span><br><span class="line">        .sig_algos_ext_len = CT_HTONS(<span class="number">32</span>),</span><br><span class="line">        .sig_algos_len = CT_HTONS(<span class="number">30</span>),</span><br><span class="line">        .sig_algos = &#123;</span><br><span class="line">                <span class="number">0x06</span>, <span class="number">0x01</span>, <span class="number">0x06</span>, <span class="number">0x02</span>, <span class="number">0x06</span>, <span class="number">0x03</span>, <span class="number">0x05</span>, <span class="number">0x01</span>, <span class="number">0x05</span>, <span class="number">0x02</span>, <span class="number">0x05</span>, <span class="number">0x03</span>, <span class="number">0x04</span>, <span class="number">0x01</span>, <span class="number">0x04</span>, <span class="number">0x02</span>,</span><br><span class="line">                <span class="number">0x04</span>, <span class="number">0x03</span>, <span class="number">0x03</span>, <span class="number">0x01</span>, <span class="number">0x03</span>, <span class="number">0x02</span>, <span class="number">0x03</span>, <span class="number">0x03</span>, <span class="number">0x02</span>, <span class="number">0x01</span>, <span class="number">0x02</span>, <span class="number">0x02</span>, <span class="number">0x02</span>, <span class="number">0x03</span></span><br><span class="line">        &#125;,</span><br><span class="line"></span><br><span class="line">        .encrypt_then_mac_type = CT_HTONS(<span class="number">0x0016</span>),</span><br><span class="line">        .encrypt_then_mac_ext_len = <span class="number">0</span>,</span><br><span class="line"></span><br><span class="line">        .extended_master_secret_type = CT_HTONS(<span class="number">0x0017</span>),</span><br><span class="line">        .extended_master_secret_ext_len = <span class="number">0</span>,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>数据的填充就比较简单了：<br>  <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Other Extensions */</span></span><br><span class="line"><span class="built_in">memcpy</span>((<span class="keyword">char</span> *) server_name + server_name_len + host_len, &amp;tls_ext_others_template,</span><br><span class="line">       other_ext_len);</span><br></pre></td></tr></table></figure><br>扩展字段实际展示：</p>
+<img src="/articles/2022/12/23/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%B8%80)ClientHello/05.jpg" class="" width="600">
+
+<p>e. 最后将数据的总长度赋值给 <code>buf-&gt;len</code>，同时递增混淆阶段。</p>
+  <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">buf-&gt;len = tls_len;</span><br><span class="line">obfs-&gt;obfs_stage++;</span><br></pre></td></tr></table></figure>
+
+<h1 id="协议结构图"><a href="#协议结构图" class="headerlink" title="协议结构图"></a>协议结构图</h1><img src="/articles/2022/12/23/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%B8%80)ClientHello/06.jpg" class="" width="800">
+
+<p>其中绿色部分为实际的数据，红色的部分为混淆的主机名，其他的为固定的模板数据。</p>
 
     
 
@@ -273,11 +302,7 @@
 		<ul class="article-tag-list">
 			 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color3">娱乐</a>
-        		</li>
-      		 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">机顶盒</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">proxy</a>
         		</li>
       		
 		</ul>
@@ -287,7 +312,7 @@
 
     
     <p class="article-more-link">
-      <a class="article-more-a" href="/articles/2022/12/22/entertainment/%E6%9B%B4%E6%8D%A2ChromecastWithGoogleTV%E6%A1%8C%E9%9D%A2/">展开全文 >></a>
+      <a class="article-more-a" href="/articles/2022/12/23/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%B8%80)ClientHello/">展开全文 >></a>
     </p>
     
 
@@ -321,7 +346,7 @@
   
   
     <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/articles/page/20/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/19/">19</a><a class="page-number" href="/articles/page/20/">20</a><span class="page-number current">21</span><a class="page-number" href="/articles/page/22/">22</a><a class="page-number" href="/articles/page/23/">23</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/66/">66</a><a class="extend next" rel="next" href="/articles/page/22/">下一页</a>
+      <a class="extend prev" rel="prev" href="/articles/page/20/">上一页</a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/19/">19</a><a class="page-number" href="/articles/page/20/">20</a><span class="page-number current">21</span><a class="page-number" href="/articles/page/22/">22</a><a class="page-number" href="/articles/page/23/">23</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/67/">67</a><a class="extend next" rel="next" href="/articles/page/22/">下一页</a>
     </nav>
   
 
@@ -445,14 +470,6 @@
           <ul class="article-tag-list" q-show="showTags">
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">CMake</a>
               </li>
              
@@ -465,7 +482,19 @@
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Apisix</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">Docker</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">Reprint</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">K8s</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -477,27 +506,11 @@
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">K8s</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">C++</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">数据结构与算法</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">网络</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -521,6 +534,18 @@
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">娱乐</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">网络</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">机顶盒</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">jvm</a>
               </li>
              
@@ -529,15 +554,15 @@
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">Redis</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">redis</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
               </li>
             
             <div class="clearfix"></div>
