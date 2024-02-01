@@ -24,7 +24,7 @@
 <meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/23/java/Java%E9%94%81%E6%9C%BA%E5%88%B6%E4%B9%8BSynchronized%E5%AE%9E%E7%8E%B0(%E4%B8%8A)/05.jpg">
 <meta property="og:image" content="https://tubetrue01.github.io/articles/2023/03/23/java/Java%E9%94%81%E6%9C%BA%E5%88%B6%E4%B9%8BSynchronized%E5%AE%9E%E7%8E%B0(%E4%B8%8A)/06.jpg">
 <meta property="article:published_time" content="2023-03-23T09:01:05.000Z">
-<meta property="article:modified_time" content="2023-07-20T07:40:14.000Z">
+<meta property="article:modified_time" content="2024-02-01T06:51:05.854Z">
 <meta property="article:author" content="Tubetrue01">
 <meta property="article:tag" content="Java">
 <meta name="twitter:card" content="summary">
@@ -282,7 +282,7 @@
 <h3 id="markWord"><a href="#markWord" class="headerlink" title="markWord"></a>markWord</h3><blockquote>
 <p>C++ 中的 markWord 对象是 markOopDesc，这里我们需要记住锁的几种状态。</p>
 </blockquote>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * jdk/hotspot/src/share/vm/oops/markOop.hpp</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">markOopDesc</span>:</span> <span class="keyword">public</span> oopDesc &#123;</span><br><span class="line">  <span class="keyword">public</span>:</span><br><span class="line">      <span class="class"><span class="keyword">enum</span> &#123;</span></span><br><span class="line">             locked_value             = <span class="number">0</span>, <span class="comment">// 00 轻量级锁</span></span><br><span class="line">             unlocked_value           = <span class="number">1</span>, <span class="comment">// 01 无锁</span></span><br><span class="line">             monitor_value            = <span class="number">2</span>, <span class="comment">// 10 重量级锁</span></span><br><span class="line">             marked_value             = <span class="number">3</span>, <span class="comment">// 11 GC标记</span></span><br><span class="line">             biased_lock_pattern      = <span class="number">5</span>  <span class="comment">// 101 偏向锁</span></span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * jdk/hotspot/src/share/vm/oops/markOop.hpp</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">markOopDesc</span>:</span> <span class="keyword">public</span> oopDesc &#123;</span><br><span class="line">  <span class="keyword">public</span>:</span><br><span class="line">      <span class="class"><span class="keyword">enum</span> &#123;</span></span><br><span class="line">             locked_value             = <span class="number">0</span>, <span class="comment">// 00 轻量级锁</span></span><br><span class="line">             unlocked_value           = <span class="number">1</span>, <span class="comment">// 01 无锁</span></span><br><span class="line">             monitor_value            = <span class="number">2</span>, <span class="comment">// 10 重量级锁</span></span><br><span class="line">             marked_value             = <span class="number">3</span>, <span class="comment">// 11 GC 标记</span></span><br><span class="line">             biased_lock_pattern      = <span class="number">5</span>  <span class="comment">// 101 偏向锁</span></span><br><span class="line">  &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <h3 id="BasicLock"><a href="#BasicLock" class="headerlink" title="BasicLock"></a>BasicLock</h3><blockquote>
 <p>获取锁时，会将对象头中的 markword 复制一份无锁版保留下来。解锁时，再替换回去，用于还原锁状态。</p>
 </blockquote>
@@ -291,7 +291,7 @@
 <h3 id="BasicObjectLock"><a href="#BasicObjectLock" class="headerlink" title="BasicObjectLock"></a>BasicObjectLock</h3><blockquote>
 <p>该对象维护锁与目标对象的关联关系。</p>
 </blockquote>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * jdk/hotspot/src/share/vm/runtime/basicLock.hpp</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">BasicLock</span> <span class="title">VALUE_OBJ_CLASS_SPEC</span> &#123;</span></span><br><span class="line"> <span class="keyword">private</span>:</span><br><span class="line">  <span class="keyword">volatile</span> markOop _displaced_header; <span class="comment">// 获取锁时，会将对象头中的 markword 复制一份无锁版保留下来。解锁时，再替换回去</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">BasicObjectLock</span> <span class="title">VALUE_OBJ_CLASS_SPEC</span> &#123;</span></span><br><span class="line"> <span class="keyword">private</span>:</span><br><span class="line">  BasicLock _lock;  <span class="comment">// 当前对象拥有的锁记录</span></span><br><span class="line">  oop       _obj;   <span class="comment">// 锁对应的 Java 对象</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * jdk/hotspot/src/share/vm/runtime/basicLock.hpp</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">BasicLock</span> <span class="title">VALUE_OBJ_CLASS_SPEC</span> &#123;</span></span><br><span class="line"> <span class="keyword">private</span>:</span><br><span class="line">  <span class="keyword">volatile</span> markOop _displaced_header; <span class="comment">// 获取锁时，会将对象头中的 markword 复制一份无锁版保留下来。解锁时，再替换回去</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">BasicObjectLock</span> <span class="title">VALUE_OBJ_CLASS_SPEC</span> &#123;</span></span><br><span class="line"> <span class="keyword">private</span>:</span><br><span class="line">  BasicLock _lock;  <span class="comment">// 当前对象拥有的锁记录</span></span><br><span class="line">  oop       _obj;   <span class="comment">// 锁对应的 Java 对象</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <h3 id="偏向锁"><a href="#偏向锁" class="headerlink" title="偏向锁"></a>偏向锁</h3><p>偏向锁，顾名思义就是偏向某一方的锁。从 markWord 结构中，我们可以看到当对象处于偏向锁模式时，MarkWord 由线程 ID、Epoch、对象年龄、是否偏向锁、锁标志几个字段组成。</p>
 <p>如果一个线程能够将自身的线程 id 保存到 markWord 中，同时将偏向标志打开，就说明该线程成功获取了偏向锁。当线程下次再进来时，跟 markword 中的线程 id 比较，如果一致，说明当前线程已经拥有了锁，那就不需要再次获取锁。</p>
@@ -673,10 +673,6 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">K8s</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color5">Unix</a>
               </li>
              
@@ -685,7 +681,7 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">C++</a>
+                <a href="javascript:void(0)" class="js-tag color4">K8s</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -693,11 +689,7 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">Git</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">git</a>
+                <a href="javascript:void(0)" class="js-tag color4">C++</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -709,11 +701,19 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">网络</a>
+              </li>
+             
+              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color5">Java</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color4">jvm</a>
+                <a href="javascript:void(0)" class="js-tag color4">Git</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">git</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -725,11 +725,11 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">MySQL</a>
+                <a href="javascript:void(0)" class="js-tag color4">jvm</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
+                <a href="javascript:void(0)" class="js-tag color1">MySQL</a>
               </li>
              
               <li class="article-tag-list-item">
@@ -741,7 +741,7 @@ gitalk.render('gitalk-container')
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">网络</a>
+                <a href="javascript:void(0)" class="js-tag color1">proxy</a>
               </li>
             
             <div class="clearfix"></div>
