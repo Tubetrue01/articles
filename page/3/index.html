@@ -175,10 +175,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2023-09-13 15:48:05 / 修改时间：15:13:00" itemprop="dateCreated datePublished" datetime="2023-09-13T15:48:05+08:00">2023-09-13</time>
+              <time title="创建时间：2023-09-13 15:48:05" itemprop="dateCreated datePublished" datetime="2023-09-13T15:48:05+08:00">2023-09-13</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-03-13 17:52:17" itemprop="dateModified" datetime="2024-03-13T17:52:17+08:00">2024-03-13</time>
+              </span>
 
           
 
@@ -206,13 +212,13 @@
 <h2 id="网络桥接"><a href="#网络桥接" class="headerlink" title="网络桥接"></a>网络桥接</h2><p>前两种问题是最好解决的，但是也比较麻烦。之所以好解决，是因为将硬路由的上网模式改为桥接即可。但是桥接可能丧失路由的 Mesh 组网功能，这点需要注意。</p>
 <p>前两种问题解决了，但是会迎来另一个棘手的问题。为了保证家庭 wifi 的安全性，我们一般都会进行 MAC 绑定，然后仅允许绑定 MAC 的设备上网。但是桥接之后，这部分功能也丧失了。</p>
 <p>软路由能解决吗？当然，而且方案有很多种。可以采用防火墙限制上网设备，但是为了追求简单干脆，我用另外一种也就是 DHCP 分发的手段限制可连接 WIFI 的上网设备。如果 DHCP 不分发 IP，那么 WIFI 自然而然就连不上了。</p>
-<p>我们按照下图的步骤，依次打开【网络】-&gt;【接口】-&gt;【LAN】-&gt;【修改】 </p>
+<p>我们按照下图的步骤，依次打开【网络】-&gt;【接口】-&gt;【LAN】-&gt;【修改】</p>
 <img src="/articles/2023/09/13/entertainment/%E5%AE%B6%E5%BA%AD%E7%BD%91%E7%BB%9C%E7%8E%AF%E5%A2%83%E6%94%B9%E9%80%A0/01.jpg" class="" width="700">
 
-<p>下划到底部，打开【高级设置】，取消【动态 DHCP】，如图： </p>
+<p>下划到底部，打开【高级设置】，取消【动态 DHCP】，如图：</p>
 <img src="/articles/2023/09/13/entertainment/%E5%AE%B6%E5%BA%AD%E7%BD%91%E7%BB%9C%E7%8E%AF%E5%A2%83%E6%94%B9%E9%80%A0/02.jpg" class="" width="700">
 
-<p>取消之后，所有的设备只有进行静态登记之后才能连上 WIFI。我们通过下图： </p>
+<p>取消之后，所有的设备只有进行静态登记之后才能连上 WIFI。我们通过下图：</p>
 <img src="/articles/2023/09/13/entertainment/%E5%AE%B6%E5%BA%AD%E7%BD%91%E7%BB%9C%E7%8E%AF%E5%A2%83%E6%94%B9%E9%80%A0/03.jpg" class="" width="700">
 
 <p>【网络】-&gt;【DHCP/DNS】划到【静态地址分配】，添加 MAC 地址及 IP 即可。</p>
@@ -325,10 +331,18 @@
 </li>
 </ul>
 <h2 id="OpenClash-1"><a href="#OpenClash-1" class="headerlink" title="OpenClash"></a>OpenClash</h2><h3 id="基础配置"><a href="#基础配置" class="headerlink" title="基础配置"></a>基础配置</h3><p>OpenClash 就是我们目标的最后一环节，我们需要按照如下步骤做好基础配置：</p>
-<p>  1、取消【绕过中国大陆 IP】<br>  <img src="/articles/2023/09/13/entertainment/%E5%AE%B6%E5%BA%AD%E7%BD%91%E7%BB%9C%E7%8E%AF%E5%A2%83%E6%94%B9%E9%80%A0/10.jpg" class="" width="700"></p>
-<p>  2、本地 DNS 劫持停用<br>  <img src="/articles/2023/09/13/entertainment/%E5%AE%B6%E5%BA%AD%E7%BD%91%E7%BB%9C%E7%8E%AF%E5%A2%83%E6%94%B9%E9%80%A0/11.jpg" class="" width="700"></p>
-<p>  3、勾选【自定义上游 DNS 服务器】，取消【追加上游 DN】、【追加默认 DNS】勾选，如下图：<br>  <img src="/articles/2023/09/13/entertainment/%E5%AE%B6%E5%BA%AD%E7%BD%91%E7%BB%9C%E7%8E%AF%E5%A2%83%E6%94%B9%E9%80%A0/12.jpg" class="" width="700"></p>
-<p>  4、移除 FallBack、default-NameServer 下的内容，并为 NameServer 添加国外 DNS 解析：<br>  <img src="/articles/2023/09/13/entertainment/%E5%AE%B6%E5%BA%AD%E7%BD%91%E7%BB%9C%E7%8E%AF%E5%A2%83%E6%94%B9%E9%80%A0/13.jpg" class="" width="700"></p>
+<p>1、取消【绕过中国大陆 IP】</p>
+<img src="/articles/2023/09/13/entertainment/%E5%AE%B6%E5%BA%AD%E7%BD%91%E7%BB%9C%E7%8E%AF%E5%A2%83%E6%94%B9%E9%80%A0/10.jpg" class="" width="700">
+
+<p>2、本地 DNS 劫持停用</p>
+<img src="/articles/2023/09/13/entertainment/%E5%AE%B6%E5%BA%AD%E7%BD%91%E7%BB%9C%E7%8E%AF%E5%A2%83%E6%94%B9%E9%80%A0/11.jpg" class="" width="700">
+
+<p>3、勾选【自定义上游 DNS 服务器】，取消【追加上游 DN】、【追加默认 DNS】勾选，如下图：</p>
+<img src="/articles/2023/09/13/entertainment/%E5%AE%B6%E5%BA%AD%E7%BD%91%E7%BB%9C%E7%8E%AF%E5%A2%83%E6%94%B9%E9%80%A0/12.jpg" class="" width="700">
+
+<p>4、移除 FallBack、default-NameServer 下的内容，并为 NameServer 添加国外 DNS 解析：</p>
+<img src="/articles/2023/09/13/entertainment/%E5%AE%B6%E5%BA%AD%E7%BD%91%E7%BB%9C%E7%8E%AF%E5%A2%83%E6%94%B9%E9%80%A0/13.jpg" class="" width="700">
+
 <p>之所以要取消【追加上游 DNS】、【追加默认 DNS】是避免 OpenClash 将运营商分配的 DNS 添加进来，因为进入到 OpenClash 的流量一定是要走代理的，这些域名就不能被运营商的 DNS 解析。当你设置好之后一定要先【保存】，再【应用】。<br>否则配置不会生效，在应用之后，一定要去你的配置文件里看看最终生成的 DNS 是不是你指定的。</p>
 <p>对于 Rule 部分，你可以配置成以下内容：</p>
 <figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="bullet">-</span> <span class="string">&quot;GEOIP,LAN,🇨🇳 China&quot;</span></span><br><span class="line"><span class="bullet">-</span> <span class="string">&quot;GEOIP,CN,🇨🇳 China&quot;</span></span><br><span class="line"><span class="bullet">-</span> <span class="string">&quot;MATCH,Proxy&quot;</span></span><br></pre></td></tr></table></figure>
@@ -341,21 +355,24 @@
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">iptables -t nat -D openclash -p tcp -s 0.0.0.0/0 -d 0.0.0.0/0 -j REDIRECT --to-ports 7892</span><br></pre></td></tr></table></figure>
 
 <p>这样对于目标非 Fake-IP 的流量就不会流经 OpenClash 内核了。但是这会引发另外一个问题，我们知道有些 App 会直接发起对 IP 的请求，比如：Telegram，Netflix 等。该防火墙规则会导致这些流量直接走直连从而影响使用。怎么解决这个问题呢？<br>方法有二，我们可以根据它们的 CIDR 来选择流量劫持，但是不靠谱，因为还需要定期维护，一但对方更换，那么又会出现问题，比较被动。这里我们选择另外一个方案解决——利用 china ipset：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">iptables -t nat -A openclash -p tcp -m set ! --match-set china dst -j REDIRECT --to-ports 7892</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">iptables -t nat -A openclash -p tcp -m set ! --match-set china_ip_route dst -j REDIRECT --to-ports 7892</span><br></pre></td></tr></table></figure>
 
 <p>我们将目标地址非 China 的流量也转发到 OpenClash，就可以解决以上问题。还会有问题吗？答案是肯定的，除了客户端的请求外，宿主机也会产生请求，所以我们不得对这部分流量加以控制：</p>
 <p>1、避免宿主机自身的出口流量全部走代理</p>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">iptables -t nat -D openclash_output -p tcp -m owner ! --uid-owner 65534 -j REDIRECT --to-ports 7892</span><br></pre></td></tr></table></figure>
 
 <p>2、对于宿主机自身的 TCP 流量除了 Fake IP 外，对于非中国 IP 的流量且非 OpenClash 的出口流量也重定向到代理</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">iptables -t nat -A openclash_output -p tcp -m set ! --match-set china dst -m owner ! --uid-owner 65534 -j REDIRECT --to-ports 7892</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">iptables -t nat -A openclash_output -p tcp -m set ! --match-set china_ip_route dst -m owner ! --uid-owner 65534 -j REDIRECT --to-ports 7892</span><br></pre></td></tr></table></figure>
 <p>3、避免来自中国的 UDP 流量经过代理</p>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">iptables -t mangle -D openclash -p udp -j TPROXY --tproxy-mark 0x162/0xffffffff --on-port 7895</span><br></pre></td></tr></table></figure>
 <p>4、重定向非中国的 UDP 流量到代理</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">iptables -t mangle -A openclash -p udp -m set ! --match-set china dst -j TPROXY --tproxy-mark 0x162/0xffffffff --on-port 7895</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">iptables -t mangle -A openclash -p udp -m set ! --match-set china_ip_route dst -j TPROXY --tproxy-mark 0x162/0xffffffff --on-port 7895</span><br></pre></td></tr></table></figure>
 
-<p>我们将以上的防火墙规则添加到【开发者选项】中：</p>
-<img src="/articles/2023/09/13/entertainment/%E5%AE%B6%E5%BA%AD%E7%BD%91%E7%BB%9C%E7%8E%AF%E5%A2%83%E6%94%B9%E9%80%A0/15.jpg" class="" width="700">
+<p>以上关键的地方在于 <code>china_ip_route</code>，它包含了中国的 IP 段，所有根据 IP 的规则都要经过它来判断，那么如何生成 <code>china_ip_route</code> 便成了一个问题。其实 OpenClash 有自动更新 GEO 数据库及中国大陆白名单的定时任务，也就是说它会生成我们需要的 ipset 文件。<br>所以我们要做的就是添加以下命令，用于将 <code>china_ip_route</code> 文件转换成对应的 ipset：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ipset -! flush china_ip_route</span><br><span class="line">ipset -! restore &lt;/etc/openclash/china_ip_route.ipset 2&gt;/dev/null</span><br></pre></td></tr></table></figure>
+
+<p>最终我们将以下内容添加到【开发者选项】中：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash">!/bin/sh</span></span><br><span class="line">. /usr/share/openclash/log.sh</span><br><span class="line">. /lib/functions.sh</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> This script is called by /etc/init.d/openclash</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> Add your custom firewall rules here, they will be added after the end of the OpenClash iptables rules</span></span><br><span class="line"></span><br><span class="line">ipset -! flush china_ip_route</span><br><span class="line">ipset -! restore &lt;/etc/openclash/china_ip_route.ipset 2&gt;/dev/null</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 避免来自中国的流量经过代理，需要走代理的都保留了 Fake IP</span></span><br><span class="line">iptables -t nat -D openclash -p tcp -s 0.0.0.0/0 -d 0.0.0.0/0 -j REDIRECT --to-ports 7892</span><br><span class="line"><span class="meta">#</span><span class="bash"> 避免宿主机自身的出口流量全部走代理</span></span><br><span class="line">iptables -t nat -D openclash_output -p tcp -m owner ! --uid-owner 65534 -j REDIRECT --to-ports 7892</span><br><span class="line"><span class="meta">#</span><span class="bash"> 避免来自中国的 UDP 流量经过代理</span></span><br><span class="line">iptables -t mangle -D openclash -p udp -j TPROXY --tproxy-mark 0x162/0xffffffff --on-port 7895</span><br><span class="line"><span class="meta">#</span><span class="bash"> 除 Fake IP 外，非中国 IP 的流量也重定向到代理</span></span><br><span class="line">iptables -t nat -A openclash -p tcp -m set ! --match-set china_ip_route dst -j REDIRECT --to-ports 7892</span><br><span class="line"><span class="meta">#</span><span class="bash"> 重定向非中国的 UDP 流量到代理</span></span><br><span class="line">iptables -t mangle -A openclash -p udp -m set ! --match-set china_ip_route dst -j TPROXY --tproxy-mark 0x162/0xffffffff --on-port 7895</span><br><span class="line"><span class="meta">#</span><span class="bash"> 对于宿主机自身的 TCP 流量除了 Fake IP 外，对于非中国 IP 的流量且非 OpenClash 的出口流量也重定向到代理</span></span><br><span class="line">iptables -t nat -A openclash_output -p tcp -m set ! --match-set china_ip_route dst -m owner ! --uid-owner 65534 -j REDIRECT --to-ports 7892</span><br><span class="line"></span><br><span class="line">exit 0</span><br></pre></td></tr></table></figure>
 
 <p>保存、应用！</p>
 <hr>
