@@ -151,7 +151,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://tubetrue01.github.io/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/">
+    <link itemprop="mainEntityOfPage" href="https://tubetrue01.github.io/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/articles/img/head.PNG">
@@ -165,7 +165,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/" class="post-title-link" itemprop="url">IO 多路复用（四）epoll 函数</a>
+            <a href="/articles/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio/" class="post-title-link" itemprop="url">K8s 集群搭建系列（四） 你好 Istio</a>
         </h2>
 
         <div class="post-meta">
@@ -175,14 +175,14 @@
               </span>
               <span class="post-meta-item-text">发表于</span>
 
-              <time title="创建时间：2021-07-11 15:55:10" itemprop="dateCreated datePublished" datetime="2021-07-11T15:55:10+08:00">2021-07-11</time>
+              <time title="创建时间：2021-08-08 01:08:22" itemprop="dateCreated datePublished" datetime="2021-08-08T01:08:22+08:00">2021-08-08</time>
             </span>
               <span class="post-meta-item">
                 <span class="post-meta-item-icon">
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-10-12 14:18:28" itemprop="dateModified" datetime="2021-10-12T14:18:28+08:00">2021-10-12</time>
+                <time title="修改时间：2021-08-29 16:22:44" itemprop="dateModified" datetime="2021-08-29T16:22:44+08:00">2021-08-29</time>
               </span>
 
           
@@ -197,234 +197,98 @@
 
       
           <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>epoll 是 Linux 特有的结构，它允许一个进程监听多个文件描述符，并在 I/O 就绪时获取到通知。epoll 有 ET（edge-triggered） 跟 LT（level-triggered） 两种对文件描述符的操作模式，默认为 LT。在我们深入了解它之前，让我们先看看它的语法。</p>
+<p>自上一篇文章<a href="https://tubetrue01.github.io/articles/2020/12/22/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E4%B8%89)K8s%E5%90%AF%E5%8A%A8">【K8s 集群搭建系列（三）K8s 启动】</a> 到现在已经过去很长时间了，而本篇文章在很早之前就该发布，但是每次写了开头都放弃了。因为我觉得作为普通使用者，其实没必要去折腾，能用就可以了。但是还是想把之前的折腾经历分享出来，算是作个记录吧。Istio 安装很简单，但是本地使用的话，由于没有 EXTERNAL-IP，所以需要通过 NodePort 等方式暴露，我觉得不太好。如果能通过域名的方式访问，那就比较完美了。但是本地安装可不可以做到呢？我们回想一下 K8s 使用 ingress-nginx 不就是这样嘛，如果用 ingress-nginx 将流量引入到 Istio gateway 那么应该就可以了，那至于行不行呢，我们实践一下！</p>
 </blockquote>
-<h1 id="epll-语法"><a href="#epll-语法" class="headerlink" title="epll 语法"></a>epll 语法</h1><p>与 poll 不同的是，epoll 本身并不是一个系统调用。它是一个允许进程在多个文件描述符上复用 I/O 的内核数据结构。</p>
-<hr>
-<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/01.png" class="" width="400">
+<h1 id="版本"><a href="#版本" class="headerlink" title="版本"></a>版本</h1><ul>
+<li>K8s 版本：v1.19.0</li>
+<li>Istio 版本：1.8.1</li>
+<li>ingress-nginx 版本：3.19.0</li>
+<li>域名 my.k8s.com 指向了 K8s Master 节点宿主机 ip，这里需要配置一下 hosts</li>
+</ul>
+<h1 id="准备测试服务"><a href="#准备测试服务" class="headerlink" title="准备测试服务"></a>准备测试服务</h1><p>在开始之前，我们先安装个 web 服务供测试，为了简单起见，我们就装个 nginx 吧！</p>
+<h2 id="创建命名空间"><a href="#创建命名空间" class="headerlink" title="创建命名空间"></a>创建命名空间</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl create ns test  </span><br></pre></td></tr></table></figure>
 
-<hr>
-<p>该数据结构通过以下三个系统调用创建、修改、删除。</p>
-<h2 id="epoll-create"><a href="#epoll-create" class="headerlink" title="epoll_create"></a>epoll_create</h2><p><strong>epoll_create</strong> 用于创建 epoll 实例，并返回一个文件描述符给 epoll 实例。方法签名如下：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/epoll.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_create</span><span class="params">(<span class="keyword">int</span> size)</span></span>;</span><br></pre></td></tr></table></figure>
-<p><strong>size</strong> 参数用来告知内核进程想要监听的文件描述符数量，以此来辅助内核推算出 epoll 实例的大小。但是，从 Linux 2.6.8 起，epoll 数据结构可以随着文件描述符的添加、删除动态调整，所以该参数就可忽略了。</p>
-<p><strong>epoll_create</strong> 返回一个文件描述符给新创建的 epll 内核数据结构。调用进程可以通过该描述进行添加、删除、修改它想要监听 I/O 的其他描述符 给 epoll 实例。</p>
-<hr>
-<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/02.png" class="" width="400">
+<h2 id="安装-yaml"><a href="#安装-yaml" class="headerlink" title="安装 yaml"></a>安装 yaml</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f -&lt;&lt;EOF </span><br><span class="line">apiVersion: apps/v1</span><br><span class="line">kind: Deployment</span><br><span class="line">metadata:</span><br><span class="line">  name: nginx</span><br><span class="line">  namespace: test</span><br><span class="line">  labels:</span><br><span class="line">    app: nginx</span><br><span class="line">    version: v1</span><br><span class="line">spec:</span><br><span class="line">  replicas: 1</span><br><span class="line">  selector:</span><br><span class="line">    matchLabels:</span><br><span class="line">      app: nginx</span><br><span class="line">      version: v1</span><br><span class="line">  template:</span><br><span class="line">    metadata:</span><br><span class="line">      labels:</span><br><span class="line">        app: nginx</span><br><span class="line">    spec:</span><br><span class="line">      containers:</span><br><span class="line">      - name: nginx</span><br><span class="line">        image: nginx:1.19.2</span><br><span class="line">        ports: </span><br><span class="line">        - containerPort: 80</span><br><span class="line">---</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Service</span><br><span class="line">metadata:</span><br><span class="line">  name: nginx</span><br><span class="line">  namespace: test</span><br><span class="line">  labels:</span><br><span class="line">    app: nginx</span><br><span class="line">spec:</span><br><span class="line">  type: ClusterIP</span><br><span class="line">  selector:</span><br><span class="line">    app: nginx</span><br><span class="line">  ports:</span><br><span class="line">  - name: http</span><br><span class="line">    port: 80</span><br><span class="line">    targetPort: 80</span><br><span class="line"></span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>安装好 nginx 对应的 pod 跟 service 之后，我们接下来需要安装 nginx-ingress 将 nginx 暴露出来。</p>
+<h1 id="安装-ingress-nginx"><a href="#安装-ingress-nginx" class="headerlink" title="安装 ingress-nginx"></a>安装 ingress-nginx</h1><h2 id="配置文件修改"><a href="#配置文件修改" class="headerlink" title="配置文件修改"></a>配置文件修改</h2><p>下载 ingress-nginx 并解压之后，我们需要修改一下它的配置文件，即：value.yaml。主要涉及的内容如下：</p>
+<ul>
+<li><p>主机网络模式开启，这样就能够通过主机 ip 访问它</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hostNetwork: true</span><br></pre></td></tr></table></figure></li>
+<li><p>我们需要将它安装到主节点，所以需要看下主节点的污点</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl describe node master</span><br></pre></td></tr></table></figure>
+<p>拿到它的污点：</p>
+  <img src="/articles/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio/01.png" class="" width="600"></li>
+<li><p>修改 value.yaml 文件中关于 ingress-nginx 的容忍度</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">tolerations:</span> </span><br><span class="line"> <span class="bullet">-</span> <span class="attr">key:</span> <span class="string">&quot;node-role.kubernetes.io/master&quot;</span>   </span><br><span class="line">   <span class="attr">operator:</span> <span class="string">&quot;Exists&quot;</span></span><br><span class="line">   <span class="attr">effect:</span> <span class="string">&quot;NoSchedule&quot;</span></span><br></pre></td></tr></table></figure></li>
+<li><p>即使配置了容忍度也不能保证百分百调度到主节点，只是说有机会调度到主节点。接下来需要配置节点选择器，让它往主节点调度</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">nodeSelector:</span> &#123;</span><br><span class="line">    <span class="attr">kubernetes.io/hostname:</span> <span class="string">master</span></span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>必要的参数已经配好，接下来我们就可以安装了！</p>
+<h2 id="安装-controller"><a href="#安装-controller" class="headerlink" title="安装 controller"></a>安装 controller</h2><p>我这里通过 helm 进行安装，安装到 web 服务对应的命名空间下（只是为了测试我们的 web 服务是否可用）</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">helm install -n test ingress-nginx ingress-nginx-3.19.0</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="配置-ingress-nginx-访问规则"><a href="#配置-ingress-nginx-访问规则" class="headerlink" title="配置 ingress-nginx 访问规则"></a>配置 ingress-nginx 访问规则</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f -&lt;&lt;EOF </span><br><span class="line">apiVersion: networking.k8s.io/v1</span><br><span class="line">kind: Ingress</span><br><span class="line">metadata:</span><br><span class="line">  name: nginx-ingress</span><br><span class="line">  annotations:</span><br><span class="line">    kubernetes.io/ingress.class: &quot;nginx&quot;</span><br><span class="line">  namespace: test   </span><br><span class="line">spec:</span><br><span class="line">  rules:</span><br><span class="line">    - host: &quot;my.k8s.com&quot;</span><br><span class="line">      http:</span><br><span class="line">        paths:</span><br><span class="line">          - path: /</span><br><span class="line">            pathType: Prefix</span><br><span class="line">            backend:</span><br><span class="line">              service:</span><br><span class="line">                name: nginx</span><br><span class="line">                port: </span><br><span class="line">                  number: 80</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
 
-<hr>
-<p>另一个 <strong>epoll_create1</strong> 的系统调用签名如下：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_create1</span><span class="params">(<span class="keyword">int</span> flags)</span></span>;</span><br></pre></td></tr></table></figure>
-<p><strong>flag</strong> 参数既可以是 0 也可以是 <strong>EPOLL_CLOEXEC</strong>。</p>
-<p>当 flag 为 0 的时候，该函数的行为跟 epoll_create 一致。</p>
-<p>当 flag 为 <strong>EPOLL_CLOEXEC</strong> 时，当前进程 fork 出来的任何子进程在执行前都会关闭 epoll 描述符。也因此，子进程不能够访问 epoll 实例。</p>
+<h2 id="查看是否畅通"><a href="#查看是否畅通" class="headerlink" title="查看是否畅通"></a>查看是否畅通</h2><img src="/articles/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio/02.png" class="" width="1000">
+
+
+<p>至此，说明我们的测试项目跑起来了。只不过是通过 ingress-nginx 访问的方式，接下来，我们要通过 Istio 用同样的域名方式访问。好，现在就可以卸载 ingress-nginx 了，只不过稍后会再装回来。</p>
+<h2 id="卸载-ingress-nginx"><a href="#卸载-ingress-nginx" class="headerlink" title="卸载 ingress-nginx"></a>卸载 ingress-nginx</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">helm uninstall ingress-nginx -n test</span><br></pre></td></tr></table></figure>
+<h2 id="删除-ingress-资源"><a href="#删除-ingress-资源" class="headerlink" title="删除 ingress 资源"></a>删除 ingress 资源</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl delete ing -n test nginx-ingress  </span><br></pre></td></tr></table></figure>
+
+<h1 id="安装-Istio"><a href="#安装-Istio" class="headerlink" title="安装 Istio"></a>安装 Istio</h1><p>直接去 <a target="_blank" rel="noopener" href="https://github.com/istio/istio">【GitHub】</a> 上下载压缩包，然后解压配置 istioctl 命令的环境变量即可。</p>
+<p>安装默认的配置就可以了</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">istioctl install --set profile=default -y</span><br></pre></td></tr></table></figure>
+<p>安装成功之后，我们看下它的 pod：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">kubectl get po -n istio-system   </span><br><span class="line">---</span><br><span class="line">NAME                                    READY   STATUS    RESTARTS   AGE</span><br><span class="line">istio-ingressgateway-64589668d7-tmvld   1/1     Running   0          99s</span><br><span class="line">istiod-5d744fdd4f-969js                 1/1     Running   0          106s</span><br></pre></td></tr></table></figure>
+<p>看到了熟悉的 istio-ingressgateway-64589668d7-tmvld ，之所以熟悉是因为它也是个 ingress。那么这样就好办了。</p>
+<h2 id="安装-ingress-nginx-1"><a href="#安装-ingress-nginx-1" class="headerlink" title="安装 ingress-nginx"></a>安装 ingress-nginx</h2><p>我们再一次安装 ingress-nginx，只不过我们把它放到 istio-system 命名空间中。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">helm install -n istio-system ingress-nginx ingress-nginx-3.19.0</span><br></pre></td></tr></table></figure>
+
+<h2 id="配置-ingress-规则"><a href="#配置-ingress-规则" class="headerlink" title="配置 ingress 规则"></a>配置 ingress 规则</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f -&lt;&lt;EOF </span><br><span class="line">apiVersion: networking.k8s.io/v1</span><br><span class="line">kind: Ingress</span><br><span class="line">metadata:</span><br><span class="line">  name: nginx-ingress</span><br><span class="line">  annotations:</span><br><span class="line">    kubernetes.io/ingress.class: &quot;nginx&quot;</span><br><span class="line">  namespace: istio-system</span><br><span class="line">spec:</span><br><span class="line">  defaultBackend:</span><br><span class="line">    service:</span><br><span class="line">      name: istio-ingressgateway</span><br><span class="line">      port:</span><br><span class="line">        number: 80    </span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
 <p><strong>📚 Tips</strong></p>
 <blockquote>
-<p>有一点需要特别注意，关联 epoll 实例的文件描述符需要通过 <strong>close()</strong> 系统调用来释放。多个进程可能持有同一个 epoll 实例的文件描述符（如：当 <strong>EPOLL_CLOEXEC</strong> 标记没有指定时，fork 出来的子进程会复制该文件描述符）。当所有的进程都不再使用该描述符时（通过调用 close() 或者退出），内核才会销毁 epoll 实例。</p>
+<p>如上 ingress 配置，我们只添加了一个 defaultBackend，也就是说，所有的流量全部引进来，并把该流量指给网关 istio-ingressgateway。同时还要注意，该 ingress 的命名空间同 gateway。</p>
 </blockquote>
-<h2 id="epoll-ctl"><a href="#epoll-ctl" class="headerlink" title="epoll_ctl"></a>epoll_ctl</h2><p>进程可以通过 epoll_ctl 来添加它想要监听的描述符给 epoll 实例。所有注册到 epoll 实例的文件描述符统称为 <strong>epoll set</strong> 或者 <strong>interest list</strong>。</p>
-<hr>
-<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/03.png" class="" width="400">
-
-<hr>
-<p>上图中，pid 为 483 的进程在 epoll 实例中注册了 FD1，FD2，FD3，FD4，FD5 文件描述符。以上就是 epoll 实例的 interest list 或者 epoll set。随后，当任何文件描述符已经准备好 I/O 时，它们就会放到 ready list 中。</p>
-<p>ready list 是 interest list 的子集，如图所示：</p>
-<hr>
-<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/04.png" class="" width="400">
-
-<hr>
-<p><strong>epoll_ctl</strong> 的签名如下：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/epoll.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_ctl</span><span class="params">(<span class="keyword">int</span> epfd, <span class="keyword">int</span> op, <span class="keyword">int</span> fd, struct epoll_event *event)</span></span>;</span><br></pre></td></tr></table></figure>
-<hr>
-<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/05.png" class="" width="400">
-
-<hr>
-<ul>
-<li><p><strong>epfd</strong> 由 <strong>epoll_create</strong> 返回的 epoll 文件描述符，指向内核中 epoll 实例。</p>
-</li>
-<li><p><strong>fd</strong> 需要注册到 epoll list 或者 interest list 中的文件描述符。</p>
-</li>
-<li><p><strong>op</strong> 对以上文件描述符 fd 要执行的操作，一般支持以下三个操作：</p>
-</li>
-<li><p><strong>EPOLL_CTL_ADD</strong> 向 epoll 实例中注册该文件描述符，当指定事件发生时，获取到通知。</p>
-</li>
-<li><p><strong>EPOLL_CTL_DEL</strong> 将该文件描述符从 eopll 实例中删除，意味着进程不会收到任何发生在该文件描述符上事件的通知。</p>
-</li>
-<li><p><strong>EPOLL_CTL_MOD</strong> 修改该文件描述符上的监听事件。</p>
-</li>
-</ul>
-<hr>
-<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/06.png" class="" width="400">
-
-<hr>
-<p><strong>event</strong> 指向存储想要在该文件描述符监听事件的 <strong>epoll_event</strong> 结构的指针。</p>
-<hr>
-<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/07.png" class="" width="400">
-
-<hr>
-<p>以下是 epoll_event 结构体：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">epoll_event</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="keyword">uint32_t</span> events;          <span class="comment">/* Epoll events */</span></span><br><span class="line">  <span class="keyword">epoll_data_t</span> data;        <span class="comment">/* User data variable */</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">union</span> <span class="title">epoll_data</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="keyword">void</span> *ptr;</span><br><span class="line">  <span class="keyword">int</span> fd;</span><br><span class="line">  <span class="keyword">uint32_t</span> u32;</span><br><span class="line">  <span class="keyword">uint64_t</span> u64;</span><br><span class="line">&#125; <span class="keyword">epoll_data_t</span>;</span><br></pre></td></tr></table></figure>
-
-<p>epoll_event 结构的第一个字段 <strong>events</strong> 是一个位掩码，表示 fd 上哪些事件正在监听。</p>
-<p>比如：如果 fd 是一个 socket 描述符，我们可能想要监听是否有新的数据到达 socket buffer，那我们可以设置 <strong>EPOLLIN</strong> 事件。如果我们想要获取 fd 上 edge-triggered 触发的通知，可以设置 <strong>EPOLLET</strong> 按位或 <strong>EPOLLIN</strong>等等。</p>
-<p>events 可以由以下几种宏表示：</p>
-<ul>
-<li><strong>EPOLLIN</strong> 表示对应的文件描述符可以读（包括对端 socket 正常关闭）。</li>
-<li><strong>EPOLLOUT</strong> 表示对应的文件描述符可以写。</li>
-<li><strong>EPOLLPRI</strong> 表示对应的文件描述符有紧急的数据可。</li>
-<li><strong>EPOLLERR</strong> 表示对应的文件描述符发生错误；</li>
-<li><strong>EPOLLHUP</strong> 表示对应的文件描述符被挂断；</li>
-<li><strong>EPOLLET</strong> 将 EPOLL 设为边缘触发（Edge Triggered）模式，这是相对于水平触发（Level Triggered）来说的。</li>
-<li><strong>EPOLLONESHOT</strong> 只监听一次事件，当监听完这次事件之后，如果还需要继续监听这个 socket 的话，需要再次把这个 socket 加入到 epoll 队列里</li>
-</ul>
-<p>更多的用法可以从<a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/man2/epoll_ctl.2.html">【man page】</a> 中获取。</p>
-<p>epoll_event 的第二个字段是一个联合类型。</p>
-<h2 id="epoll-wait"><a href="#epoll-wait" class="headerlink" title="epoll_wait"></a>epoll_wait</h2><p>通过 epoll_wait 系统调用通知线程 epoll set/ interest list 上事件的发生，该调用会一直阻塞，直到任何一个被监听的描述符准备好 I/O。</p>
-<p>该函数签名如下：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/epoll.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_wait</span><span class="params">(<span class="keyword">int</span> epfd, struct epoll_event *evlist, <span class="keyword">int</span> maxevents, <span class="keyword">int</span> timeout)</span></span>;</span><br></pre></td></tr></table></figure>
-<ul>
-<li><p><strong>epfd</strong> epoll_create 返回的 epoll 文件描述符。</p>
-</li>
-<li><p><strong>evlist</strong> epoll_event 结构数组。evlist 由调用进程分配，当 epoll_wait 返回时，该数组存放处于 interest list 中就绪状态（ready list）的描述符及对应的事件信息。</p>
-</li>
-</ul>
-<p><strong>maxevents</strong> — evlist 数组的长度。</p>
-<p><strong>timeout</strong> — 该参数的行为跟 poll 以及 select 一致，指定 epoll_wait 调用等待时长。</p>
-<ul>
-<li>当 timeout 为 0 时，epoll_wait 调用在检查 epfd 的 interest list 中哪些文件描述符准备就绪之后立即返回，不会阻塞。</li>
-<li>当 timeout 为 -1 时，eopll_wait 会一直阻塞（此时内核会将该进程休眠，直到调用返回）直到一个或者多个处于 interest list 中的描述符变成就绪状态或者该调用被信号处理程序中断。</li>
-<li>当 timeout 为一个正值时，epoll_wait 调用会等待 timeout 毫秒数，除非有描述符就绪或者被信号中断。</li>
-</ul>
-<p>epoll_wait 有以下返回值：</p>
-<ul>
-<li>-1：当调用发生错误（EBADF or EINTR or EFAULT or EINVAL）。</li>
-<li>0：调用超时。</li>
-<li>返回就绪的描述符的数量，即 evlist 数组的长度</li>
-</ul>
-<h1 id="epoll-中的陷阱"><a href="#epoll-中的陷阱" class="headerlink" title="epoll 中的陷阱"></a>epoll 中的陷阱</h1><p>为了充分了解 epoll，我们需要了解文件描述符背后的工作原理是怎样的。<br>每个进程维护一套它能访问到的文件描述符表，表中每个条目都包含两个字段：</p>
-<ul>
-<li><strong>flags</strong> 用来控制对描述符的操作（唯一相同的 flag 是 close-on-exec）</li>
-<li> <strong>ptr</strong> 指向底层内核数据结构的指针</li>
-</ul>
-<p>描述符既可以被 open、pipe、socket 等系统调用显示地创建，也可以被父进程 fork 出来的子进程继承，或者被 dup/dup2 这样的系统调用“复制”。</p>
-<hr>
-<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/08.png" class="" width="400">
-
-<hr>
-<p>以下场景会释放描述符：</p>
-<ul>
-<li>进程退出</li>
-<li>close 系统调用</li>
-<li>进程调用 fork 派生出来的子进程会继承下来所有父进程的描述符。如果任何在父进程调用 fork 之后，子进程 execs 之前标记为 close-on-exec 的描述符，子进程都不可用，但是父进程仍然可以继续使用这些描述符</li>
-</ul>
-<p>假如上图中进程 A 描述符 3 被标记为 close-on-exec，当进程 A fork 出进程 B 之后，两者完全相同，进程 B 拥有了继承下来的描述符 0，1，2，3。</p>
-<p>但是，由于描述符 3 被标记为 close-on-exec，所以在进程 B execs 之前，该描述符会被标记为“inactive”，进程 B 也就不能够再访问它了。</p>
-<hr>
-<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/09.png" class="" width="400">
-
-<hr>
-<p>为了弄清它，我们需要知道描述符只是一个指向被称为文件描述符的底层内核数据结构的进程指针。<br>内核维护一个包含所有打开的文件描述符表叫做打开文件表（open file table）。</p>
-<hr>
-<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/10.png" class="" width="400">
-
-<hr>
-<p>我们假设进程 A 的描述符 fd3 是由 fd0 通过 dup 或者 fcntl 的系统调用创建的。原始的描述符 fd0 以及“复制”出来的描述符 fd3 都指向了内核中同一个文件描述符。</p>
-<p>如果进程 A 接着 fork 出进程 B 而 fd3 被标记了 close-on-exec，那么子进程 B 继承下 A 的所有描述符中，fd3 是不能使用的。</p>
-<p>有一点需要特别注意的是，子进程中的 fd0 也指向了内核打开文件表中同一个打开的文件描述符。</p>
-<hr>
-<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/11.png" class="" width="400">
-
-<hr>
-<p>现在有三个描述符，分别是进程 A 中的 fd0 和 fd3，以及进程 B 中的 fd0，它们指向了底层同一个文件描述符。为了简单化，我们忽略掉进程 A 跟进程 B 的其他所有描述符（它们也都分别指向了打开文件表中的一个条目）。</p>
+<h2 id="配置-gateway"><a href="#配置-gateway" class="headerlink" title="配置 gateway"></a>配置 gateway</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f -&lt;&lt;EOF </span><br><span class="line">apiVersion: networking.istio.io/v1alpha3</span><br><span class="line">kind: Gateway</span><br><span class="line">metadata:</span><br><span class="line">  name: k8s-gateway</span><br><span class="line">  namespace: istio-system</span><br><span class="line">spec:</span><br><span class="line">  servers:</span><br><span class="line">  - hosts:</span><br><span class="line">    - &#x27;*&#x27;</span><br><span class="line">    port:</span><br><span class="line">      number: 80</span><br><span class="line">      name: http</span><br><span class="line">      protocol: HTTP</span><br><span class="line">   </span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
 <p><strong>📚 Tips</strong></p>
 <blockquote>
-<p>注意，文件描述符会在进程以及 fork 出的子进程中共享。如果一个进程通过 Unix Domain Socke 套接字将文件描述符传递给另一个进程，那么两个进程同样会指向底层同一个内核打开的文件描述符。</p>
+<p>让网关接管所有流量，即：域名 * 的。</p>
 </blockquote>
-<p>最后，我们需要了解另一个比较重要的概念— 文件描述符中的结点指针。<br>结点就是一种文件系统数据结构，它包含有关文件系统对象（如：文件、路径）的相关信息，比如：</p>
-<ul>
-<li>文件或者路径数据在磁盘上存储的位置</li>
-<li>文件或路径属性</li>
-<li>访问时间、所有者、权限等关于文件或者路径的元数据信息</li>
-</ul>
-<p>文件系统中的每个文件或者路径都有一个结点条目，该条目代表着文件的编号（也叫结点编号），在很多文件系统上，可分配的结点数是有上限的。</p>
-<p>在磁盘上有一个用于维护结点编号到磁盘上实际结点数据结构映射的结点表。为了获取文件位置或者有关文件的元信息，大部分文件系统使用内核提供的文件驱动通过结点编号来访问它。</p>
-<p>假如进程 A fork 出子进程 B 之后，进程 A 又创建了 fd4 跟 fd5（这两个描述符不会被 B 继承）。</p>
-<p>假如 fd5 是进程 A 为了读取 abc.txt 文件通过调用 open 来创建的，而进程 B 为了向 abc.txt 文件中写数据通过 open 调用返回的描述符是 fd10。<br>那么进程 A 的 fd5 以及进程 B 的 fd10 指向了打开文件表中不同的文件描述符，但是它们指向的却是同一个节点表中的条目（也就是说，它们指向了同一个文件）。</p>
-<hr>
-<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/12.png" class="" width="400">
-
-<hr>
-<p>有两点值得注意的地方：</p>
-<ul>
-<li><p>由于进程 A 以及进程 B 中的 fd0 指向了同一个文件描述符，那么它们就会共享文件偏移量，也就是说，如果进程 A 通过调用 open()、write() 或者 lseek() 等向前移动了偏移量，那么进程 B 中的偏移量同样会发生变化。对于进程 A 的 fd3 也同样如此，因为 fd3 也指向了与 fd0 一样的文件描述符。</p>
-</li>
-<li><p>以上规则对于其中一个进程修改了文件状态标记（O_ASYNC, O_NONBLOCK, O_APPEND）同样适用。所以，如果进程 B 通过 fd0 使用 fcntl 系统调用将文件描述符改为非阻塞模式，那么进程 A 中的 fd0 跟 fd3 也同样变为非阻塞模式。</p>
-</li>
-</ul>
-<h1 id="剖析-epoll"><a href="#剖析-epoll" class="headerlink" title="剖析 epoll"></a>剖析 epoll</h1><p>假如进程 A 有两个指向不同结点的文件描述符 fd0 跟 fd1。</p>
-<hr>
-<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/13.png" class="" width="400">
-
-<hr>
-<p>epoll_create 在内核中创建一个新的结点条目（epoll 实例）以及一个新的打开文件描述符，并把指向描述符的 fd9 返回给调用者。</p>
-<hr>
-<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/14.png" class="" width="400">
-
-<hr>
-<p>当我们通过 epoll_ctl 把 fd0 添加到 epoll 实例的 interest list 中是，实际上是把 fd0 对应的底层文件描述符（打开文件描述符）放到了 epoll 实例的 interest list 中。</p>
-<hr>
-<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/15.png" class="" width="400">
-
-<hr>
-<p>因此，epoll 实例实际上真正监控的是底层的文件描述符，并不是每个进程的文件描述符，这里有个有趣的现象：</p>
-<p>如果进程 A fork 出进程 B，B 就拥有了与 A 一样的描述符，也包括 fd9。不仅如此，进程 B 的 epoll 描述符 fd9 也跟进程 A 一样，拥有相同的 interest list。</p>
-<p>如果进程 A 在 fork 之后，创建了一个新的描述符 fd8 （并不会被进程 B 拥有），并通过 epoll_ctl 添加到 interest list 中。当 fd8 上的事件发生时，不仅仅是进程 A 会收到相关的通知，进程 B 也会收到。当通过调用 dup/dup2 复制 epoll 描述符或者通过 Unix Domain Socket 将 epoll 描述符从一个进程传递到另一个进程时，该现象同样会发生。</p>
-<hr>
-<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/16.png" class="" width="400">
-
-<hr>
-<p>如果进程 B 通过 open 打开一个 df8 指向的文件，其描述符为 fd15，然后进程 A 关闭 fd8。你可能觉得既然 fd8 已经被关闭，那么肯定不会再收到 fd8 上相关的事件了。但是，实际上并非如此，因为 interest list 还在监听着打开的文件描述符。由于 fd15 跟 fd8 指向了相同的描述符，进程 A 得到的通知其实是关于 fd15 的。肯定的是，如果一个进程将它关注的描述符关闭之后还陆续收到该描述符相关的事件，那么该文件描述符对应的底层描述符肯定还被其他至少一个属于该进程或者来自于其他进程的描述引用。</p>
-<h1 id="为什么-epoll-性能强于-select-跟-poll"><a href="#为什么-epoll-性能强于-select-跟-poll" class="headerlink" title="为什么 epoll 性能强于 select 跟 poll"></a>为什么 epoll 性能强于 select 跟 poll</h1><p>select/poll 时间复杂度为 O(N)，如果 N 比较大，那么每次 select/poll 被调用时即使就绪的描述符很少，内核也需要扫描集合中的每个描述符。</p>
-<p>epoll 监听的是底层的文件描述符，每当文件描述符 IO 就绪时，内核就会把它们添加到 ready list 中，此过程无需进程调用 epoll_wait 来实现。当进程调用 epoll_wait 等待事件发生时，内核除了将它维护的 ready list 返回给调用方外，无需做任何其他额外的工作。</p>
-<p>此外，每次调用 select/poll 时，都需要将进程想要监听的描述符信息传递给内核。而内核返回描述符信息时，进程都需要再一次扫描所有的描述符来检查哪个描述符已经就绪了。</p>
-<p>对于 epoll，只要我们通过 epoll_ctl 将我们想要监听的描述符添加到 epoll 实例的 interest list 中，我们就不需要将来调用 epoll_wait 时，向内核传递我们想要监听就绪信息的描述符了（select/poll 需要每次调用时传递）。</p>
+<h2 id="配置-virtual-service"><a href="#配置-virtual-service" class="headerlink" title="配置 virtual service"></a>配置 virtual service</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f -&lt;&lt;EOF </span><br><span class="line">apiVersion: networking.istio.io/v1alpha3</span><br><span class="line">kind: VirtualService</span><br><span class="line">metadata:</span><br><span class="line">  name: nginx</span><br><span class="line">  namespace: test</span><br><span class="line">spec:</span><br><span class="line">  gateways:</span><br><span class="line">  - k8s-gateway.istio-system.svc.cluster.local</span><br><span class="line">  - mesh</span><br><span class="line">  hosts:</span><br><span class="line">  - my.k8s.com</span><br><span class="line">  http:</span><br><span class="line">  - fault:</span><br><span class="line">      abort:</span><br><span class="line">        httpStatus: 400</span><br><span class="line">        percentage:</span><br><span class="line">          value: 50</span><br><span class="line">    match:</span><br><span class="line">    - uri:</span><br><span class="line">        prefix: /nginx</span><br><span class="line">    rewrite:</span><br><span class="line">       uri: /</span><br><span class="line">    route:</span><br><span class="line">    - destination:</span><br><span class="line">        host: nginx</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
 <p><strong>📚 Tips</strong></p>
 <blockquote>
-<p>epoll 时间复杂度是 O(就绪的描述符数量) 并非 O(所要监听的描述符数量)。</p>
+<p>我们通过 <a target="_blank" rel="noopener" href="http://my.k8s.com/nginx">http://my.k8s.com/nginx</a> 来访问我们的 nginx web 服务。但是由于 nginx 的访问路径是 “/“  而不是 “/nginx”，所以我们需要对 url 进行重写。注意，我们这里添加了一个 50% 概率的 400 错误响应，以便验证我们的流量管控是否生效。</p>
 </blockquote>
-<h1 id="边缘触发模式-ET"><a href="#边缘触发模式-ET" class="headerlink" title="边缘触发模式 ET"></a>边缘触发模式 ET</h1><p>默认情况下，epoll 提供了水平触发通知模式。每个 epoll_wait 调用只是返回 interest list 中就绪的描述符。</p>
-<p>假如我们注册了 fd1、fd2、fd3、fd4 四个描述符，在我们调用 epoll_wait 时，只有 fd2、fd3 已经就绪了，那么返回的也就只有这两个描述符信息。</p>
-<hr>
-<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/17.png" class="" width="400">
+<h2 id="配置-destination-rule"><a href="#配置-destination-rule" class="headerlink" title="配置 destination rule"></a>配置 destination rule</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f -&lt;&lt;EOF </span><br><span class="line">apiVersion: networking.istio.io/v1alpha3</span><br><span class="line">kind: DestinationRule</span><br><span class="line">metadata:</span><br><span class="line">  name: nginx</span><br><span class="line">  namespace: test</span><br><span class="line">spec:</span><br><span class="line">  host: nginx.test.svc.cluster.local</span><br><span class="line"><span class="meta">  #</span><span class="bash"> Disable the tls <span class="keyword">for</span> all ports</span></span><br><span class="line">  trafficPolicy:</span><br><span class="line">    tls:</span><br><span class="line">        mode: DISABLE</span><br><span class="line">  subsets:</span><br><span class="line">  - labels:</span><br><span class="line">      version: v1</span><br><span class="line">    name: v1</span><br><span class="line">    trafficPolicy:</span><br><span class="line">      loadBalancer:</span><br><span class="line">        simple: ROUND_ROBIN</span><br><span class="line">      # You can config the tls for each rules</span><br><span class="line">      tls:</span><br><span class="line">        mode: DISABLE</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>这里我们需要关闭 tls 功能。</p>
+</blockquote>
+<h2 id="查看-istio-system-下的-service"><a href="#查看-istio-system-下的-service" class="headerlink" title="查看 istio-system 下的 service"></a>查看 istio-system 下的 service</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">kubectl get svc -n istio-system  </span><br><span class="line"> ---</span><br><span class="line">NAME                                 TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)                                                                      AGE</span><br><span class="line">ingress-nginx-controller             LoadBalancer   10.106.58.208   &lt;pending&gt;     80:31241/TCP,443:31603/TCP                                                   10m</span><br><span class="line">ingress-nginx-controller-admission   ClusterIP      10.96.93.161    &lt;none&gt;        443/TCP                                                                      10m</span><br><span class="line">istio-ingressgateway                 LoadBalancer   10.98.218.30    &lt;pending&gt;     15021:31234/TCP,80:31748/TCP,443:31819/TCP,15012:31734/TCP,15443:30830/TCP   17m</span><br><span class="line">istiod                               ClusterIP      10.101.252.30   &lt;none&gt;        15010/TCP,15012/TCP,443/TCP,15014/TCP                                        17m</span><br></pre></td></tr></table></figure>
 
-<hr>
-<p>值得注意的是，在默认的水平触发模式下，由于 epoll 只是在底层描述符就绪时才会更新 ready list，所以 interest list 中的描述符性质（阻塞与非阻塞）并不会影响 epoll_wait 调用的结果。</p>
-<p>有时我们只是想查看 interest list 中任何一个描述符的状态，不管它是否已经就绪。边缘触发模式允许我们查看任何特定的描述符（即时在调用 epoll_wait 时还没有就绪）是否 I/O 可用。如果我们想要知道自从上次调用 epoll_wait 以来，文件描述符上是否有任何 I/O 活动发生或者描述符就绪时，epoll_wait 并没有调用，我们可以调用 epoll_ctl 时对 EPOLLET 按位或将描述符注册到 epoll 实例以得到边缘出发模式。</p>
-<p>代码示例：</p>
-<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">Poller:register</span><span class="params">(fd, r, w)</span></span></span><br><span class="line">	<span class="keyword">local</span> ev = <span class="built_in">self</span>.ev[<span class="number">0</span>]</span><br><span class="line">    // 事件注册</span><br><span class="line">	ev.events = bit.bor(C.EPOLLET, C.EPOLLERR, C.EPOLLHUP)</span><br><span class="line">	    // 读事件</span><br><span class="line">	<span class="keyword">if</span> r <span class="keyword">then</span></span><br><span class="line">		ev.events = bit.bor(ev.events, C.EPOLLIN)</span><br><span class="line">	<span class="keyword">end</span></span><br><span class="line">	<span class="keyword">if</span> w <span class="keyword">then</span></span><br><span class="line">	    // 写事件</span><br><span class="line">		ev.events = bit.bor(ev.events, C.EPOLLOUT)</span><br><span class="line">	<span class="keyword">end</span></span><br><span class="line">	// 将文件描述符设置到事件对象中</span><br><span class="line">	ev.data.u64 = fd</span><br><span class="line">	// 调用 epoll_ctl 注册</span><br><span class="line">	<span class="keyword">local</span> rc = C.epoll_ctl(<span class="built_in">self</span>.fd, C.EPOLL_CTL_ADD, fd, ev)</span><br><span class="line">	<span class="keyword">if</span> rc &lt; <span class="number">0</span> <span class="keyword">then</span> errors.get(rc):abort() <span class="keyword">end</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>我们发现 istio-ingressgateway 的 TYPE 是 LoadBalancer 类型，显然这不是我们想要的，删掉：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl delete svc -n istio-system istio-ingressgateway</span><br></pre></td></tr></table></figure>
 
-<p>我们以图表的方式来说明边缘触发模式的工作原理。我们采用先前的例子进行说明，进程 A 注册了 4 个描述符到 epoll 实例，其中 fd3 是 socket 描述符。</p>
-<p>假如 t1 时刻，输出字节流到到达 fd3 引用的 socket 描述符。</p>
-<hr>
-<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/18.png" class="" width="400">
+<h2 id="配置-gateway-service"><a href="#配置-gateway-service" class="headerlink" title="配置 gateway service"></a>配置 gateway service</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f -&lt;&lt;EOF </span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Service</span><br><span class="line">metadata:</span><br><span class="line">  name: istio-ingressgateway</span><br><span class="line">  namespace: istio-system</span><br><span class="line">  labels:</span><br><span class="line">    app: istio-ingressgateway</span><br><span class="line">    istio: ingressgateway</span><br><span class="line">    release: istio</span><br><span class="line">spec:</span><br><span class="line">  type: ClusterIP</span><br><span class="line">  selector:</span><br><span class="line">    app: istio-ingressgateway</span><br><span class="line">    istio: ingressgateway</span><br><span class="line">  ports:</span><br><span class="line">  - name: status-port</span><br><span class="line">    port: 15021</span><br><span class="line">  - name: http</span><br><span class="line">    port: 80</span><br><span class="line">    targetPort: 8080</span><br><span class="line">  - name: https</span><br><span class="line">    port: 443</span><br><span class="line">    targetPort: 8443</span><br><span class="line">  - name: tcp</span><br><span class="line">    port: 31400</span><br><span class="line">  - name: tls</span><br><span class="line">    port: 15443</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p><strong>📚 Tips</strong></p>
+<blockquote>
+<p>这里我们重新配置了一下 gateway 的 service，修改的地方有三点：<br>一、将 IP 类型该为 ClusterIP<br>二、将 80 端口映射到 8080<br>三、关闭无用的端口映射</p>
+</blockquote>
+<h2 id="为命名空间开启自动注入"><a href="#为命名空间开启自动注入" class="headerlink" title="为命名空间开启自动注入"></a>为命名空间开启自动注入</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl label namespace test istio-injection=enabled</span><br></pre></td></tr></table></figure>
+<h2 id="删除我们先前创建的-pod"><a href="#删除我们先前创建的-pod" class="headerlink" title="删除我们先前创建的 pod"></a>删除我们先前创建的 pod</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl delete po -n test nginx-55df9cfb4b-xjvcv   </span><br></pre></td></tr></table></figure>
 
-<hr>
-<p>假定 t4 时，进程将调用 epoll_wait。</p>
-<p>如果 t4 时，fd2、fd3 已经就绪，epoll_wait 调用返回 fd2、fd3 已经就绪。</p>
-<hr>
-<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/19.png" class="" width="400">
+<h2 id="查看注入是否成功"><a href="#查看注入是否成功" class="headerlink" title="查看注入是否成功"></a>查看注入是否成功</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">kubectl get po -n test -w</span><br><span class="line">---</span><br><span class="line">NAME                     READY   STATUS     RESTARTS   AGE</span><br><span class="line">nginx-55df9cfb4b-wwddn   0/2     Init:0/1   0          25s</span><br></pre></td></tr></table></figure>
 
-<hr>
-<p>假定进程 t6 时，再一次调用 epoll_wait。<br>此时 fd1 已经就绪，而 fd3 对应的 socket 描述符在 t4 跟 t6 之间没有数据到达。</p>
-<p>在水平触发模式下，调用 epoll_wait 将返回 fd1 给进程，因为此时 fd1 是唯一一个就绪的描述符。然而在边缘触发模式下，该调用将会阻塞，因为在 t4 跟 t6 之间没有 socket 数据到达。</p>
-<hr>
-<img src="/articles/2021/07/11/c_unix/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8(%E5%9B%9B)epoll%20%E5%87%BD%E6%95%B0/20.png" class="" width="400">
+<h2 id="验证"><a href="#验证" class="headerlink" title="验证"></a>验证</h2><p>成功页面</p>
+<img src="/articles/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio/03.png" class="" width="1000">
 
-<hr>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
-<li><a target="_blank" rel="noopener" href="https://copyconstruct.medium.com/the-method-to-epolls-madness-d9d2d6378642">【The method to epoll’s madness】</a></li>
-<li><a target="_blank" rel="noopener" href="https://code.woboq.org/gcc/include/sys/epoll.h.html">【epoll.h】</a></li>
-</ul>
+
+<p>400 页面</p>
+<img src="/articles/2021/08/08/cloud_native/K8s%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E7%B3%BB%E5%88%97(%E5%9B%9B)%E4%BD%A0%E5%A5%BDIstio/04.png" class="" width="1000">
+
+
+<p>至此，完成。后续添加服务，只需要配置好对应的 deployment、service、virtual service、destination rule 即可。我们就可以通过域名的方式访问我们的服务了。</p>
+<h1 id="卸载-Istio"><a href="#卸载-Istio" class="headerlink" title="卸载 Istio"></a>卸载 Istio</h1><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">istioctl manifest generate --set profile=default | kubectl delete --ignore-not-found=true -f -</span><br></pre></td></tr></table></figure>
 
       
     </div>
@@ -443,7 +307,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/articles/page/43/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/43/">43</a><span class="page-number current">44</span><a class="page-number" href="/articles/page/45/">45</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/67/">67</a><a class="extend next" rel="next" href="/articles/page/45/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+    <a class="extend prev" rel="prev" href="/articles/page/43/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/43/">43</a><span class="page-number current">44</span><a class="page-number" href="/articles/page/45/">45</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/68/">68</a><a class="extend next" rel="next" href="/articles/page/45/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
   </nav>
 
 
@@ -511,7 +375,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/articles/archives/">
         
-          <span class="site-state-item-count">67</span>
+          <span class="site-state-item-count">68</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>

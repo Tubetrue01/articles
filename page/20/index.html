@@ -151,7 +151,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://tubetrue01.github.io/2022/12/26/c_unix/TCP(%E4%BA%8C)%E6%85%A2%E5%90%AF%E5%8A%A8,%E6%8B%A5%E5%A1%9E%E9%81%BF%E5%85%8D%E7%AE%97%E6%B3%95,%E5%BF%AB%E9%80%9F%E9%87%8D%E4%BC%A0%E4%B8%8E%E5%BF%AB%E9%80%9F%E6%81%A2%E5%A4%8D/">
+    <link itemprop="mainEntityOfPage" href="https://tubetrue01.github.io/2022/12/27/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%BA%8C)%E8%A7%A3ClientHello/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/articles/img/head.PNG">
@@ -165,7 +165,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/articles/2022/12/26/c_unix/TCP(%E4%BA%8C)%E6%85%A2%E5%90%AF%E5%8A%A8,%E6%8B%A5%E5%A1%9E%E9%81%BF%E5%85%8D%E7%AE%97%E6%B3%95,%E5%BF%AB%E9%80%9F%E9%87%8D%E4%BC%A0%E4%B8%8E%E5%BF%AB%E9%80%9F%E6%81%A2%E5%A4%8D/" class="post-title-link" itemprop="url">TCP（二）慢启动、拥塞避免算法、快速重传与快速恢复</a>
+            <a href="/articles/2022/12/27/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%BA%8C)%E8%A7%A3ClientHello/" class="post-title-link" itemprop="url">TLS 混淆（二）解 ClientHello</a>
         </h2>
 
         <div class="post-meta">
@@ -175,7 +175,7 @@
               </span>
               <span class="post-meta-item-text">发表于</span>
 
-              <time title="创建时间：2022-12-26 19:10:58" itemprop="dateCreated datePublished" datetime="2022-12-26T19:10:58+08:00">2022-12-26</time>
+              <time title="创建时间：2022-12-27 17:21:05" itemprop="dateCreated datePublished" datetime="2022-12-27T17:21:05+08:00">2022-12-27</time>
             </span>
               <span class="post-meta-item">
                 <span class="post-meta-item-icon">
@@ -197,61 +197,26 @@
 
       
           <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>本篇文章主要是介绍一下 TCP 中的慢启动、拥塞避免算法、快速启动以及快速恢复间的基本概念，也便于加强记忆。</p>
+<p><a href="https://tubetrue01.github.io/articles/2022/12/23/proxy/TLS%E6%B7%B7%E6%B7%86(%E4%B8%80)ClientHello/">【上一篇文章】</a> 介绍了客户端发送请求到服务端进行 Hello Client 握手，本篇继续讲解服务端收到请求之后如何反解析具体的数据。</p>
 </blockquote>
-<h1 id="滑动窗口"><a href="#滑动窗口" class="headerlink" title="滑动窗口"></a>滑动窗口</h1><hr>
-<img src="/articles/2022/12/26/c_unix/TCP(%E4%BA%8C)%E6%85%A2%E5%90%AF%E5%8A%A8,%E6%8B%A5%E5%A1%9E%E9%81%BF%E5%85%8D%E7%AE%97%E6%B3%95,%E5%BF%AB%E9%80%9F%E9%87%8D%E4%BC%A0%E4%B8%8E%E5%BF%AB%E9%80%9F%E6%81%A2%E5%A4%8D/01.jpg" class="" width="600">
-
-<hr>
-<p>在开始讲解之前，我们需要了解几个基本概念，首先要介绍的就是滑动窗口协议。什么是滑动窗口协议？以及为什么要有它的存在呢？我们知道 TCP 是基于流的协议，发送方每次要发送多少数据给接收方呢？如果发送一个 MSS 效率太低；如果发送太多，接收方消化不了（接收缓冲区满），又或者网络带宽低，造成数据丢包。</p>
-<p>所以发送方需要知道，它每次最多要发送多少数据给接收方比较合适，这里就用到了滑动窗口。滑动窗口就是接收方通告的窗口。</p>
-<p>从上图中，有 11 个字节需要发送给服务端（滑动窗口的单位是：字节），其中滑动窗口为 6 字节大小。1、2、3 前 3 个字节已经被接收并且完成确认。4、5、6 三个字节已经接收，但是还没有进行确认。所以此时发送分可以发送 7、8、9 三个字节给接收方，但是 10、11 不能发送。</p>
-<h2 id="窗口运动"><a href="#窗口运动" class="headerlink" title="窗口运动"></a>窗口运动</h2><hr>
-<img src="/articles/2022/12/26/c_unix/TCP(%E4%BA%8C)%E6%85%A2%E5%90%AF%E5%8A%A8,%E6%8B%A5%E5%A1%9E%E9%81%BF%E5%85%8D%E7%AE%97%E6%B3%95,%E5%BF%AB%E9%80%9F%E9%87%8D%E4%BC%A0%E4%B8%8E%E5%BF%AB%E9%80%9F%E6%81%A2%E5%A4%8D/02.jpg" class="" width="600">
-
-<hr>
+<h1 id="庐山真面目"><a href="#庐山真面目" class="headerlink" title="庐山真面目"></a>庐山真面目</h1><p>Hello Client 握手包其实就只是一个用来欺骗防火墙的外壳，真正的数据也藏在其中。到达服务端之后，我们首先要做的就是去掉外壳，拿到真实的数据。</p>
 <ol>
-<li>窗口左边沿向右运动，称为<strong>合拢</strong>，发生在数据被发送和确认时。</li>
-<li>窗口右边沿向右运动，称为<strong>张开</strong>，此时发送端可以发送更多的数据，主要发生在接收端确认了数据并且释放了 TCP 接收缓冲区。</li>
-<li>窗口右边沿向做移动，称为<strong>收缩</strong>，这种方式是强烈不推荐的。</li>
+<li><p>先判断当前是否启用混淆</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (obfs == <span class="literal">NULL</span> || obfs-&gt;deobfs_stage &lt; <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>;</span><br></pre></td></tr></table></figure></li>
+<li><p>如果当前混淆上下文中不存在 extra，实例化它，它的作用我们往后在介绍。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (obfs-&gt;extra == <span class="literal">NULL</span>)</span><br><span class="line">&#123;</span><br><span class="line">    obfs-&gt;extra = ss_malloc(<span class="keyword">sizeof</span>(<span class="keyword">frame_t</span>));</span><br><span class="line">    <span class="built_in">memset</span>(obfs-&gt;extra, <span class="number">0</span>, <span class="keyword">sizeof</span>(<span class="keyword">frame_t</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+<li><p>为当前混淆上下文初始化缓存，这里分配了 32 个字节。具体的作用，我们稍后介绍。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (obfs-&gt;buf == <span class="literal">NULL</span>)</span><br><span class="line">&#123;</span><br><span class="line">    obfs-&gt;buf = (<span class="keyword">buffer_t</span> *) ss_malloc(<span class="keyword">sizeof</span>(<span class="keyword">buffer_t</span>));</span><br><span class="line">    balloc(obfs-&gt;buf, <span class="number">32</span>);</span><br><span class="line">    obfs-&gt;buf-&gt;len = <span class="number">32</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+<li><p>由于当前的混淆阶段为 0（Hello Client 握手包，混淆阶段肯定为 0），所以开始解析 <strong>tls_client_hello</strong>。</p>
+</li>
 </ol>
-<h1 id="慢启动"><a href="#慢启动" class="headerlink" title="慢启动"></a>慢启动</h1><p>发送端开始向接收端发送多个报文段，直到接收方通告的窗口大小为止。如果发送方跟接收方处于同一个局域网时，这是成立的。但是，如果两者之间存在多个路由器和速率较慢的链路时，就可能出现一些问题。一些中间路由器必须缓存分组，并有可能耗尽存储器空间，降低 TCP 连接的吞吐量。</p>
-<p>慢启动算法出现了，该算法通过观察到新分组进入网络的速率应该与另一端返回确认的速率相同而进行工作。</p>
-<p>慢启动为发送方 TCP 增加另一个窗口：<strong>拥塞窗口</strong>，记为 <strong>cwnd</strong>。当连接建立之后，拥塞窗口被初始化为 1 个报文段。每收到一个 ACK，拥塞窗口就增加一个报文段（cwnd 以字节为单位，但是慢启动以报文段大小为单位增加）。发送方取拥塞窗口与滑动窗口中的最小值作为发送上限。</p>
-<p><strong>📚 Tips</strong></p>
-<blockquote>
-<p>拥塞窗口是发送方使用的流量控制，而滑动窗口（通告窗口）则是接收方使用的流量控制。</p>
-</blockquote>
-<p>发送方开始发送一个报文段，然后等待 ACK。当收到该 ACK 时，拥塞窗口从 1 增加到 2，即可以发送两个报文段。当收到这两个报文段的 ACK 时，拥塞窗口增肌为 4。也就是说，拥塞窗口增加是一种指数的关系。</p>
-<h3 id="💡-总结"><a href="#💡-总结" class="headerlink" title="💡 总结"></a>💡 总结</h3><blockquote>
-<p>慢启动的出现就是为了避免发送方一下充满滑动窗口大小而间接造成 TCP 吞吐量下降的问题。它从一个报文段开始，根据 ACK 的接收情况，以指数的方式增加发送的报文数，直到拥塞窗口或者滑动窗口最小值为止。</p>
-</blockquote>
-<h1 id="拥塞避免"><a href="#拥塞避免" class="headerlink" title="拥塞避免"></a>拥塞避免</h1><p>慢启动算法是一个连接上发起数据流的方法。但有时候我们会达到中间路由器的极限，此时分组将被丢弃。拥塞避免算法就是一种处理丢失分组的方法。</p>
-<p>拥塞避免算法假定由于分组受到损坏引起的丢失是非常少的（远小于 1%），因此分组丢失就意味着在源主机和目的主机之间的某处网络上发生了拥塞。有两种分组丢失的指示：<strong>发生超时</strong>和<strong>接收到重复的确认</strong>。</p>
-<p>拥塞避免算法和慢启动算法是两个目的不同、独立的算法。但是当发生拥塞时，我们希望降低分组进入网络的传输速率，于是可以调用慢启动来做到这一点。但是实际中，这两个算法通常一起实现。</p>
-<p>拥塞避免算法和慢启动算法需要对每个连接维持两个变量：一个拥塞窗口 cwnd 和一个慢启动门限 ssthresh。算法的工作过程如下：</p>
-<ol>
-<li>对一个给定的连接，初始化 cwnd 为 1 个报文段，ssthresh 为 65535 个字节。</li>
-<li>TCP 输出例程的输出不能超过 cwnd 和接收方通告窗口的大小。拥塞避免是发送方使用的流量控制，而通告窗口则是接收方进行的力量控制。前者是发送方感受到的网络拥塞的估计，而后者则与接收方在该连接上的可用缓存大小有关。</li>
-<li>当拥塞发生时（超时或收到重复的确认），ssthresh 被设置为当前窗口大小的一半（cwnd 和接收方通告窗口的最小值，但最少为 2 个报文段）。此外，如果是超时引起的拥塞，则 cwnd 被设置为 1 个报文段（这就是慢启动）。</li>
-<li>当新的数据被对方确认时，就增加 cwnd，但增加的方法依赖于我们是否在进行慢启动或拥塞避免。如果 cwnd 小于或等于 ssthresh，则正在进行慢启动，否则正在进行拥塞避免。慢启动一直持续到我们回到当拥塞发生时所处位置的半时候才停止，然后转为执行拥塞避免。</li>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * buf-&gt;len 为整个 Hello Client 数据包的长度，包括：固定的混淆模板 + 数据 + 混淆域名长度</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">int</span> len = buf-&gt;len;</span><br><span class="line"></span><br><span class="line">len -= <span class="keyword">sizeof</span>(struct tls_client_hello);</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 减去 client hello 模板数据后为 0，说明此数据包有问题</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (len &lt;= <span class="number">0</span>) <span class="keyword">return</span> OBFS_NEED_MORE;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 将 hello 指针指向数据起始地址，用于取值</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tls_client_hello</span> *<span class="title">hello</span> =</span> (struct tls_client_hello *) buf-&gt;data;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* </span></span><br><span class="line"><span class="comment"> * 如果握手类型与 hello client 中的类型不一致，说明包出现了问题</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (hello-&gt;content_type != tls_client_hello_template.content_type)</span><br><span class="line">    <span class="keyword">return</span> OBFS_ERROR;</span><br><span class="line">    </span><br><span class="line"><span class="comment">/* </span></span><br><span class="line"><span class="comment"> * hello-&gt;len 是整个 Hello Client 内容的长度，加上 5 字节则代表整个 Hello Client 报文的大小（content_type、version、len 总共 5B），</span></span><br><span class="line"><span class="comment"> * 理论上该字段与 buf-&gt;len 字段大小一致</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">size_t</span> hello_len = CT_NTOHS(hello-&gt;len) + <span class="number">5</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 取 Hello Client 包中的 Session Id 字段，存与混淆上下文中的缓存里（步骤 3 中的缓存就是出于这个目的）</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="built_in">memcpy</span>(obfs-&gt;buf-&gt;data, hello-&gt;session_id, <span class="number">32</span>);</span><br></pre></td></tr></table></figure>
+<ol start="5">
+<li>获取真实数据</li>
 </ol>
-<p>慢启动算法初始设置 cwnd 为 1 个报文段，此后以指数的形式增加。而拥塞避免算法要求每次收到一个 ACk 时，将 cwnd 增加 1/cwnd，也就是说线性的增加增长。也就是说，拥塞避免算法希望在一个往返时间内最多为 cwnd 增加 1 个报文段（不管和这个 RTT 中收到多少个 ACK），而慢启动根据 RTT 中所收到的 ACK 个数增加 cwnd。</p>
-<img src="/articles/2022/12/26/c_unix/TCP(%E4%BA%8C)%E6%85%A2%E5%90%AF%E5%8A%A8,%E6%8B%A5%E5%A1%9E%E9%81%BF%E5%85%8D%E7%AE%97%E6%B3%95,%E5%BF%AB%E9%80%9F%E9%87%8D%E4%BC%A0%E4%B8%8E%E5%BF%AB%E9%80%9F%E6%81%A2%E5%A4%8D/03.jpg" class="" width="600">
-
-<p>以上图为例，当 cwnd 为 32 个报文段时就会发生拥塞。于是设置 ssthresh 为 16 个报文段，而 cwnd 为 1 个报文段。时刻 0 发送一个报文段，随着 ACK 的到来，cwnd 以指数的形式增加到 ssthresh 时才停止（慢启动阶段），从该时刻启，cwnd 以线性的方式增加，每个 RTT 内最多增加 1 个报文段（拥塞避免阶段）。</p>
-<h1 id="快速重传与快速恢复"><a href="#快速重传与快速恢复" class="headerlink" title="快速重传与快速恢复"></a>快速重传与快速恢复</h1><p>我们不知道一个重复的 ACK 是由一个丢失的报文段引起的，还是由于仅仅出现了几个报文段的重排序造成的，因此我们等待少量重复的 ACK 到来。加入这只是一些报文段的重新排序，则在重新排序的报文段被处理并产生一个新的 ACK 之前，只可能产生 1~2 个重复的 ACK。如果一连串收到 3 个或 3 个以上重复的 ACK，就非常可能是一个报文段丢失了。于是我们就重传丢失的报文段而不等待超时定时器溢出。这就是<strong>快速重传算法</strong>。接下来执行的不是慢启动算法而是拥塞避免算法，这就是<strong>快速恢复算法</strong>。</p>
-<p>这种情况下为什么没有执行慢启动是因为收到重复的 ACK 不仅仅告诉发送端一个分组丢失了。由于接收方只有在收到另一个报文段时才会产生重复的 ACK，也就是说，在收发两端仍有数据流动，所以此时不应该执行慢启动来突然减少数据流。</p>
-<p>该算法执行过程通常为：</p>
-<ol>
-<li>当收到第 3 个重复的 ACK 时，将 ssthresh 设置为当前拥塞窗口 cwnd 的一半。重传丢失的报文段，设置 cwnd 为 ssthresh 加上 3 被的报文段大小。</li>
-<li>每次收到另一个重复的 ACK 时，cwnd 增加 1 个报文段大小并发送 1 个分组（如果新的 cwnd 允许发送）。</li>
-<li>当下一个确认新数据的 ACK 到达时，设置 cwnd 为 ssthresh（在第 1 步中设置的值）。这个 ACK 应该是在进行重传后的一个往返时间内对步骤 1 中重传的确认。另外这个 ACK 也应该是对丢失分组和收到的第 1 个重复 ACK 之间所有中间报文的确认。这一步采用的是拥塞避免，因为当分组丢失时，我们将当前的速率减半（ssthresh 为当前拥塞窗口的一半）。</li>
-</ol>
-<hr>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
-<li>【TCP/IP 详解】第 20、21 章。</li>
-</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 计算 session ticket 头大小</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">len -= <span class="keyword">sizeof</span>(struct tls_ext_session_ticket);</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 如果小于 0，则说明数据包出现了问题</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (len &lt;= <span class="number">0</span>) <span class="keyword">return</span> OBFS_NEED_MORE;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 计算指针偏移，获取 ticket 指针</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tls_ext_session_ticket</span> *<span class="title">ticket</span> =</span></span><br><span class="line">        (struct tls_ext_session_ticket *) (buf-&gt;data + <span class="keyword">sizeof</span>(struct tls_client_hello));</span><br><span class="line">        </span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 判断当前类型是否一致        </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (ticket-&gt;session_ticket_type != tls_ext_session_ticket_template.session_ticket_type)</span><br><span class="line">    <span class="keyword">return</span> OBFS_ERROR;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* </span></span><br><span class="line"><span class="comment"> * 获取真实数据长度</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">size_t</span> ticket_len = CT_NTOHS(ticket-&gt;session_ticket_ext_len);</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 如果去掉 hello client 头跟 ticket 头之后的长度 len 比数据内容还小，显然是有问题的</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (len &lt; ticket_len)</span><br><span class="line">    <span class="keyword">return</span> OBFS_NEED_MORE;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 将真实数据存放到 buf-&gt;data 中，注意这里用到了 memmove 函数，是因为内存肯定有重叠，</span></span><br><span class="line"><span class="comment"> * 此操作完成了以后，buf 中的数据只能通过 ticket_len 表示出有用的数据地址</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">memmove(buf-&gt;data, (<span class="keyword">char</span> *) ticket + <span class="keyword">sizeof</span>(struct tls_ext_session_ticket), ticket_len);</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 这是一个有意思的点，buf-&gt;len 是客户端传进来的，它等于 tls_len，</span></span><br><span class="line"><span class="comment"> * 而 tls_len 等于 buf_len + hello_len + server_name_len + host_len + ticket_len + other_ext_len，</span></span><br><span class="line"><span class="comment"> * 其中只有 buf_len 数据大小跟 host_len 混淆主机名长度是动态的，其他都是固定不变的。</span></span><br><span class="line"><span class="comment"> * 我们再来看看 hello_len，它是数据报文的 len 字段加 5 字节之后的大小，也就是整个 Hello Client 报文的大小。</span></span><br><span class="line"><span class="comment"> * 两者其实是等价的，但是为什么还会有这个判断逻辑呢？大家不妨可以先思考下</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (buf-&gt;len &gt; hello_len)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * buf-&gt;data + hello_len 指向了包的结尾，此次操作是将数据包之外多余的数据追加到数据之后</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    memmove(buf-&gt;data + ticket_len, buf-&gt;data + hello_len, buf-&gt;len - hello_len);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 将 buf-&gt;len 重新赋值为数据的真实长度</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">buf-&gt;len = ticket_len + buf-&gt;len - hello_len;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 递增混淆阶段</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">obfs-&gt;deobfs_stage++;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 如果有额外的数据</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">if</span> (buf-&gt;len &gt; ticket_len)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * 需要解混淆数据内容</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">return</span> deobfs_app_data(buf, ticket_len, obfs);</span><br><span class="line">&#125; <span class="keyword">else</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * 思考一下，buf-&gt;len 除了等于 ticket_len 之外，存在小于 ticket_len 也就是说 buf-&gt;len - hello_len 为负的情况吗？</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    ((<span class="keyword">frame_t</span> *) obfs-&gt;extra)-&gt;idx = buf-&gt;len - ticket_len;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>以上就是对 Hello Client 解混淆的介绍，其中有几个令人疑惑的点，<code>deobfs_app_data</code> 、<code>Session Id</code> 的作用？什么情况会有额外的数据？<code>buf-&gt;len</code> 有可能比 <code>ticket_len</code> 小吗？不要着急，后续的文章会对这些内容逐一解释。</p>
+<p>此外，我们还要记住的一点是，obfs 上下文对象是针对于当前连接存在的。只要当前连接没有被销毁，obfs 就是同一个对象。</p>
 
       
     </div>
@@ -270,7 +235,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/articles/page/19/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/19/">19</a><span class="page-number current">20</span><a class="page-number" href="/articles/page/21/">21</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/67/">67</a><a class="extend next" rel="next" href="/articles/page/21/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+    <a class="extend prev" rel="prev" href="/articles/page/19/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/19/">19</a><span class="page-number current">20</span><a class="page-number" href="/articles/page/21/">21</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/68/">68</a><a class="extend next" rel="next" href="/articles/page/21/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
   </nav>
 
 
@@ -338,7 +303,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/articles/archives/">
         
-          <span class="site-state-item-count">67</span>
+          <span class="site-state-item-count">68</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>

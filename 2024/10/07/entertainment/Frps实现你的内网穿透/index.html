@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/articles/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/articles/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/articles/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/articles/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/articles/css/main.css">
+
+
+<link rel="stylesheet" href="/articles/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"tubetrue01.github.io","root":"/articles/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="引言最近给老家的爸妈升级了下网络设备，让他们也能随时玩些 YouTube、Netflix。为了给孩子看动画片，顺便安装了 Jellyfin，使其远程连接到我的 NAS 系统。同时为了约束后期孩子的上网行为，软路由则是必须要安排的了。老家的宽带用的电信，那么顺便也改下桥接，要个公网吧。 桥接很快安排了，但是拨号后拿到的确实内网 ip，这不搞笑嘛，赶紧联系了装维人员，被告知保定已经不让申请公网 ip">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Frps 实现内网穿透">
+<meta property="og:url" content="https://tubetrue01.github.io/2024/10/07/entertainment/Frps%E5%AE%9E%E7%8E%B0%E4%BD%A0%E7%9A%84%E5%86%85%E7%BD%91%E7%A9%BF%E9%80%8F/">
+<meta property="og:site_name" content="Tubetrue01">
+<meta property="og:description" content="引言最近给老家的爸妈升级了下网络设备，让他们也能随时玩些 YouTube、Netflix。为了给孩子看动画片，顺便安装了 Jellyfin，使其远程连接到我的 NAS 系统。同时为了约束后期孩子的上网行为，软路由则是必须要安排的了。老家的宽带用的电信，那么顺便也改下桥接，要个公网吧。 桥接很快安排了，但是拨号后拿到的确实内网 ip，这不搞笑嘛，赶紧联系了装维人员，被告知保定已经不让申请公网 ip">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-10-07T12:08:05.000Z">
+<meta property="article:modified_time" content="2024-10-07T12:09:08.989Z">
+<meta property="article:author" content="Tubetrue01">
+<meta property="article:tag" content="娱乐">
+<meta property="article:tag" content="网络">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://tubetrue01.github.io/2024/10/07/entertainment/Frps%E5%AE%9E%E7%8E%B0%E4%BD%A0%E7%9A%84%E5%86%85%E7%BD%91%E7%A9%BF%E9%80%8F/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Frps 实现内网穿透 | Tubetrue01</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/articles/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Tubetrue01</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/articles/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/articles/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/articles/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://tubetrue01.github.io/2024/10/07/entertainment/Frps%E5%AE%9E%E7%8E%B0%E4%BD%A0%E7%9A%84%E5%86%85%E7%BD%91%E7%A9%BF%E9%80%8F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/articles/img/head.PNG">
+      <meta itemprop="name" content="Tubetrue01">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tubetrue01">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Frps 实现内网穿透
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2024-10-07 20:08:05 / 修改时间：20:09:08" itemprop="dateCreated datePublished" datetime="2024-10-07T20:08:05+08:00">2024-10-07</time>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><p>最近给老家的爸妈升级了下网络设备，让他们也能随时玩些 YouTube、Netflix。为了给孩子看动画片，顺便安装了 Jellyfin，使其远程连接到我的 NAS 系统。同时为了约束后期孩子的上网行为，软路由则是必须要安排的了。老家的宽带用的电信，那么顺便也改下桥接，要个公网吧。</p>
+<p>桥接很快安排了，但是拨号后拿到的确实内网 ip，这不搞笑嘛，赶紧联系了装维人员，被告知保定已经不让申请公网 ip 了。无奈，只好放弃，虽然牺牲了部分功能，但是起码能用。虽然拿不到公网ip，但是可以内网穿透不是！</p>
+<p>软路由正好自带了 frpc 客户端，看了下大概的原理，需要一个具有公网的服务器，这不简单，直接用我代理的服务器就行了。域名？这更不在话下了，毕竟是开发人员，域名是必须的。剩下的就是部署 frps 服务端了。</p>
+<p>软路由带的 frpc 版本比较老——v0.40.0 的，也只能下载对应版本的服务端了。a long time later…，一顿操作之后，能够访问了，但是几次下来，直接阻断了。完，被运营商 QoS 了，看了下方案，采用 TLS 或者 KCP 可以解决 QoS 问题，但是发现效果并没有什么卵用，再加上不是什么刚需，尝试了几次之后，放弃了。</p>
+<h1 id="转机"><a href="#转机" class="headerlink" title="转机"></a>转机</h1><p>事情出现了“转机”（否则也没有本篇文章的出现了），几天前打算把孩子的照片上传到 NAS 里，由于是晚上，传了部分之后，就睡觉了，打算让它后台慢慢传。然后第二天看看传的进度。“转机”出现了，相册打不开了，尝试了几次之后发现还是不行。出现这个问题我想大概只有三种情况：一、家里断网了；二、DDNS 正在更新；三、公网 ip 出问题了。但是我突然有种不好的预感，也就是说可能发生第三种情况，因为前两种情况是很好排除的。</p>
+<p>为了验证我的猜想，赶紧回到小区，进入路由后台一看，心凉了，拨号后拿到的 ip 就是一个内网 ip。此时内心的心情，你懂的，想把电信整个族谱问候一遍（没错，我小区用的也是电信的宽带）。与老家不同，如果没有公网 ip，那么意味着所有的网络拓扑 OpenWrt、QB、NAS 都会出现问题。赶紧打了 10000 投诉，中间的过程省略了，总之用网协议都签了，也不行，公网 ip 死活不给。想要公网 ip 只能专线，价格嘛，20M 宽带 2400 一年。</p>
+<p>对于公网 ip，除了电信，就只能问问联通了，结果不用想。</p>
+<h1 id="方案确定"><a href="#方案确定" class="headerlink" title="方案确定"></a>方案确定</h1><p>由于试过 frp，所以这个方案我是直接 pass 的，给我的感觉是不稳定。先前用过 ngrok，所以想看看它的付费方案，毕竟我需要一个稳定的方案。每月最低 8 刀的价格也并没满足我当下的需求。</p>
+<p>尝试了不少国内的付费方案发现要不不稳定，要不不满足我当下的需求，无奈只能放弃。此时脑海里符合我预期的就是 frp 了。我在想不稳定是不是版本太老了，试试最新的版本看看如何。</p>
+<h1 id="frp-实现内网穿透"><a href="#frp-实现内网穿透" class="headerlink" title="frp 实现内网穿透"></a>frp 实现内网穿透</h1><p>此次确定方案的版本为 v0.60.0，经过了几次测试之后，发现远比 v0.40.0 版本强多了，所以方案最终敲定。</p>
+<h2 id="服务端部署"><a href="#服务端部署" class="headerlink" title="服务端部署"></a>服务端部署</h2><p>服务端比客户端部署要简单的多，配置文件也比较简单：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">bindPort = 7000</span><br><span class="line">vhostHTTPSPort = 443</span><br><span class="line">auth.method = &quot;token&quot;</span><br><span class="line">auth.token = &quot;xxxxx&quot;</span><br><span class="line">transport.tcpMux = true</span><br></pre></td></tr></table></figure>
+<p>7000 为服务监听端口，负责客户端的连接（这里就不介绍原理），443 为 HTTPS 访问端口，也可以改成其他的（如果仅仅是  HTTP 访问，则需要改成 vhostHTTPPort）。后期访问就是：https://域名+端口。接下来两个参数就是客户端认证方法。最后一个参数为多路复用，该参数具有争议，有人说关闭之后，服务稳定性下降，但是速度提升。开启则相反，我这里之所以开启是因为，关闭状态下，公网访问隔段时间就会断流，开启状态下则没有这个问题。</p>
+<p>接下来就是开启服务器的防火墙，放行 <code>bindPort</code>、<code>vhostHTTPSPort</code> 两个端口。然后执行以下命令启用：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nohup ./frps -c ./frps.toml &gt; info.log 2&gt;&amp;1 &amp;</span><br></pre></td></tr></table></figure>
+
+<h2 id="客户端部署"><a href="#客户端部署" class="headerlink" title="客户端部署"></a>客户端部署</h2><p>客户端最开始打算升级 OpenWrt 中 frpc 的版本，但是又牵扯到视图层了，所以放弃了。那么就需要更换其他的方案。仔细想一下，frpc 其实就是一个注册服务，有没有视图无所谓，那么这不就更适合 Docker 中部署嘛。而环境中的 Docker 全权是交给 NAS 中的，那么 frpc 就顺理成章的由 NAS 托管就好了。</p>
+<ul>
+<li><h3 id="镜像制作"><a href="#镜像制作" class="headerlink" title="镜像制作"></a>镜像制作</h3><p>运行时环境采用 alpine，将 frpc 打到镜像中，由于服务的注册是以配置文件的方式实现的。这样我们就可以将配置文件暴露出来以挂载的方式实现动态注册。</p>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> alpine:<span class="number">3.20</span>.<span class="number">3</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> apk add tzdata &amp;&amp; cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime </span></span><br><span class="line"><span class="keyword">ADD</span><span class="bash"> frpc /usr/<span class="built_in">local</span>/apps/frpc/bin/frpc</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> chmod +x /usr/<span class="built_in">local</span>/apps/frpc/bin/frpc</span></span><br><span class="line"><span class="keyword">ENTRYPOINT</span><span class="bash"> [ <span class="string">&quot;sh&quot;</span>, <span class="string">&quot;-c&quot;</span>, <span class="string">&quot;./usr/local/apps/frpc/bin/frpc -c /usr/local/apps/frpc/config/frpc.toml&quot;</span>]</span></span><br></pre></td></tr></table></figure>
+<p>内容也很简单，配置好时区，然后运行 frpc，我们运行的时候，需要将配置文件挂载出来。</p>
+</li>
+<li><h3 id="配置文件处理"><a href="#配置文件处理" class="headerlink" title="配置文件处理"></a>配置文件处理</h3><p>为了方便配置文件的更新同步，我把配置文件存到 NAS 中，同时将它与本地双向同步，这样，本地修改之后就会同步到远程 NAS，从而进一步被 NAS 中的 frpc 感知到，从而实现更新。</p>
+<p>为了方便配置文件的管理，我按照以下路径存放：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">|---frp</span><br><span class="line">    |---certs</span><br><span class="line">          |---xxx.pem</span><br><span class="line">          |---xxx.key</span><br><span class="line">    |---confd</span><br><span class="line">          |---a.toml</span><br><span class="line">          |---b.toml</span><br><span class="line">          |---c.toml</span><br><span class="line">    |---frpc.toml</span><br></pre></td></tr></table></figure>
+<p>我们挂载的时候，直接挂载 frp 目录即可，certs 证书目录、confd 配置目录、frpc.toml 入口文件则自动挂载了。</p>
+<ul>
+<li><p>frpc.toml</p>
+ <figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">serverAddr</span> = <span class="string">&quot;公网域名&quot;</span></span><br><span class="line"><span class="attr">serverPort</span> = <span class="number">443</span></span><br><span class="line"><span class="attr">auth.method</span> = <span class="string">&quot;token&quot;</span></span><br><span class="line"><span class="attr">auth.token</span> = <span class="string">&quot;xxxxx&quot;</span></span><br><span class="line"><span class="attr">transport.tcpMux</span> = <span class="literal">true</span></span><br><span class="line"></span><br><span class="line"><span class="attr">includes</span> = [<span class="string">&quot;/usr/local/apps/frpc/config/confd/*.toml&quot;</span>]</span><br></pre></td></tr></table></figure>
+
+<p>由于我们要暴露到公网的服务比较多，全部放到 frpc 中其实不便于管理，所以我们利用 <code>includes</code> 参数将他们分散到外部的 <code>confd</code> 路径中，这样一来，只要你想增加暴露的服务，往 <code>confd</code> 中新增一个配置文件即可，无需修改存量文件。</p>
+<p><code>serverAddr</code> 我推荐写成域名，这样当域名后的服务更新时，也不需要更改配置文件了。</p>
+</li>
+<li><p>xxx.tmol</p>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[[proxies]]</span></span><br><span class="line"><span class="attr">name</span> = <span class="string">&quot;AdGuardHome&quot;</span></span><br><span class="line"><span class="attr">type</span> = <span class="string">&quot;https&quot;</span></span><br><span class="line"><span class="attr">customDomains</span> = [<span class="string">&quot;ad.二级域名&quot;</span>]</span><br><span class="line"><span class="attr">healthCheck.type</span> = <span class="string">&quot;tcp&quot;</span></span><br><span class="line"><span class="attr">healthCheck.timeoutSeconds</span> = <span class="number">3</span></span><br><span class="line"><span class="attr">healthCheck.maxFailed</span> = <span class="number">3</span></span><br><span class="line"><span class="attr">healthCheck.intervalSeconds</span> = <span class="number">10</span></span><br><span class="line"></span><br><span class="line"><span class="section">[proxies.plugin]</span></span><br><span class="line"><span class="attr">type</span> = <span class="string">&quot;https2http&quot;</span></span><br><span class="line"><span class="attr">localAddr</span> = <span class="string">&quot;172.31.0.1:3000&quot;</span></span><br><span class="line"><span class="attr">crtPath</span> = <span class="string">&quot;/usr/local/apps/frpc/config/certs/ad.二级域名.pem&quot;</span></span><br><span class="line"><span class="attr">keyPath</span> = <span class="string">&quot;/usr/local/apps/frpc/config/certs/ad.二级域名.key&quot;</span></span><br><span class="line"><span class="attr">hostHeaderRewrite</span> = <span class="string">&quot;172.31.0.1&quot;</span></span><br><span class="line"><span class="attr">requestHeaders.set.x-from-where</span> = <span class="string">&quot;frp&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>我们每暴露一个服务，只需要增加类似的配置文件即可，要更改的就是 <code>customDomains</code> 访问域名，<code>localAddr</code> 目标服务运行的 <code>ip</code> 及端口、该域名对应证书。</p>
+</li>
+<li><p>ssh.toml</p>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[[proxies]]</span></span><br><span class="line"><span class="attr">name</span> = <span class="string">&quot;SSH&quot;</span></span><br><span class="line"><span class="attr">type</span> = <span class="string">&quot;tcp&quot;</span></span><br><span class="line"><span class="attr">localIP</span> = <span class="string">&quot;172.31.0.1&quot;</span></span><br><span class="line"><span class="attr">localPort</span> = <span class="number">22</span></span><br><span class="line"><span class="attr">remotePort</span> = <span class="number">15020</span></span><br><span class="line"></span><br><span class="line"><span class="attr">healthCheck.type</span> = <span class="string">&quot;tcp&quot;</span></span><br><span class="line"><span class="attr">healthCheck.timeoutSeconds</span> = <span class="number">3</span></span><br><span class="line"><span class="attr">healthCheck.maxFailed</span> = <span class="number">3</span></span><br><span class="line"><span class="attr">healthCheck.intervalSeconds</span> = <span class="number">10</span></span><br></pre></td></tr></table></figure>
+<p>对于 ssh 访问，稍有不同，需要增加一个 <code>remotePort</code> 参数。我们访问的时候需要：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh xx@xxx -p 15020</span><br></pre></td></tr></table></figure></li>
+<li><h3 id="域名解析"><a href="#域名解析" class="headerlink" title="域名解析"></a>域名解析</h3><p>所有服务的访问都是通过域名来暴露的，我们只需要从我们的域名服务商那里添加一个泛解析即可，如果你的二级域名是：<code>test.com</code>，只需要增加 <code>*.test.com</code> 解析到公网服务器 <code>ip</code> 即可。</p>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="Docker-网络模式"><a href="#Docker-网络模式" class="headerlink" title="Docker 网络模式"></a>Docker 网络模式</h2><p>整个系统的网关是软路由，而软路由上也会部署服务，而 frpc 是部署在 NAS 中的 Docker 上的，所以为了将软路由中的服务暴露出来，我们在 Docker 中部署服务的时候，网络模式需要选为 <code>Host</code> 模式。这样，整套网络体系中的任意服务都可以穿透出来。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/articles/tags/%E5%A8%B1%E4%B9%90/" rel="tag"># 娱乐</a>
+              <a href="/articles/tags/%E7%BD%91%E7%BB%9C/" rel="tag"># 网络</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/articles/2024/01/26/java_spring/Spring%E7%B3%BB%E5%88%97%E4%B9%8B%E4%BB%8EAOP%E8%A7%92%E5%BA%A6%E5%88%86%E6%9E%90%E5%BE%AA%E7%8E%AF%E4%BE%9D%E8%B5%96/" rel="prev" title="Spring 系列之从 AOP 角度分析循环依赖">
+      <i class="fa fa-chevron-left"></i> Spring 系列之从 AOP 角度分析循环依赖
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%BC%95%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">引言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%BD%AC%E6%9C%BA"><span class="nav-number">2.</span> <span class="nav-text">转机</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%96%B9%E6%A1%88%E7%A1%AE%E5%AE%9A"><span class="nav-number">3.</span> <span class="nav-text">方案确定</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#frp-%E5%AE%9E%E7%8E%B0%E5%86%85%E7%BD%91%E7%A9%BF%E9%80%8F"><span class="nav-number">4.</span> <span class="nav-text">frp 实现内网穿透</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9C%8D%E5%8A%A1%E7%AB%AF%E9%83%A8%E7%BD%B2"><span class="nav-number">4.1.</span> <span class="nav-text">服务端部署</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%A2%E6%88%B7%E7%AB%AF%E9%83%A8%E7%BD%B2"><span class="nav-number">4.2.</span> <span class="nav-text">客户端部署</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%95%9C%E5%83%8F%E5%88%B6%E4%BD%9C"><span class="nav-number">4.2.1.</span> <span class="nav-text">镜像制作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E5%A4%84%E7%90%86"><span class="nav-number">4.2.2.</span> <span class="nav-text">配置文件处理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%9F%E5%90%8D%E8%A7%A3%E6%9E%90"><span class="nav-number">4.2.3.</span> <span class="nav-text">域名解析</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Docker-%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%BC%8F"><span class="nav-number">4.3.</span> <span class="nav-text">Docker 网络模式</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Tubetrue01"
+      src="/articles/img/head.PNG">
+  <p class="site-author-name" itemprop="name">Tubetrue01</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/articles/archives/">
+        
+          <span class="site-state-item-count">68</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/articles/tags/">
+          
+        <span class="site-state-item-count">24</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Tubetrue01" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Tubetrue01" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/articles/Tubetrue01@gmail.com" title="E-Mail → Tubetrue01@gmail.com"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Tubetrue01</span>
+</div>
+
+
+
+        
+<div class="busuanzi-count">
+  <script data-pjax async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/articles/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/theme-next/theme-next-pjax@0/pjax.min.js"></script>
+  <script src="/articles/lib/velocity/velocity.min.js"></script>
+  <script src="/articles/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/articles/js/utils.js"></script>
+
+<script src="/articles/js/motion.js"></script>
+
+
+<script src="/articles/js/schemes/pisces.js"></script>
+
+
+<script src="/articles/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : 'b78837f065395b7c4761',
+      clientSecret: '58c95c03db39e7430738d663bfc8337a5c8e1e80',
+      repo        : 'articles',
+      owner       : 'Tubetrue01',
+      admin       : ['Tubetrue01'],
+      id          : '01cb2b7fc401dccc29f93a9594816b75',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+    </div>
+</body>
+</html>

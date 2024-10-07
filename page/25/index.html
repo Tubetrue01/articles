@@ -151,7 +151,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://tubetrue01.github.io/2022/08/15/java_trans/[%E8%AF%91]InitialRAMPercentage_MinRAMPercentage_MaxRAMPercentage%E4%B9%8B%E9%97%B4%E7%9A%84%E5%8C%BA%E5%88%AB/">
+    <link itemprop="mainEntityOfPage" href="https://tubetrue01.github.io/2022/08/18/cases/%E6%A1%88%E4%BE%8B%E7%B3%BB%E5%88%97(%E4%BA%8C)%E8%BD%AC%E5%8F%91%E5%A4%96%E9%83%A8%E5%9F%9F%E5%90%8D/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/articles/img/head.PNG">
@@ -165,7 +165,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/articles/2022/08/15/java_trans/%5B%E8%AF%91%5DInitialRAMPercentage_MinRAMPercentage_MaxRAMPercentage%E4%B9%8B%E9%97%B4%E7%9A%84%E5%8C%BA%E5%88%AB/" class="post-title-link" itemprop="url">InitialRAMPercentage、MinRAMPercentage, MaxRAMPercentage 之间的区别【译】</a>
+            <a href="/articles/2022/08/18/cases/%E6%A1%88%E4%BE%8B%E7%B3%BB%E5%88%97(%E4%BA%8C)%E8%BD%AC%E5%8F%91%E5%A4%96%E9%83%A8%E5%9F%9F%E5%90%8D/" class="post-title-link" itemprop="url">案例系列（二）转发外部域名</a>
         </h2>
 
         <div class="post-meta">
@@ -176,7 +176,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2022-08-15 16:37:33 / 修改时间：16:46:53" itemprop="dateCreated datePublished" datetime="2022-08-15T16:37:33+08:00">2022-08-15</time>
+              <time title="创建时间：2022-08-18 16:14:33 / 修改时间：16:42:01" itemprop="dateCreated datePublished" datetime="2022-08-18T16:14:33+08:00">2022-08-18</time>
             </span>
 
           
@@ -190,38 +190,22 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><blockquote>
-<p>本文主要是讲解 InitialRAMPercentage、MinRAMPercentage, MaxRAMPercentage 三个 JVM 参数之间的区别。参数由 Java 8 update 191 引入，主要是用于配置运行在物理机或者容器中的 Java 应用堆内存大小。</p>
+          <h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><blockquote>
+<p>最近开展云平台项目，该项目分为前后端两部分。前端服务由于是静态资源，在交付的时候上传到 OSS 平台。后端服务需要部署到 K8s 集群中。由于是基础设施服务，所以不需要接入 Istio，而是通过 Ingress-NGINX 的方式配置 SLB，并绑定公网域名。<br>云平台服务的访问要求是不能直接使用 OSS 的 CDN 域名，而是与后端服务共用域名。</p>
 </blockquote>
-<h1 id="InitialRAMPercentage"><a href="#InitialRAMPercentage" class="headerlink" title="InitialRAMPercentage"></a>InitialRAMPercentage</h1><p><code>-XX:InitialRAMPercentage</code> 用于配置堆的初始化大小。假如物理机或者容器的内存大小（limit 限制）为 1 GB，<code> -XX:InitialRAMPercentage=25</code>，那么堆内存大小大概为 250 MB（1 GB 的 25%）。</p>
-<p>当 <code>-Xms</code> 参数未指定时，<code>-XX:InitialRAMPercentage</code> 用于配置堆的初始化大小。如果指定了 <code>-Xms</code> ，<code>-XX:InitialRAMPercentage</code> 将会被 JVM 忽略。</p>
-<h1 id="MaxRAMPercentage、MinRAMPercentage"><a href="#MaxRAMPercentage、MinRAMPercentage" class="headerlink" title="MaxRAMPercentage、MinRAMPercentage"></a>MaxRAMPercentage、MinRAMPercentage</h1><p>以上两个参数主要用于配置堆的最大内存大小（JDK 的开发团队起的名字 <code>-XX:MinRAMPercentage</code>   很容易让人理解为是堆的最小内存大小，然而并不是）。</p>
-<p>如果你的物理机（或容器）内存小于 <strong>250 MB</strong>（大约），那么 <code>-XX:MinRAMPercentage</code> 参数用于配置应用堆的最大内存大小。假如物理机内存大小为 100MB，<code>-XX:MinRAMPercentage=50</code>，那么应用的最大堆内存大小为 <strong>50 MB</strong>。</p>
-<p>当你的物理机（或容器）的内存大于 <strong>250 MB</strong>（大约），<code>-XX:MaxRAMPercentage</code> 参数将用于配置应用堆的最大内存大小。</p>
-<p>我们举两个例子来验证以上结论：</p>
-<ul>
-<li><h3 id="例-1：较小的宿主机内存"><a href="#例-1：较小的宿主机内存" class="headerlink" title="例 1：较小的宿主机内存"></a>例 1：较小的宿主机内存</h3>我们把容器的内存限制为 100 MB，MaxRAMPercentage 配置为 25， MinRAMPercentage 配置为 50。那么由于宿主机的内存 100 MB 小于 250 MB，所以后者的配置应该生效，也就是如图所示，应用的最大堆大小为 48.38 MB（100 MB 的 50%）。从该例子中看出 <code>MaxRAMPercentage</code> 被忽略。 </li>
+<h1 id="集群版本"><a href="#集群版本" class="headerlink" title="集群版本"></a>集群版本</h1><ul>
+<li>K8s 版本：v1.21.3</li>
+<li>Istio 版本：1.13.1</li>
 </ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> docker run -m 100MB openjdk:10 java -XX:MaxRAMPercentage=25 -XX:MinRAMPercentage=50 -XshowSettings:vm -version</span></span><br><span class="line">VM settings:</span><br><span class="line">    Max. Heap Size (Estimated): 48.38M</span><br><span class="line">    Using VM: OpenJDK 64-Bit Server VM</span><br></pre></td></tr></table></figure>
+<h1 id="思考"><a href="#思考" class="headerlink" title="思考"></a>思考</h1><p>通过需求分析，我们想到的方案是，为前端资源创建 ExternalName 类型的 Service。然后配置 Ingress ruler，将 / 下的访问转发到该 Service。对于后端服务，我们配置额外的 Ingress 规则，将 /api 下的流量导入该服务对应的 Service。这样就解决二者域名共用的问题了。</p>
+<h1 id="实践"><a href="#实践" class="headerlink" title="实践"></a>实践</h1><h2 id="1、为前端创建-Service"><a href="#1、为前端创建-Service" class="headerlink" title="1、为前端创建 Service"></a>1、为前端创建 Service</h2><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">cloud-native-web</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">devops-test</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">externalName:</span> <span class="string">cdn-test.tubetrue01.com</span></span><br><span class="line">  <span class="attr">sessionAffinity:</span> <span class="string">None</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">ExternalName</span></span><br></pre></td></tr></table></figure>
 
-<ul>
-<li><h3 id="例-2：较大的宿主机内存"><a href="#例-2：较大的宿主机内存" class="headerlink" title="例 2：较大的宿主机内存"></a>例 2：较大的宿主机内存</h3>我们把容器的内存限制改为 1 GB，MaxRAMPercentage 配置为 25， MinRAMPercentage 配置为 50。我们看到实际的应用堆最大大小为 247.50 MB（由于宿主机内存大于 250 MB，所以前者配置生效）。</li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> docker run -m 1GB openjdk:10 java -XX:MaxRAMPercentage=25 -XX:MinRAMPercentage=50 -XshowSettings:vm -version</span></span><br><span class="line">VM settings:</span><br><span class="line">    Max. Heap Size (Estimated): 247.50M</span><br><span class="line">    Using VM: OpenJDK 64-Bit Server VM</span><br></pre></td></tr></table></figure>
+<p>以上 <code>cdn-test.tubetrue01.com</code> 就是我们要转发的目标域名。</p>
+<h2 id="2、创建前端-Ingress-规则"><a href="#2、创建前端-Ingress-规则" class="headerlink" title="2、创建前端 Ingress 规则"></a>2、创建前端 Ingress 规则</h2><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Ingress</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">cloud-native-platform-web</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">devops-test</span></span><br><span class="line">  <span class="attr">annotations:</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/backend-protocol:</span> <span class="string">&quot;HTTPS&quot;</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/upstream-vhost:</span> <span class="string">&quot;cdn-test.tubetrue01.com&quot;</span></span><br><span class="line">    <span class="attr">nginx.ingress.kubernetes.io/rewrite-target:</span> <span class="string">&quot;/index.html&quot;</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">ingressClassName:</span> <span class="string">inner-ingress</span></span><br><span class="line">  <span class="attr">rules:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">host:</span> <span class="string">cloud-test.tubetrue01.com</span></span><br><span class="line">    <span class="attr">http:</span></span><br><span class="line">      <span class="attr">paths:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">service:</span></span><br><span class="line">            <span class="attr">name:</span> <span class="string">cloud-native-web</span></span><br><span class="line">            <span class="attr">port:</span></span><br><span class="line">              <span class="attr">number:</span> <span class="number">443</span></span><br><span class="line">        <span class="attr">path:</span> <span class="string">/</span></span><br><span class="line">        <span class="attr">pathType:</span> <span class="string">Prefix</span></span><br><span class="line">  <span class="attr">tls:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">hosts:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">cloud-test.tubetrue01.com</span></span><br><span class="line">    <span class="attr">secretName:</span> <span class="string">tls-test-tubetrue01-wildcard</span></span><br></pre></td></tr></table></figure>
 
-<p>当 <code>-Xmx</code> 未指定时，<code>-XX:MaxRAMPercentage</code> 及 <code>-XX:MinRAMPercentage</code> 用于配置堆的最大内存大小。如果 <code>-Xmx</code> 指定了，那么以上两个参数将会被 JVM 忽略。如图：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> docker run -m 1GB openjdk:10 java -XX:MaxRAMPercentage=25 -XX:MinRAMPercentage=25 -Xmx512m -XshowSettings:vm -version</span></span><br><span class="line">VM settings:</span><br><span class="line">    Max. Heap Size: 512.00M</span><br><span class="line">    Using VM: OpenJDK 64-Bit Server VM</span><br></pre></td></tr></table></figure>
-
-<p><code>-Xmx512m</code>、<code>-XX:MaxRAMPercentage=25</code>、<code>-XX:MinRAMPercentage=25</code> 同时指定了，但是只有 <code>-Xmx512m</code> 起到了作用。</p>
-<h1 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h1><ul>
-<li>用 <code>-XX:InitialRAMPercentage</code> 配置你的应用堆初始化内存大小（前提是 <code>-Xms</code> 未配置）。</li>
-<li><code>-XX:MinRAMPercentage</code>、<code>-XX:MaxRAMPercentage</code> 用于配置最大堆大小（前提是 <code>-Xmx</code> 未配置）。</li>
-<li><code>-XX:MaxRAMPercentage</code> 应用于大多场景，毕竟主流的企业级 Java 应用内存已经超过了 250 MB。除非构建的是微型应用，物理机内存小于 250 MB，你才需要使用 <code>-XX:MinRAMPercentage</code>。</li>
-</ul>
-<hr>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
-<li><a target="_blank" rel="noopener" href="https://blog.gceasy.io/2020/11/05/difference-between-initialrampercentage-minrampercentage-maxrampercentage/">【原文 Difference between InitialRAMPercentage, MinRAMPercentage, MaxRAMPercentage】</a></li>
-</ul>
+<p>我们要注意的两个注解：<code>nginx.ingress.kubernetes.io/upstream-vhost: &quot;cdn-test.tubetrue01.com</code> 指定了我们要转发的 host，<code>nginx.ingress.kubernetes.io/rewrite-target: &quot;/index.html&quot;</code> 为我们要转发的路径。<br><code>host: cloud-test.tubetrue01.com</code> 是我们入口域名。以上的配置实现的逻辑是当访问 <code>https://cloud-test.tubetrue01.com</code> 时，自动转发到 <code>https://cdn-test.tubetrue01.com/index.html</code>。</p>
+<h2 id="3、创建后端-Ingress-规则"><a href="#3、创建后端-Ingress-规则" class="headerlink" title="3、创建后端 Ingress 规则"></a>3、创建后端 Ingress 规则</h2><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">networking.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Ingress</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">cloud-native-platform</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">devops-test</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">ingressClassName:</span> <span class="string">inner-ingress</span></span><br><span class="line">  <span class="attr">rules:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">host:</span> <span class="string">cloud-test.tubetrue01.com</span></span><br><span class="line">    <span class="attr">http:</span></span><br><span class="line">      <span class="attr">paths:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">backend:</span></span><br><span class="line">          <span class="attr">service:</span></span><br><span class="line">            <span class="attr">name:</span> <span class="string">cloud-native-platform</span></span><br><span class="line">            <span class="attr">port:</span></span><br><span class="line">              <span class="attr">number:</span> <span class="number">80</span></span><br><span class="line">        <span class="attr">path:</span> <span class="string">/api</span></span><br><span class="line">        <span class="attr">pathType:</span> <span class="string">Prefix</span></span><br><span class="line">  <span class="attr">tls:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">hosts:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">cloud-test.tubetrue01.com</span></span><br><span class="line">    <span class="attr">secretName:</span> <span class="string">tls-test-tubetrue01-wildcard</span></span><br></pre></td></tr></table></figure>
+<p>以上规则则用于将 <code>https://cloud-test.tubetrue01.com/api</code> 的流量引入后端的 <code>cloud-native-platform</code> 服务。</p>
 
       
     </div>
@@ -240,7 +224,7 @@
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/articles/page/24/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/24/">24</a><span class="page-number current">25</span><a class="page-number" href="/articles/page/26/">26</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/67/">67</a><a class="extend next" rel="next" href="/articles/page/26/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+    <a class="extend prev" rel="prev" href="/articles/page/24/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/articles/">1</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/24/">24</a><span class="page-number current">25</span><a class="page-number" href="/articles/page/26/">26</a><span class="space">&hellip;</span><a class="page-number" href="/articles/page/68/">68</a><a class="extend next" rel="next" href="/articles/page/26/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
   </nav>
 
 
@@ -308,7 +292,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/articles/archives/">
         
-          <span class="site-state-item-count">67</span>
+          <span class="site-state-item-count">68</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
